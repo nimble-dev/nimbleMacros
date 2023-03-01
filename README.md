@@ -2,7 +2,7 @@
 
 A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
 
-```
+``` r
 library(nimble)
 library(nimbleMacros)
 
