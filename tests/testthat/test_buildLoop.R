@@ -224,11 +224,11 @@ test_that("buildLoop", {
       beta[1:10] ~ buildLoop(dnorm(0, sd=10))
     })),
     # reference
-    nimbleCode({
+    list(code=nimbleCode({
       for (i_ in 1:10){
         beta[i_] ~ dnorm(0, sd = 10)
       }
-    })
+    }), constants=list())
   )
 
   expect_equal(
@@ -237,14 +237,14 @@ test_that("buildLoop", {
       beta[1:2,1:10,1] ~ buildLoop(dnorm(0, sd=10))
     })),
     # reference
-    nimbleCode({
+    list(code=nimbleCode({
       for (i_ in 1:2) {
         for (j_ in 1:10) {
             beta[i_, j_, 1] ~ dnorm(0, sd = 10)
         }
       }
-    })
-  )
+    }), constants=list()
+  ))
 
   expect_equal(
     # macro
@@ -252,9 +252,9 @@ test_that("buildLoop", {
       sigma ~ buildLoop(dunif(0,10))
     })),
     # reference
-    nimbleCode({
+    list(code=nimbleCode({
       sigma ~ dunif(0, 10)
-    })
+    }), constants=list())
   )
 
   expect_equal(
@@ -263,9 +263,9 @@ test_that("buildLoop", {
       beta[1,2] ~ buildLoop(dnorm(0, sd=10))
     })),
     # reference
-    nimbleCode({
+    list(code=nimbleCode({
       beta[1,2] ~ dnorm(0, sd=10)
-    })
+    }), constants=list())
   )
 
   expect_equal(
@@ -274,7 +274,7 @@ test_that("buildLoop", {
       beta[1:10,1:k,1:l] ~ buildLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
     })),
     # reference
-    nimbleCode({
+    list(code=nimbleCode({
       for (i_ in 1:10) {
         for (j_ in 1:k) {
             for (k_ in 1:l) {
@@ -282,7 +282,8 @@ test_that("buildLoop", {
             }
         }
       }
-    })
+    }), constants=list()
+  )
   )
 
 })

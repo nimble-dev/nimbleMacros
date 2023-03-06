@@ -165,11 +165,11 @@ buildLoop <- list(
     code <- removeMacroCall(code)
     LHS <- getLHS(code)
     # Stop if there are no brackets
-    if(!hasBracket(LHS)) return(list(code=code))
+    if(!hasBracket(LHS)) return(list(code=code, constants=.constants))
     idx <- extractIndices(LHS)
     has_range <- isIndexRange(idx)
     # Stop if none of the indices are ranges
-    if(all(!has_range)) return(list(code=code))
+    if(all(!has_range)) return(list(code=code, constants=.constants))
 
     idx_sub <- idx[has_range]
     idx_letters <- paste0(c(letters[9:12], letters[-c(9:12)]),"_")
@@ -189,7 +189,7 @@ buildLoop <- list(
       code <- newForLoop
     }
 
-    return(list(code=code))
+    return(list(code=code, constants=.constants))
   }
 )
 class(buildLoop) <- "model_macro"

@@ -30,7 +30,8 @@ modelMatrixCols <- function(form, constants){
 
 # Get parameter names by adding prefix
 getParametersForLP <- function(components, prefix="beta_"){
-  paste0(prefix, components)
+  #paste0(prefix, components)
+  paste0("beta[",1:length(components),"]")
 }
 
 # Extract entire bracket structure
@@ -126,7 +127,7 @@ nimbleFormula <- list(
     out <- str2lang(paste(out, collapse = " + "))
     out <- as.call(list(quote(buildLoop), out))
     RHS(code) <- out
-    list(code=code)
+    list(code=code, constants=newConstants)
   }
 )
 class(nimbleFormula) <- "model_macro"
