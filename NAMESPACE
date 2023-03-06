@@ -2,4 +2,5 @@
 
 export(buildLoop)
 export(makeLPFromMatrix)
+export(nimbleFormula)
 importFrom(nimble,nimbleOptions)
