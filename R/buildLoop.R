@@ -161,7 +161,7 @@ NULL
 
 #' @export
 buildLoop <- list(
-  process = function(code){
+  process = function(code, .constants, .env){
     code <- removeMacroCall(code)
     LHS <- getLHS(code)
     # Stop if there are no brackets
