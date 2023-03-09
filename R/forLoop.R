@@ -143,7 +143,7 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
 #' right-hand sides of a declaration and constructs a corresponding
 #' for loop or series of nested for loops.
 #'
-#' @name buildLoop
+#' @name forLoop
 #'
 #' @author Ken Kellner
 #'
@@ -152,15 +152,15 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
 #' @examples
 #' \donttest{
 #' code <- nimbleCode({
-#'   y[1:n, 1:2, 1] ~ buildLoop(dnorm(mu[1:n], sigma))
-#'   mu[1:n] <- buildLoop(beta[1] + beta[2]*x[1:n])
+#'   y[1:n, 1:2, 1] ~ forLoop(dnorm(mu[1:n], sigma))
+#'   mu[1:n] <- forLoop(beta[1] + beta[2]*x[1:n])
 #' })
 #' nimble:::codeProcessModelMacros(code)
 #' }
 NULL
 
 #' @export
-buildLoop <- list(
+forLoop <- list(
   process = function(code, .constants, .env){
     code <- removeMacroCall(code)
     LHS <- getLHS(code)
@@ -192,4 +192,4 @@ buildLoop <- list(
     return(list(code=code, constants=.constants))
   }
 )
-class(buildLoop) <- "model_macro"
+class(forLoop) <- "model_macro"
