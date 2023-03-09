@@ -1,4 +1,4 @@
-context("Test buildLoop and related functions")
+context("Test forLoop and related functions")
 
 test_that("isAssignment", {
   expect_true(
@@ -217,11 +217,11 @@ test_that("replaceDeclarationIndexRanges", {
   )
 })
 
-test_that("buildLoop", {
+test_that("forLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:10] ~ buildLoop(dnorm(0, sd=10))
+      beta[1:10] ~ forLoop(dnorm(0, sd=10))
     })),
     # reference
     list(code=nimbleCode({
@@ -234,7 +234,7 @@ test_that("buildLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:2,1:10,1] ~ buildLoop(dnorm(0, sd=10))
+      beta[1:2,1:10,1] ~ forLoop(dnorm(0, sd=10))
     })),
     # reference
     list(code=nimbleCode({
@@ -249,7 +249,7 @@ test_that("buildLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      sigma ~ buildLoop(dunif(0,10))
+      sigma ~ forLoop(dunif(0,10))
     })),
     # reference
     list(code=nimbleCode({
@@ -260,7 +260,7 @@ test_that("buildLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1,2] ~ buildLoop(dnorm(0, sd=10))
+      beta[1,2] ~ forLoop(dnorm(0, sd=10))
     })),
     # reference
     list(code=nimbleCode({
@@ -271,7 +271,7 @@ test_that("buildLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:10,1:k,1:l] ~ buildLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
+      beta[1:10,1:k,1:l] ~ forLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
     })),
     # reference
     list(code=nimbleCode({

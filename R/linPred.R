@@ -30,8 +30,11 @@ modelMatrixCols <- function(form, constants){
 
 # Get parameter names by adding prefix
 getParametersForLP <- function(components, prefix="beta_"){
-  #paste0(prefix, components)
-  paste0("beta[",1:length(components),"]")
+  components <- gsub("(","", components, fixed=TRUE)
+  components <- gsub(")", "", components, fixed=TRUE)
+  components <- gsub(":", ".X.", components, fixed=TRUE)
+  paste0(prefix, components)
+  #paste0("beta[",1:length(components),"]")
 }
 
 # Extract entire bracket structure
@@ -106,9 +109,15 @@ putIndicesBackInData <- function(dat, inds){
 }
 
 #' @export
-nimbleFormula <- list(
+linPred <- list(
   process = function(code, .constants, .env){
     RHS <- getRHS(code)
+    prefix <- RHS$prefix
+    if(is.null(prefix)){
+      prefix <- quote(beta_)
+    } else {
+      RHS$prefix <- NULL 
+    }   
     if(RHS[[1]] != quote(`~`)) RHS[[1]] <- quote(`~`)
     form <- as.formula(RHS)
     LHS_ind <- extractBracket(getLHS(code))
@@ -116,7 +125,7 @@ nimbleFormula <- list(
     newConstants <- splitFactorsInConstants(.constants)
     mm_cols <- modelMatrixCols(form, newConstants)
 
-    pars <- getParametersForLP(mm_cols)
+    pars <- getParametersForLP(mm_cols, prefix)
     dat <- getDataForLP(mm_cols, form, LHS_ind)
 
     # Combine parameters and data
@@ -125,9 +134,9 @@ nimbleFormula <- list(
       paste(x, y, sep=" * ")
     })
     out <- str2lang(paste(out, collapse = " + "))
-    out <- as.call(list(quote(buildLoop), out))
+    out <- as.call(list(quote(forLoop), out))
     RHS(code) <- out
     list(code=code, constants=newConstants)
   }
 )
-class(nimbleFormula) <- "model_macro"
+class(linPred) <- "model_macro"

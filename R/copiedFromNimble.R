@@ -6,3 +6,7 @@ hasBracket <- function(code) {
     if(code[[1]] == '[') return(TRUE)
     FALSE
 }
+
+embedLinesInCurlyBrackets <- function(lines) {
+  as.call(c(list(quote(`{`)), lines))
+}

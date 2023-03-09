@@ -29,7 +29,7 @@ makeLPFromMatrix <- list(
       next_lp <- getLPUnit(par_name, mat, as.numeric(par_range[i]), ss)
       out <- as.call(list(quote(`+`), out, next_lp))
     }
-    out <- as.call(list(quote(buildLoop), out))
+    out <- as.call(list(quote(forLoop), out))
     RHS(code) <- out
     list(code=code)
   }
