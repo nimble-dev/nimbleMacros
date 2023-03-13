@@ -38,7 +38,11 @@ getRHS <- function(code){
 extractIndices <- function(code){
   #if(isAssignment(code)) code <- getLHS(code)
   stopifnot(hasBracket(code))
-  lapply(3:length(code), function(x) code[[x]])
+  out <- lapply(3:length(code), function(x) code[[x]])
+  if(hasBracket(out[[1]])){
+    return(extractIndices(out[[1]]))
+  }
+  out
 }
 
 # Determine which indices in a set from a bracket are ranges
@@ -95,9 +99,15 @@ hasMatchingIndexRanges <- function(LHS, RHS){
 replaceIndex <- function(code, old_idx, new_idx){
   stopifnot(hasBracket(code))
   code_list <- as.list(code)
+  code_list <- lapply(code_list, function(x){
+    if(hasBracket(x)){
+      return(replaceIndex(x, old_idx, new_idx))
+    }
+    x
+  })
   idx <- which(code_list == old_idx)
   # If old index is not found do nothing
-  if(length(idx) != 1) return(code)
+  if(length(idx) != 1) return(as.call(code_list))
   code_list[[idx]] <- new_idx
   as.call(code_list)
 }
