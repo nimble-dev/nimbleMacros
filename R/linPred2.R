@@ -237,14 +237,15 @@ makePriorsFromFormula <- function(formula, data, prior, prefix){
 
   all_priors <- lapply(1:length(par_struct), function(i){
 
-    inds <- as.matrix(which(par_struct[[i]] %in% c(0,1), arr.ind=TRUE))
+    # Get all inds - they should be only 0 or 1 so <2 captures all
+    inds <- as.matrix(which(par_struct[[i]] < 2, arr.ind=TRUE))
   
     if(nrow(inds) < 2){
       return(substitute(LHS ~ PRIOR, list(LHS=str2lang(par_names[i]), PRIOR=prior)))
     }
 
     lapply(1:nrow(inds), function(j){
-      val <- par_struct[[i]][inds[j,]]
+      val <- par_struct[[i]][t(inds[j,])]
       bracket <- paste0("[",paste(inds[j,], collapse=","),"]")
       node <- str2lang(paste0(par_names[i], bracket))
       if(val){
