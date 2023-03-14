@@ -32,7 +32,7 @@ modelMatrixCols <- function(form, constants){
 getParametersForLP <- function(components, prefix="beta_"){
   components <- gsub("(","", components, fixed=TRUE)
   components <- gsub(")", "", components, fixed=TRUE)
-  components <- gsub(":", ".X.", components, fixed=TRUE)
+  components <- gsub(":", ".", components, fixed=TRUE)
   paste0(prefix, components)
   #paste0("beta[",1:length(components),"]")
 }

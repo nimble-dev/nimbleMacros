@@ -38,9 +38,20 @@ makeParSkeleton <- function(formula, data){
 }
 
 makeLP <- function(formula, data, idx, prefix){
-  idx <- as.character(deparse(idx))
-  pars <- all.vars(formula)
-  par_skel <- makeParSkeleton(formula, data)
+  formula_noidx <- as.formula(gsub("\\[.*?\\]", "", deparse(formula)))
+
+  # Get original indices
+  inds <- extractAllBrackets(formula)
+  if(is.null(inds)){
+    idx <- paste0("[",deparse(idx),"]")
+    inds <- replicate(idx, n=length(all.vars(formula_noidx)))
+    names(inds) <- all.vars(formula_noidx)
+  }
+  inds <- removeDuplicateIndices(inds)
+
+  #idx <- as.character(deparse(idx))
+  pars <- all.vars(formula_noidx)
+  par_skel <- makeParSkeleton(formula_noidx, data)
   is_factor <- sapply(pars, function(x) is.factor(data[[x]]))
   type <- strsplit(names(par_skel), ":")
   fc <- sapply(type, function(x) x[x %in% pars[is_factor]])
@@ -52,12 +63,22 @@ makeLP <- function(formula, data, idx, prefix){
   
     fc_idx <- ''
     if(length(fc[[i]]) > 0){
-      fc_idx <- paste(paste0(fc[[i]],"_NEW[",idx,"]"), collapse = ", ")
+      #fc_idx <- paste(paste0(fc[[i]],"_NEW[",idx,"]"), collapse = ", ")
+      if(!fc[[i]] %in% names(inds)){
+        stop("Missing bracket index on RHS of formula", call.=FALSE)
+      }
+      idx_match <- inds[[fc[[i]]]]
+      fc_idx <- paste(paste0(fc[[i]],"_NEW",idx_match), collapse = ", ")
       out <- paste0(out, "[",fc_idx,"]")
     }
 
     if(length(cont[[i]]) > 0){
-      out <- paste(out, "*", paste0(cont[[i]], "[", idx, "]", collapse=" * "))
+      if(!cont[[i]] %in% names(inds)){
+        stop("Missing bracket index on RHS of formula", call.=FALSE)
+      }
+      idx_match <- inds[[cont[[i]]]]
+      out <- paste(out, "*", paste0(cont[[i]], idx_match, collapse=" * "))
+      #out <- paste(out, "*", paste0(cont[[i]], "[", idx, "]", collapse=" * "))
     }
     out
   })
@@ -127,7 +148,8 @@ linPred2 <- list(
       }
     }
 
-    dat <- as.data.frame(.constants[all.vars(form)])
+    form_noidx <- as.formula(gsub("\\[.*?\\]", "", deparse(form)))
+    dat <- as.data.frame(.constants[all.vars(form_noidx)])
 
     out <- makeLP(form, dat, LHS_ind, prefix)
     out <- as.call(list(quote(forLoop), out))
