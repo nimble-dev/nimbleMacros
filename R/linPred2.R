@@ -1,28 +1,61 @@
-makeParSkeleton <- function(formula, data){
-  pars <- all.vars(formula)
+# Get list of terms from formula, adding intercept if necessary
+getTerms <- function(formula){
   trm <- attr(terms(formula), "term.labels")
   if(attr(terms(formula), "intercept")) trm <- c("Intercept", trm)
-  comb <- strsplit(trm, ":")
-  
-  mm <- colnames(model.matrix(formula, data))
-  
-  levs <- sapply(pars, function(x){
-    if(!is.factor(data[[x]])) return(NA)
-    levels(data[[x]])
-  })
-  levs_comb <- lapply(1:length(levs), function(i) paste0(names(levs)[i], na.omit(levs[[i]])))
-  names(levs_comb) <- names(levs)
+  trm
+}
 
-  par_skel <- lapply(comb, function(x){
+# Generates list of factor levels (=how R would name them) for each variable in formula
+# E.g. variable x2 with levels a and b would return c("x2a", "x2b")
+# Non-factors just return the variable name
+getLevels <- function(formula, data){
+  pars <- all.vars(formula)
+  sapply(pars, function(x){
+    if(!is.factor(data[[x]])) return(x)
+    paste0(x, levels(data[[x]]))
+  })
+}
+
+# For each parameter in the model, create a placeholder array with correct dimensions
+# Full of 0s
+# Intercept has no dimensions
+# Continuous parameters are scalars
+# Factors are vectors
+# Interactions involving a factor are arrays
+# e.g. if factor x has 2 levels, and factor y has 2 levels
+# The resulting interaction parameter will be a 2 x 2 matrix
+# The dimensions are named matching to the parameter names
+makeEmptyParameterStructure <- function(formula, data){
+  trm <- getTerms(formula)
+  levs <- getLevels(formula, data)
+  out <- lapply(strsplit(trm, ":"), function(x){
     dm <- sapply(x, function(y) length(levs[[y]]))
-    dnames <- lapply(x, function(y) levs_comb[[y]])
+    dnames <- lapply(x, function(y) levs[[y]])
     array(0, dim=as.numeric(dm), dimnames=dnames)
   })
-  names(par_skel) <- trm
+  names(out) <- trm
+  out
+}
 
-  pars_full <- strsplit(mm, ":")
+# Output is a list equal in length to number of parameters in model.
+# For each parameter in the model, generates an object corresponding to
+# its dimensions (intercept = none, continuous par = scalar, factor = vector,
+# interaction = array). Within each object, elements that are to be estimated
+# by the model have a 1, and everything else is 0.
+# So for example, a model ~1 + x where x is a factor with two levels,
+# the resulting element for x will be c(0, 1) - only the parameter for level 2 is
+# estimated. However for ~x - 1, the result would be c(1,1).
+makeParameterStructure <- function(formula, data){
+ 
+  # Generate placeholder structure containing all 0s
+  empty_structure <- makeEmptyParameterStructure(formula, data)
 
-  par_skel <- lapply(par_skel, function(x){
+  pars_full <- colnames(model.matrix(formula, data))
+  pars_full <- strsplit(pars_full, ":")
+  
+  # Replace elements of parameter structure for which we actually estimate
+  # a parameter with 1
+  lapply(empty_structure, function(x){
     for (i in 1:length(pars_full)){
       ind <- t(pars_full[[i]])
       if(length(dim(x)) == length(ind) & all(ind %in% unlist(dimnames(x)))){
@@ -31,149 +64,213 @@ makeParSkeleton <- function(formula, data){
     }
     drop(x)
   })
-
-  par_skel
-
-
 }
 
-makeLP <- function(formula, data, idx, prefix){
-  formula_noidx <- as.formula(gsub("\\[.*?\\]", "", deparse(formula)))
+# Remove brackets and everything inside them from formula
+# E.g. ~x[1:n] + x2[1:k] --> ~x + x2
+removeBracketsFromFormula <- function(formula){
+  as.formula(gsub("\\[.*?\\]", "", deparse(formula)))
+}
 
-  # Get original indices
+# Extract brackets and everything inside them from each term in RHS of formula
+# If there are no brackets, create them based on bracket present on LHS of formula
+# Returned as named vector of character strings
+getFormulaBrackets <- function(formula, LHSidx){
+  vars <- all.vars(removeBracketsFromFormula(formula))
   inds <- extractAllBrackets(formula)
   if(is.null(inds)){
-    idx <- paste0("[",deparse(idx),"]")
-    inds <- replicate(idx, n=length(all.vars(formula_noidx)))
-    names(inds) <- all.vars(formula_noidx)
+    idx <- paste0("[",deparse(LHSidx),"]")
+    inds <- replicate(idx, n=length(vars))
+    names(inds) <- vars
   }
-  inds <- removeDuplicateIndices(inds)
-
-  #idx <- as.character(deparse(idx))
-  pars <- all.vars(formula_noidx)
-  par_skel <- makeParSkeleton(formula_noidx, data)
-  is_factor <- sapply(pars, function(x) is.factor(data[[x]]))
-  type <- strsplit(names(par_skel), ":")
-  fc <- sapply(type, function(x) x[x %in% pars[is_factor]])
-  cont <- sapply(type, function(x) x[! x %in% pars[is_factor] & x != "Intercept"])
-  
-  par_names <- getParametersForLP(names(par_skel), prefix)
-  lp_comps <- lapply(1:length(par_names), function(i){
-    out <- paste(par_names[i])
-  
-    fc_idx <- ''
-    if(length(fc[[i]]) > 0){
-      #fc_idx <- paste(paste0(fc[[i]],"_NEW[",idx,"]"), collapse = ", ")
-      if(!fc[[i]] %in% names(inds)){
-        stop("Missing bracket index on RHS of formula", call.=FALSE)
-      }
-      idx_match <- inds[[fc[[i]]]]
-      fc_idx <- paste(paste0(fc[[i]],"_NEW",idx_match), collapse = ", ")
-      out <- paste0(out, "[",fc_idx,"]")
-    }
-
-    if(length(cont[[i]]) > 0){
-      if(!cont[[i]] %in% names(inds)){
-        stop("Missing bracket index on RHS of formula", call.=FALSE)
-      }
-      idx_match <- inds[[cont[[i]]]]
-      out <- paste(out, "*", paste0(cont[[i]], idx_match, collapse=" * "))
-      #out <- paste(out, "*", paste0(cont[[i]], "[", idx, "]", collapse=" * "))
-    }
-    out
-  })
-  names(lp_comps) <- par_names
-
-  lp <- str2lang(paste(unlist(lp_comps), collapse=" + "))
-  lp
+  removeDuplicateIndices(inds) # Fix this later?
 }
 
-
-makePriors <- function(formula, data, prior, prefix){ 
-
-  par_skel <- makeParSkeleton(formula, data)
-  par_names <- getParametersForLP(names(par_skel), prefix)
-  #prior <- quote(dnorm(0, sd=100))
-  all_priors <- lapply(1:length(par_skel), function(i){
-  
-    if(length(par_skel[[i]]) < 2){
-      return(substitute(LHS ~ PRIOR, list(LHS=str2lang(par_names[i]), PRIOR=prior)))
-    }
-
-    fixed_inds <- which(par_skel[[i]] == 0, arr.ind=TRUE)
-    if(length(fixed_inds) == 1) fixed_inds <- as.matrix(fixed_inds)
-    fixed_assign <- list()
-    if(length(fixed_inds) > 0){
-      fixed_assign <- lapply(1:nrow(fixed_inds), function(j){
-        inds <- paste0("[",paste(fixed_inds[j,], collapse=","),"]")
-        out <- str2lang(paste0(par_names[i], inds))
-        substitute(LHS <- 0, list(LHS=out))
-      }
-      )
-    }
-    est_inds <- which(par_skel[[i]] == 1, arr.ind=TRUE)
-    if(!is.matrix(est_inds)) est_inds <- as.matrix(est_inds)
-    est_prior <- lapply(1:nrow(est_inds), function(j){
-      inds <- paste0("[",paste(est_inds[j,], collapse=","),"]")
-      out <- str2lang(paste0(par_names[i], inds))
-      substitute(LHS ~ PRIOR, list(LHS=out, PRIOR=prior))
-    }
-    )
-    both <- c(fixed_assign, est_prior)
-    both
+# Get variable type(s) associated with each parameter in the model
+# Returns Intercept, continuous, or factor
+getVariableType <- function(formula, data){
+  pars <- getTerms(formula)
+  out <- lapply(strsplit(pars, ":"), function(x){
+    sapply(x, function(y){
+      if(y == "Intercept") return(y)
+      if(is.factor(data[[y]])) return("factor")
+      return("continuous")
+    })
   })
-  all_priors <- unlist(all_priors)
-  embedLinesInCurlyBrackets(all_priors)
+  names(out) <- pars
+  out
+}
+
+# Check that brackets are available for all variables and return them
+matchVarsToBrackets <- function(vars, brackets){
+  if(!all(vars %in% names(brackets))){
+    stop("Missing bracket index on RHS of formula", call.=FALSE)
+  }
+  brackets[vars]
+}
+
+# Generate indices when a parameter involves a factor
+# For example for factor covariate x2 in formula, the result is: 
+# [x2_NEW[1:n]]. The _NEW part is necessary for now since nimble doesn't
+# properly handle factors automatically, so I need to make a new numeric version
+# A 2-way factor interaction would look something like [x2_NEW[1:n], x3_NEW[1:n]] etc.
+factorComponent <- function(type, brackets){
+  vars <- names(type)[type=="factor"]
+  if(length(vars) == 0) return(NULL)
+  bracks <- matchVarsToBrackets(vars, brackets)
+  indices <- paste0(vars, "_NEW", bracks) # _NEW part should be removed later
+  paste0("[", paste(indices, collapse=", "), "]")
+}
+
+# Generate the data part of the component of the linear predictor
+# When the associated variable is continuous
+# For example if x1 is continuous the result is: * x1[1:n]
+continuousComponent <- function(type, brackets){
+  vars <- names(type)[type=="continuous"]
+  if(length(vars) == 0) return(NULL)
+  bracks <- matchVarsToBrackets(vars, brackets)
+  indices <- paste0(vars, bracks)
+  paste(" *", paste(indices, collapse=" * "))
+}
+
+makeLPFromFormula <- function(formula, data, LHSidx, prefix){
+  formula_nobrack <- removeBracketsFromFormula(formula)
+  #pars <- all.vars(formula_nobrack)
+  # Get structure of each parameter
+  par_struct <- makeParameterStructure(formula_nobrack, data)
+  # Get complete name of each parameter (prefix + original name)
+  par_names <- getParametersForLP(names(par_struct), prefix)
+  # Extract brackets from formula or create them if missing
+  brackets <- getFormulaBrackets(formula, LHSidx)  
+  # Data type for each variable in the formula (intercept, continuous, factor)
+  types <- getVariableType(formula_nobrack, data)
+
+  # Build each part of the LP from the component parameters, combining parameter names,
+  # factor indices (if applicable) and continuous covariate data (if applicable)
+  lp <- lapply(1:length(par_names), function(i){
+    paste0(par_names[i], factorComponent(types[[i]], brackets),
+          continuousComponent(types[[i]], brackets))
+  })
+  names(lp) <- par_names
+
+  # Collapse the list into a single linear predictor
+  str2lang(paste(unlist(lp), collapse=" + "))
+}
+
+# Add numeric version of factors to constants, e.g. x2 becomes x2_NEW
+# This should not always be necessary to do, but at the moment
+# nimble doesn't handle factors smoothly
+addNumericFactorsToConstants <- function(constants){
+  for (i in 1:length(constants)){
+    if(is.factor(constants[[i]])){
+      constants[[paste0(names(constants)[i], "_NEW")]] <- as.numeric(constants[[i]])
+    }
+  }
+  constants
+}
+
+# Make a dummy data frame with all the required variables in a formula
+# The purpose of this is just to tell model.matrix what type each variable is
+# (factor or continuous)
+# This handles variables in the formula that don't actually show up in the constants,
+# e.g. that are created in the model itself
+makeDummyDataFrame <- function(formula, constants){
+  vars <- all.vars(removeBracketsFromFormula(formula))
+  out <- vector("list", length(vars))
+  names(out) <- vars
+  for (i in vars){
+    # If variable is not in constants, we assume it is created in the model
+    # and that it is continuous
+    if(! i %in% names(constants)){
+      out[[i]] <- 0
+    } else if (is.factor(constants[[i]]) | is.numeric(constants[[i]])){
+      out[[i]] <- constants[[i]][1]
+    }
+  }
+  as.data.frame(out)
 }
 
 #' @export
 linPred2 <- list(
   process = function(code, .constants, .env){
     RHS <- getRHS(code)
+    
+    # Get value for prefix argument
     prefix <- RHS$prefix
     if(is.null(prefix)){
       prefix <- quote(beta_)
     } else {
       RHS$prefix <- NULL 
     }
+
+    # Get formula
     RHS <- RHS[[2]]
     if(RHS[[1]] != quote(`~`)) RHS <- c(quote(`~`),RHS) # 
     form <- as.formula(RHS)
+    # Get index on LHS to use if none are found in RHS formula
     LHS_ind <- extractIndices(getLHS(code))[[1]]
-
-    newConstants <- .constants
-    for (i in 1:length(.constants)){
-      if(is.factor(.constants[[i]])){
-        newConstants[[paste0(names(.constants)[i], "_NEW")]] <- as.numeric(.constants[[i]])
-      }
-    }
-
-    form_noidx <- as.formula(gsub("\\[.*?\\]", "", deparse(form)))
-    dat <- as.data.frame(.constants[all.vars(form_noidx)])
-
-    out <- makeLP(form, dat, LHS_ind, prefix)
+    
+    # Convert factors to numeric in constants (may not always be necessary)
+    newConstants <- addNumericFactorsToConstants(.constants)
+    # Make a dummy data frame to inform model.matrix with variable types
+    dat <- makeDummyDataFrame(form, .constants)
+    # Make linear predictor from formula and data
+    out <- makeLPFromFormula(form, dat, LHS_ind, prefix)
+    # Add forLoop macro to result
     out <- as.call(list(quote(forLoop), out))
-
+    # Replace RHS with result
     RHS(code) <- out
+    # Return code and new constants
     list(code=code, constants=newConstants)
   }
 )
 class(linPred2) <- "model_macro"
 
 
+# Generate a code block with parameter priors for a given formula and 
+# corresponding dataset
+# Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
+makePriorsFromFormula <- function(formula, data, prior, prefix){ 
+
+  par_struct <- makeParameterStructure(formula, data)
+  par_names <- getParametersForLP(names(par_struct), prefix)
+
+  all_priors <- lapply(1:length(par_struct), function(i){
+
+    inds <- as.matrix(which(par_struct[[i]] %in% c(0,1), arr.ind=TRUE))
+  
+    if(nrow(inds) < 2){
+      return(substitute(LHS ~ PRIOR, list(LHS=str2lang(par_names[i]), PRIOR=prior)))
+    }
+
+    lapply(1:nrow(inds), function(j){
+      val <- par_struct[[i]][inds[j,]]
+      bracket <- paste0("[",paste(inds[j,], collapse=","),"]")
+      node <- str2lang(paste0(par_names[i], bracket))
+      if(val){
+        substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior))
+      } else {
+        substitute(LHS <- 0, list(LHS=node))
+      }
+    })
+  })
+  all_priors <- unlist(all_priors)
+  embedLinesInCurlyBrackets(all_priors)
+}
+
+
 #' @export
 priors2 <- list(process=function(code, .constants, .env=env){
   form <- nimbleMacros:::getRHS(code)[1:2][[2]]
-  if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) # 
-  form <- as.formula(form)
-  dat <- as.data.frame(.constants[all.vars(form)])
+  if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
+  form <- as.formula(form)  
+  dat <- makeDummyDataFrame(form, .constants)
 
-  prefix <-nimbleMacros:::getLHS(code)
+  prefix <- nimbleMacros:::getLHS(code)
   priors <- nimbleMacros:::getRHS(code)[[3]]
 
-  out <- makePriors(form, dat, priors, prefix=as.character(deparse(prefix)))
+  out <- makePriorsFromFormula(form, dat, priors, prefix=as.character(deparse(prefix)))
   
   list(code=out, constants=.constants)
 })
 class(priors2) <- "model_macro"
-
