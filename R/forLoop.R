@@ -1,3 +1,18 @@
+hasBracket <- function(code, recursive=TRUE){
+  if (length(code) < 2) return(FALSE)
+  if (code[[1]] == "[") return(TRUE)
+  if(recursive){
+    if (is.name(code[[1]])) return(hasBracket(code[[2]]))
+  }
+    FALSE
+}
+
+getBracket <- function(code){
+  stopifnot(hasBracket(code))
+  if(code[[1]] == "[") return(code)
+  if(is.name(code[[1]])) return(getBracket(code[[2]]))
+}
+
 # Is chunk of code assigning a value or distribution to LHS
 # declaration
 isAssignment <- function(code){
@@ -36,13 +51,13 @@ getRHS <- function(code){
 # Get index values from bracket
 # For example alpha[1,1:10,k] returns list(1, 1:10, k)
 extractIndices <- function(code){
-  #if(isAssignment(code)) code <- getLHS(code)
-  stopifnot(hasBracket(code))
-  out <- lapply(3:length(code), function(x) code[[x]])
-  if(hasBracket(out[[1]])){
-    return(extractIndices(out[[1]]))
-  }
-  out
+    stopifnot(hasBracket(code))
+    code <- getBracket(code)
+    out <- lapply(3:length(code), function(x) code[[x]])
+    if (hasBracket(out[[1]])) {
+        return(extractIndices(out[[1]]))
+    }
+    out
 }
 
 # Determine which indices in a set from a bracket are ranges

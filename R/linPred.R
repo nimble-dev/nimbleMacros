@@ -38,19 +38,19 @@ getParametersForLP <- function(components, prefix="beta_"){
 }
 
 # Extract entire bracket structure
-extractBracket <- function(code){
-  stopifnot(hasBracket(code))
-  out <- regmatches(deparse(code), regexpr("\\[.*?\\]", deparse(code)))
-  names(out) <- as.character(code[[2]])
+extractBracket <- function(formula){
+  stopifnot(hasBracket(formula))
+  out <- regmatches(deparse(formula), regexpr("\\[.*?\\]", deparse(formula)))
+  names(out) <- as.character(formula[[2]])
   out
 }
 
-extractAllBrackets <- function(code){
-  if(hasBracket(code)){
-    out <- extractBracket(code)
+extractAllBrackets <- function(formula){
+  if(hasBracket(formula, recursive=FALSE)){
+    out <- extractBracket(formula)
   } else{
-    if(is.call(code)){
-      out <- lapply(code, extractAllBrackets)
+    if(is.call(formula)){
+      out <- lapply(formula, extractAllBrackets)
     } else {
       out <- NULL
     }

@@ -10,10 +10,11 @@ getTerms <- function(formula){
 # Non-factors just return the variable name
 getLevels <- function(formula, data){
   pars <- all.vars(formula)
-  sapply(pars, function(x){
+  out <- sapply(pars, function(x){
     if(!is.factor(data[[x]])) return(x)
     paste0(x, levels(data[[x]]))
   })
+  as.list(out)
 }
 
 # For each parameter in the model, create a placeholder array with correct dimensions
@@ -79,7 +80,7 @@ getFormulaBrackets <- function(formula, LHSidx){
   vars <- all.vars(removeBracketsFromFormula(formula))
   inds <- extractAllBrackets(formula)
   if(is.null(inds)){
-    idx <- paste0("[",deparse(LHSidx),"]")
+    idx <- paste0("[",paste(sapply(LHSidx, deparse), collapse=", "),"]")
     inds <- replicate(idx, n=length(vars))
     names(inds) <- vars
   }
@@ -203,13 +204,21 @@ linPred2 <- list(
     } else {
       RHS$prefix <- NULL 
     }
+    # Get value for link argument
+    link <- RHS$link
+    if(!is.null(link)){
+      RHS$link <- NULL 
+    }
 
     # Get formula
     RHS <- RHS[[2]]
     if(RHS[[1]] != quote(`~`)) RHS <- c(quote(`~`),RHS) # 
     form <- as.formula(RHS)
     # Get index on LHS to use if none are found in RHS formula
-    LHS_ind <- extractIndices(getLHS(code))[[1]]
+    LHS_ind <- extractIndices(getLHS(code))
+    if(!is.null(link)){
+      LHS(code) <- as.call(list(link, getLHS(code)))
+    }
     
     # Convert factors to numeric in constants (may not always be necessary)
     #newConstants <- addNumericFactorsToConstants(.constants)
