@@ -113,12 +113,13 @@ matchVarsToBrackets <- function(vars, brackets){
 # For example for factor covariate x2 in formula, the result is: 
 # [x2_NEW[1:n]]. The _NEW part is necessary for now since nimble doesn't
 # properly handle factors automatically, so I need to make a new numeric version
-# A 2-way factor interaction would look something like [x2_NEW[1:n], x3_NEW[1:n]] etc.
+# UPDATE: I've now hacked this into nimble macro branch
+# A 2-way factor interaction would look something like [x2[1:n], x3[1:n]] etc.
 factorComponent <- function(type, brackets){
   vars <- names(type)[type=="factor"]
   if(length(vars) == 0) return(NULL)
   bracks <- matchVarsToBrackets(vars, brackets)
-  indices <- paste0(vars, "_NEW", bracks) # _NEW part should be removed later
+  indices <- paste0(vars, bracks) # _NEW part should be removed later
   paste0("[", paste(indices, collapse=", "), "]")
 }
 
@@ -211,7 +212,7 @@ linPred2 <- list(
     LHS_ind <- extractIndices(getLHS(code))[[1]]
     
     # Convert factors to numeric in constants (may not always be necessary)
-    newConstants <- addNumericFactorsToConstants(.constants)
+    #newConstants <- addNumericFactorsToConstants(.constants)
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(form, .constants)
     # Make linear predictor from formula and data
@@ -221,7 +222,7 @@ linPred2 <- list(
     # Replace RHS with result
     RHS(code) <- out
     # Return code and new constants
-    list(code=code, constants=newConstants)
+    list(code=code, constants=.constants)
   }
 )
 class(linPred2) <- "model_macro"
@@ -329,3 +330,26 @@ priors2 <- list(process=function(code, .constants, .env=env){
   list(code=out, constants=.constants)
 })
 class(priors2) <- "model_macro"
+
+#' @export
+nimbleLM2 <- list(process = function(code, .constants, .env){
+  
+  RHS <- getRHS(code)
+  LHS <- getLHS(code)
+  idx <- extractIndices(LHS)[[1]]
+  form <- RHS[[2]]
+  priorLP <- if(is.null(RHS$priorLP)) quote(dnorm(0, sd=100)) else RHS$priorLP
+  priorSig <- if(is.null(RHS$priorSig)) quote(dunif(0, 100)) else RHS$priorSig
+  prefix <- if(is.null(RHS$prefix)) quote(beta.) else RHS$prefix
+  
+  dataDec <- substitute(DAT ~ forLoop(dnorm(mu[IDX], sd=sigma)),
+                        list(DAT=LHS, IDX=idx))
+  LP <- substitute(mu[IDX] <- linPred2(FORM, prefix=PREFIX),
+                   list(IDX=idx, FORM=form, PREFIX=prefix))
+  LPprior <- substitute(PREFIX ~ priors2(FORM, PRIORLP, modMatNames=TRUE),
+                        list(PREFIX=prefix, FORM=form, PRIORLP=priorLP))
+  sigprior <- substitute(sigma ~ PRIORSIG, list(PRIORSIG=priorSig))
+  out <- list(dataDec, LP, LPprior, sigprior)
+  list(code=embedLinesInCurlyBrackets(out), constants=.constants)
+})
+class(nimbleLM2) <- 'model_macro'
