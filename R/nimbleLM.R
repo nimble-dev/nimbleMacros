@@ -13,7 +13,7 @@ nimbleLM <- list(process = function(code, .constants, .env){
                         list(DAT=LHS, IDX=idx))
   LP <- substitute(mu[IDX] <- linPred(FORM, prefix=PREFIX),
                    list(IDX=idx, FORM=form, PREFIX=prefix))
-  LPprior <- substitute(PREFIX ~ priors(FORM, PRIORLP),
+  LPprior <- substitute(PREFIX ~ priors(FORM, PRIORLP, modMatNames=TRUE),
                         list(PREFIX=prefix, FORM=form, PRIORLP=priorLP))
   sigprior <- substitute(sigma ~ PRIORSIG, list(PRIORSIG=priorSig))
   out <- list(dataDec, LP, LPprior, sigprior)

@@ -2,10 +2,6 @@
 
 export(forLoop)
 export(linPred)
-export(linPred2)
-export(makeLPFromMatrix)
 export(nimbleLM)
-export(nimbleLM2)
 export(priors)
-export(priors2)
 importFrom(nimble,nimbleOptions)
