@@ -253,6 +253,10 @@ linPred <- list(
     if(!is.null(link)){
       RHS$link <- NULL 
     }
+    prior <- RHS$prior
+    if(!is.null(prior)){
+      RHS$prior <- NULL
+    }
 
     # Get formula
     RHS <- RHS[[2]]
@@ -274,6 +278,13 @@ linPred <- list(
     out <- as.call(list(quote(forLoop), out))
     # Replace RHS with result
     RHS(code) <- out
+
+    if(!is.null(prior)){
+      priorCode <- substitute(PREFIX ~ priors(FORMULA, PRIORS, modMatNames=TRUE),
+                              list(PREFIX=prefix, FORMULA=form, PRIORS=prior))
+      code <- embedLinesInCurlyBrackets(list(code, priorCode))
+    }
+
     # Return code and new constants
     list(code=code, constants=.constants)
   }
