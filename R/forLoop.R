@@ -42,7 +42,7 @@ getRHS <- function(code){
 # Replace RHS of assignment code chunk
 `RHS<-` <- function(code, value){
   stopifnot(isAssignment(code))
-  stopifnot(is.call(value)|is.name(value))
+  stopifnot(is.call(value)|is.name(value)|is.numeric(value))
   code[[3]] <- value
   code
 }
