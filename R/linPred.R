@@ -236,6 +236,7 @@ makeDummyDataFrame <- function(formula, constants){
   as.data.frame(out)
 }
 
+#' @importFrom lme4 nobars
 #' @export
 linPred <- list(
   process = function(code, .constants, .env){
@@ -253,9 +254,13 @@ linPred <- list(
     if(!is.null(link)){
       RHS$link <- NULL 
     }
-    prior <- RHS$prior
-    if(!is.null(prior)){
-      RHS$prior <- NULL
+    coefPrior <- RHS$coefPrior
+    if(!is.null(coefPrior)){
+      RHS$coefPrior <- NULL
+    }
+    sdPrior <- RHS$sdPrior
+    if(!is.null(sdPrior)){
+      RHS$sdPrior <- NULL
     }
 
     # Get formula
@@ -268,20 +273,32 @@ linPred <- list(
       LHS(code) <- as.call(list(link, getLHS(code)))
     }
     
+    rand_info <- processAllBars(form, quote(dunif(0, 100)), prefix, .constants)
+    .constants <- rand_info$constants
+    
+    new_form <- form
+    if(!is.null(rand_info)){
+      new_form <- addFormulaTerms(list(lme4::nobars(form), rand_info$formula))
+    }
+    
     # Convert factors to numeric in constants (may not always be necessary)
     #newConstants <- addNumericFactorsToConstants(.constants)
     # Make a dummy data frame to inform model.matrix with variable types
-    dat <- makeDummyDataFrame(form, .constants)
+    dat <- makeDummyDataFrame(new_form, .constants)
     # Make linear predictor from formula and data
-    out <- makeLPFromFormula(form, dat, LHS_ind, prefix)
+    out <- makeLPFromFormula(new_form, dat, LHS_ind, prefix)
     # Add forLoop macro to result
     out <- as.call(list(quote(forLoop), out))
     # Replace RHS with result
     RHS(code) <- out
 
-    if(!is.null(prior)){
-      priorCode <- substitute(PREFIX ~ priors(FORMULA, PRIORS, modMatNames=TRUE),
-                              list(PREFIX=prefix, FORMULA=form, PRIORS=prior))
+    if(!is.null(coefPrior) | !is.null(sdPrior)){
+
+      if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
+      if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
+
+      priorCode <- substitute(PREFIX ~ priors(FORMULA, coefPrior=COEFPRIOR, sdPrior=SDPRIOR, modMatNames=TRUE),
+                              list(PREFIX=prefix, FORMULA=form, COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 

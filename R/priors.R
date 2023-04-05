@@ -77,25 +77,40 @@ makeParameterStructureModMatNames <- function(formula, data){
   })
 }
 
-
+#' @importFrom lme4 nobars
 #' @export
 priors <- list(process=function(code, .constants, .env=env){
   form <- getRHS(code)[1:2][[2]]
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
-  dat <- makeDummyDataFrame(form, .constants)
+  
+  prefix <- getLHS(code)
+  coefPrior <- getRHS(code)$coefPrior
+  sdPrior <- getRHS(code)$sdPrior
+  if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
+  if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
+
+  rand_info <- processAllBars(form, sdPrior, prefix, .constants) 
+    
+  new_form <- form
+  if(!is.null(rand_info)){
+    new_form <- addFormulaTerms(list(lme4::nobars(form), rand_info$formula))
+    new_form <- as.formula(new_form)
+  }
+
+  dat <- makeDummyDataFrame(new_form, .constants)
 
   modMatNames <- getRHS(code)$modMatNames
   if(is.null(modMatNames)){
     modMatNames <- FALSE
   }
-  prefix <- getLHS(code)
-  priors <- getRHS(code)[[3]]
 
-  out <- makePriorsFromFormula(form, dat, priors, 
+  fixed <- makePriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
                                prefix=as.character(deparse(prefix)),
                                modMatNames = modMatNames)
+  out <- embedLinesInCurlyBrackets(list(fixed, rand_info$code))
+  out <- removeExtraBrackets(out)
   
   list(code=out, constants=.constants)
 })
