@@ -85,13 +85,14 @@ priors <- list(process=function(code, .constants, .env=env){
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
   
-  prefix <- getLHS(code)
+  coefPrefix <- getLHS(code)
+  sdPrefix <- getRHS(code)$sdPrefix
   coefPrior <- getRHS(code)$coefPrior
   sdPrior <- getRHS(code)$sdPrior
   if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
   if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
-  rand_info <- processAllBars(form, sdPrior, prefix, .constants) 
+  rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants) 
     
   new_form <- form
   if(!is.null(rand_info)){
@@ -107,7 +108,7 @@ priors <- list(process=function(code, .constants, .env=env){
   }
 
   fixed <- makePriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
-                               prefix=as.character(deparse(prefix)),
+                               prefix=as.character(deparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- embedLinesInCurlyBrackets(list(fixed, rand_info$code))
   out <- removeExtraBrackets(out)

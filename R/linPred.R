@@ -243,12 +243,17 @@ linPred <- list(
     RHS <- getRHS(code)
     
     # Get value for prefix argument
-    prefix <- RHS$prefix
-    if(is.null(prefix)){
-      prefix <- quote(beta_)
+    coefPrefix <- RHS$coefPrefix
+    if(is.null(coefPrefix)){
+      coefPrefix <- quote(beta.)
     } else {
-      RHS$prefix <- NULL 
+      RHS$coefPrefix <- NULL 
     }
+    sdPrefix <- RHS$sdPrefix
+    if(!is.null(sdPrefix)){
+      RHS$sdPrefix <- NULL 
+    }
+
     # Get value for link argument
     link <- RHS$link
     if(!is.null(link)){
@@ -273,7 +278,7 @@ linPred <- list(
       LHS(code) <- as.call(list(link, getLHS(code)))
     }
     
-    rand_info <- processAllBars(form, quote(dunif(0, 100)), prefix, .constants)
+    rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants)
     .constants <- rand_info$constants
     
     new_form <- form
@@ -286,7 +291,7 @@ linPred <- list(
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(new_form, .constants)
     # Make linear predictor from formula and data
-    out <- makeLPFromFormula(new_form, dat, LHS_ind, prefix)
+    out <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
     # Add forLoop macro to result
     out <- as.call(list(quote(forLoop), out))
     # Replace RHS with result
@@ -297,8 +302,10 @@ linPred <- list(
       if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
       if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
-      priorCode <- substitute(PREFIX ~ priors(FORMULA, coefPrior=COEFPRIOR, sdPrior=SDPRIOR, modMatNames=TRUE),
-                              list(PREFIX=prefix, FORMULA=form, COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
+      priorCode <- substitute(PREFIX ~ priors(FORMULA, coefPrior=COEFPRIOR, sdPrefix=SDPREFIX, 
+                                              sdPrior=SDPRIOR, modMatNames=TRUE),
+                              list(PREFIX=coefPrefix, FORMULA=form, SDPREFIX=sdPrefix,
+                                   COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 

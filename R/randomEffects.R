@@ -72,22 +72,23 @@ addFormulaTerms <- function(trms){
 
 # Get list of names for hyperpriors (SDs) from combined terms
 # e.g. term x.group --> sd.x.group
-getHyperpriorNames <- function(barExp){
+getHyperpriorNames <- function(barExp, prefix){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
-  sd_names <- paste0("sd.", sapply(trms, deparse))
+  sdPrefix <- ifelse(is.null(prefix), "", deparse(prefix))
+  sd_names <- paste0(prefix, "sd.", sapply(trms, deparse))
   sd_names <- gsub(":", ".", sd_names) # replace : since it can't be in BUGS
   sapply(sd_names, str2lang)
 }
 
 # Make hyperprior BUGS code chunk from a bar expression
 # (1|group) + dunif(0, 100) --> sd.group ~ dunif(0, 100) 
-makeHyperpriorCode <- function(barExp, SDprior){
+makeHyperpriorCode <- function(barExp, sdPrefix, sdPrior){
   stopifnot(isBar(barExp))
-  sd_names <- getHyperpriorNames(barExp)
+  sd_names <- getHyperpriorNames(barExp, sdPrefix)
 
   hyperpriors <- lapply(sd_names, function(x){
-    substitute(LHS ~ PRIOR, list(LHS=x, PRIOR=SDprior))
+    substitute(LHS ~ PRIOR, list(LHS=x, PRIOR=sdPrior))
   })
   embedLinesInCurlyBrackets(hyperpriors)
 }
@@ -109,17 +110,17 @@ numRandomFactorLevels <- function(barExp, constants){
 }
 
 # Make uncorrelated random effects prior(s) from a particular bar expression
-makeUncorrelatedRandomPrior <- function(barExp, prefix, constants){
+makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
   nlev <- numRandomFactorLevels(barExp, constants)
-  sd_name <- getHyperpriorNames(barExp)[[1]]
-  par_name <- makeRandomParNames(barExp, prefix)[[1]]
+  sd_name <- getHyperpriorNames(barExp, sdPrefix)[[1]]
+  par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
   substitute(LHS[1:NLEV] ~ forLoop(dnorm(0, sd=SD)),
     list(LHS=par_name, NLEV=nlev, SD=sd_name))
 }
 
 # Make correlated random effects priors from a particular bar expression
 # check use of i_ index
-makeCorrelatedRandomPrior <- function(barExp, prefix, constants){
+makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
 
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)  
@@ -128,8 +129,9 @@ makeCorrelatedRandomPrior <- function(barExp, prefix, constants){
 
   # BUGS code to assign hyperprior SDs into vector
   rfact <- getRandomFactorName(barExp)
-  sd_names <- getHyperpriorNames(barExp)
-  sd_vec <- as.name(paste0("re.sds.", deparse(rfact)))
+  sd_names <- getHyperpriorNames(barExp, sdPrefix)
+  sdPrefix <- ifelse(is.null(sdPrefix), "", deparse(sdPrefix))
+  sd_vec <- as.name(paste0(sdPrefix, "re.sds.", deparse(rfact)))
   sds <- lapply(1:length(sd_names), function(i){
     substitute(SDS[IDX] <- SDPAR, 
                list(SDS = sd_vec, IDX=as.numeric(i), SDPAR=sd_names[[i]]))
@@ -161,7 +163,7 @@ makeCorrelatedRandomPrior <- function(barExp, prefix, constants){
   B <- substitute(B[i_, 1:NP] ~ dmnorm(REMEANS[1:NP], cholesky = U[1:NP, 1:NP], prec_param=0),
                   list(B=B_name, NP=np, REMEANS=re_means, U=U_name))
   # Generate BUGS code to split parts of B out into separate vectors for each parameter
-  par_names <- makeRandomParNames(barExp, prefix)
+  par_names <- makeRandomParNames(barExp, coefPrefix)
   B_split <- lapply(1:np, function(j){
     substitute(PAR[i_] <- B[i_, J], 
                list(PAR=par_names[[j]], B=B_name, J=as.numeric(j)))
@@ -196,14 +198,14 @@ uppertri_mult_diag <- nimbleFunction(
 
 # Decide if correlated or uncorrelated random prior(s) are needed from bar expression
 # And return corresponding BUGS code and constants
-makeRandomPriorCode <- function(barExp, prefix, constants){
+makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, constants){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
-    prior <- makeUncorrelatedRandomPrior(barExp, prefix, constants)
+    prior <- makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, constants)
     return(list(code=prior, constants=constants))
   }
-  makeCorrelatedRandomPrior(barExp, prefix, constants)
+  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, constants)
 }
 
 # Remove extra brackets in BUGS code
@@ -258,7 +260,7 @@ processNestedRandomEffects <- function(barExp, constants){
 # Function to process a single bar expression (barExp) such as (1|group)
 # SDprior is the desired hyperprior, prefix is the prefix on the parameters,
 # and constants are passed so they can be modified if needed
-processBar <- function(barExp, SDprior, prefix, constants){  
+processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, constants){  
   # Handle nested random effects
   nested <- processNestedRandomEffects(barExp, constants)
   barExp <- nested$barExp
@@ -269,9 +271,9 @@ processBar <- function(barExp, SDprior, prefix, constants){
   form <- getCombinedFormulaFromBar(barExp)
    
   # BUGS Hyperprior code
-  hyperpriors <- makeHyperpriorCode(barExp, SDprior)
+  hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, sdPrior)
   # BUGS random effect prior code, also updates constants if needed
-  priors <- makeRandomPriorCode(barExp, prefix, constants)
+  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, constants)
   constants <- priors$constants
   priors <- priors$code
   # Combine all code
@@ -283,7 +285,7 @@ processBar <- function(barExp, SDprior, prefix, constants){
 # Function to handle all bar expressions in a formula, combining results
 
 #' @importFrom lme4 findbars
-processAllBars <- function(formula, SDprior, prefix, constants){
+processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, constants){
   # Generate separate bars from formula
   bars <- lme4::findbars(formula)
 
@@ -295,17 +297,22 @@ processAllBars <- function(formula, SDprior, prefix, constants){
   names(out) <- sapply(bars, deparse)
 
   # Fill in first element of list with first bar expression
-  out[[1]] <- processBar(bars[[1]], SDprior, prefix, constants)
+  out[[1]] <- processBar(bars[[1]], sdPrior, coefPrefix, sdPrefix, constants)
   # Work through remaining bar expressions if they exist
   # Make sure to pass updated constants
   if(length(bars) > 1){
     for (i in 2:length(bars)){
-      out[[i]] <- processBar(bars[[i]], SDprior, prefix, out[[i-1]]$constants)
+      out[[i]] <- processBar(bars[[i]], sdPrior, coefPrefix, sdPrefix, out[[i-1]]$constants)
     }
   }
   
   # Combine formula terms from all bar expressions
   full_formula <- unlist(lapply(out, function(x) x$formula))
+  dups <- names(full_formula)[duplicated(full_formula)]
+  if(length(dups) > 0){
+    dups <- paste0("(",dups,")")
+    stop("Term(s) ", paste(dups, collapse=", "), " are duplicated in formula", call.=FALSE)
+  }
   full_formula <- addFormulaTerms(full_formula)
   
   # Combine all BUGS priors code
