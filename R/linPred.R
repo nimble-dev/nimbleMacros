@@ -1,4 +1,5 @@
 # Get list of terms from formula, adding intercept if necessary
+#' @importFrom stats terms
 getTerms <- function(formula){
   trm <- attr(terms(formula), "term.labels")
   if(attr(terms(formula), "intercept")) trm <- c("Intercept", trm)
@@ -10,10 +11,11 @@ getTerms <- function(formula){
 # Non-factors just return the variable name
 getLevels <- function(formula, data){
   pars <- all.vars(formula)
-  out <- sapply(pars, function(x){
+  out <- lapply(pars, function(x){
     if(!is.factor(data[[x]])) return(x)
     paste0(x, levels(data[[x]]))
   })
+  names(out) <- pars
   as.list(out)
 }
 
@@ -46,6 +48,7 @@ makeEmptyParameterStructure <- function(formula, data){
 # So for example, a model ~1 + x where x is a factor with two levels,
 # the resulting element for x will be c(0, 1) - only the parameter for level 2 is
 # estimated. However for ~x - 1, the result would be c(1,1).
+#' @importFrom stats model.matrix
 makeParameterStructure <- function(formula, data){
  
   # Generate placeholder structure containing all 0s
@@ -69,8 +72,38 @@ makeParameterStructure <- function(formula, data){
 
 # Remove brackets and everything inside them from formula
 # E.g. ~x[1:n] + x2[1:k] --> ~x + x2
+# This should probably be replaced with something that works on
+# the code directly instead of using regular expressions
+#' @importFrom stats as.formula
 removeBracketsFromFormula <- function(formula){
-  as.formula(gsub("\\[.*?\\]", "", deparse(formula)))
+  out <- gsub("\\[.*?\\]", "", deparse(formula))
+  as.formula(gsub("\\[|\\]", "", out))
+}
+
+# Extract entire bracket structure
+# "formula" is actually a formula component, e.g. quote(x[1:n])
+extractBracket <- function(formula){
+  stopifnot(hasBracket(formula))
+  #out <- regmatches(deparse(formula), regexpr("\\[.*?\\]", deparse(formula)))
+  #extract out to the last bracket in case of nested brackets
+  out <- regmatches(deparse(formula), regexpr("\\[.*\\]", deparse(formula)))
+  names(out) <- as.character(formula[[2]])
+  out
+}
+
+extractAllBrackets <- function(formula){
+  if(hasBracket(formula, recursive=FALSE)){
+    out <- extractBracket(formula)
+  } else{
+    if(is.call(formula)){
+      out <- lapply(formula, extractAllBrackets)
+    } else {
+      out <- NULL
+    }
+  }
+  out <- unlist(out)
+  if(is.call(out) | is.numeric(out)) out <- list(out) # always return a list
+  return(out)
 }
 
 # Extract brackets and everything inside them from each term in RHS of formula
@@ -147,37 +180,13 @@ continuousComponent <- function(type, brackets){
 }
 
 # Get parameter names by adding prefix
-getParametersForLP <- function(components, prefix="beta_"){
-  components <- gsub("(","", components, fixed=TRUE)
-  components <- gsub(")", "", components, fixed=TRUE)
+getParametersForLP <- function(components, prefix="beta."){
+  components <- gsub("(","", components, fixed=TRUE) # possibly not necessary
+  components <- gsub(")", "", components, fixed=TRUE) # ditto
   components <- gsub(":", ".", components, fixed=TRUE)
   paste0(prefix, components)
   #paste0("beta[",1:length(components),"]")
 }
-
-# Extract entire bracket structure
-extractBracket <- function(formula){
-  stopifnot(hasBracket(formula))
-  out <- regmatches(deparse(formula), regexpr("\\[.*?\\]", deparse(formula)))
-  names(out) <- as.character(formula[[2]])
-  out
-}
-
-extractAllBrackets <- function(formula){
-  if(hasBracket(formula, recursive=FALSE)){
-    out <- extractBracket(formula)
-  } else{
-    if(is.call(formula)){
-      out <- lapply(formula, extractAllBrackets)
-    } else {
-      out <- NULL
-    }
-  }
-  out <- unlist(out)
-  if(is.call(out) | is.numeric(out)) out <- list(out) # always return a list
-  return(out)
-}
-
 
 makeLPFromFormula <- function(formula, data, LHSidx, prefix){
   formula_nobrack <- removeBracketsFromFormula(formula)
@@ -206,14 +215,14 @@ makeLPFromFormula <- function(formula, data, LHSidx, prefix){
 # Add numeric version of factors to constants, e.g. x2 becomes x2_NEW
 # This should not always be necessary to do, but at the moment
 # nimble doesn't handle factors smoothly
-addNumericFactorsToConstants <- function(constants){
-  for (i in 1:length(constants)){
-    if(is.factor(constants[[i]])){
-      constants[[paste0(names(constants)[i], "_NEW")]] <- as.numeric(constants[[i]])
-    }
-  }
-  constants
-}
+#addNumericFactorsToConstants <- function(constants){
+#  for (i in 1:length(constants)){
+#    if(is.factor(constants[[i]])){
+#      constants[[paste0(names(constants)[i], "_NEW")]] <- as.numeric(constants[[i]])
+#    }
+#  }
+#  constants
+#}
 
 # Make a dummy data frame with all the required variables in a formula
 # The purpose of this is just to tell model.matrix what type each variable is
