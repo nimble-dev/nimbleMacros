@@ -1,6 +1,7 @@
 # Generate a code block with parameter priors for a given formula and 
 # corresponding dataset
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
+#' @importFrom stats model.matrix
 makePriorsFromFormula <- function(formula, data, prior, prefix, modMatNames=FALSE){ 
 
   par_struct <- makeParameterStructure(formula, data)
@@ -53,6 +54,7 @@ makePriorsFromFormula <- function(formula, data, prior, prefix, modMatNames=FALS
 # Organize model.matrix() version of parameter names into an
 # identical data structure to makeParameterStructure()
 # So they can be matched if required
+#' @importFrom stats model.matrix
 makeParameterStructureModMatNames <- function(formula, data){
  
   # Generate placeholder structure containing all 0s
@@ -95,7 +97,7 @@ priors <- list(process=function(code, .constants, .env=env){
   rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants) 
     
   new_form <- form
-  if(!is.null(rand_info)){
+  if(!is.null(rand_info$formula)){
     new_form <- addFormulaTerms(list(lme4::nobars(form), rand_info$formula))
     new_form <- as.formula(new_form)
   }

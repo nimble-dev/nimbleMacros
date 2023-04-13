@@ -1,4 +1,17 @@
-context("Test forLoop and related functions")
+context("forLoop and related functions")
+
+test_that("hasBracket", {
+  expect_true(hasBracket(quote(beta[1])))
+  expect_false(hasBracket(quote(beta)))
+  expect_true(hasBracket(quote(alpha[beta[1]])))
+  expect_true(hasBracket(quote(~x[1:n])))
+  expect_false(hasBracket(quote(~x[1:n]), recursive=FALSE))
+})
+
+test_that("isAssignment", {
+  expect_true(isAssignment(quote(alpha <- 1)))
+  expect_false(isAssignment(quote(alpha(1))))
+})
 
 test_that("isAssignment", {
   expect_true(

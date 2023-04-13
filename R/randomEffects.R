@@ -9,6 +9,7 @@ isBar <- function(code){
 # Convert bar expression to a list of interaction terms combining 
 # the LHS and RHS of bar
 # Also first expand LHS if needed (e.g. from x*y to x+y+x:y)
+#' @importFrom stats as.formula terms
 barToTerms <- function(barExp){
   stopifnot(isBar(barExp))
 
@@ -185,6 +186,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
 
 # Nimble function needed above
 
+#' @importFrom nimble nimMatrix
 #' @export
 uppertri_mult_diag <- nimbleFunction(
     run = function(mat = double(2), vec = double(1)) {
@@ -290,7 +292,7 @@ processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, constants){
   bars <- lme4::findbars(formula)
 
   # Return NULL if there are no bars
-  if(is.null(bars)) return(NULL)
+  if(is.null(bars)) return(list(formula=NULL, code=NULL, constants=constants))
 
   # Create empty output list
   out <- vector("list", length(bars))

@@ -85,7 +85,7 @@ removeMacroCall <- function(code){
 # Extract all indices from code
 # Should be passed either LHS or RHS of declaration
 extractAllIndices <- function(code){
-  if(hasBracket(code)){
+  if(hasBracket(code, recursive=FALSE)){
     out <- extractIndices(code)
   } else{
     if(is.call(code)){
