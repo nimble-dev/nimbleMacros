@@ -1,0 +1,44 @@
+---
+output: 
+    md_document:
+        variant: gfm
+---
+
+# nimbleMacros
+
+A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
+Currently available macros are focused on fitting linear models, GLMs, and GLMMs.
+For example, a simple linear regression:
+
+```{r, eval=FALSE}
+library(nimbleMacros)
+```
+
+```{r, echo=FALSE}
+suppressMessages(library(nimbleMacros))
+```
+
+```{r}
+data(longley)
+
+nimble_data <- list(GNP=longley$GNP, Employed=longley$Employed)
+
+code <- nimbleCode({
+  nimbleLM(Employed ~ GNP)
+})
+
+# View expanded code
+nimble:::codeProcessModelMacros(code, nimble_data)$code
+```
+
+```{r}
+# Fit model
+out <- nimbleMCMC(code, constants=nimble_data, nchains=3, niter=1000, nburnin=500,
+                  summary=TRUE, progressBar=FALSE)
+round(out$summary$all.chains, 3)
+```
+
+```{r}
+# Compare to lm
+summary(lm(Employed ~ GNP, data=longley))
+```
