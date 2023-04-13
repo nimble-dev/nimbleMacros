@@ -245,6 +245,51 @@ makeDummyDataFrame <- function(formula, constants){
   as.data.frame(out)
 }
 
+#' Macro to build code for linear predictor from R formula
+#'
+#' Converts an R formula into corresponding code for a linear predictor in BUGS.
+#' Options are available to specify a link function and to also generate
+#' code for priors corresponding to the parameters in the linear predictor.
+#'
+#' @name linPred
+#' @author Ken Kellner
+#' 
+#' @param formula An R formula, possibly with the parameters followed by 
+#'  brackets containing indices. If there are no indices, the macro attempts
+#'  to guess the correct indices from the context. The formula must be 
+#'  right-hand side only (e.g. ~x). This must always be the first argument supplied
+#'  to linPred.
+#' @param link A link function (available in BUGS) which will be applied to the 
+#'  left-hand-side (the response) in the final linear predictor. Default is none.
+#' @param coefPrefix All model coefficient names will begin with this prefix.
+#'  default is beta. (so x becomes beta.x, etc.)
+#' @param sdPrefix All dispersion parameters will begin with this prefix.
+#'  default is no prefix.
+#' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
+#'  If this parameter is specified, the priors() macro will also be called.
+#' @param sdPrior BUGS code for prior on dispersion parameters. Default is
+#'  half-Cauchy T(dt(0, 0.1, 1), 0,). If this parameter is specified, the
+#'  priors() macro will also be called.
+#' 
+#' @examples
+#' \donttest{
+#' constants <- list(x = rnorm(10), 
+#'                   x2 = factor(sample(letters[1:3], 10, replace=T)))
+#'
+#' # Just linear predictor
+#' code <- nimbleCode({
+#'   y[1:n] ~ linPred(~x + x2)
+#' })
+#' nimble:::codeProcessModelMacros(code, constants)$code
+#' 
+#' # Also generate matching priors
+#' code <- nimbleCode({
+#'   y[1:n] ~ linPred(~x + x2, coefPrior=dnorm(0, sd=10))
+#' })
+#' nimble:::codeProcessModelMacros(code, constants)$code
+#' }
+NULL
+
 #' @importFrom lme4 nobars
 #' @export
 linPred <- list(
@@ -308,7 +353,7 @@ linPred <- list(
 
     if(!is.null(coefPrior) | !is.null(sdPrior)){
 
-      if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
+      if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, sd=10))
       if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
       priorCode <- substitute(PREFIX ~ priors(FORMULA, coefPrior=COEFPRIOR, sdPrefix=SDPREFIX, 

@@ -112,7 +112,9 @@ priors <- list(process=function(code, .constants, .env=env){
   fixed <- makePriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
                                prefix=as.character(deparse(coefPrefix)),
                                modMatNames = modMatNames)
-  out <- embedLinesInCurlyBrackets(list(fixed, rand_info$code))
+  out <- list(fixed)
+  if(!is.null(rand_info$code)) out <- c(out, list(rand_info$code))
+  out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
   
   list(code=out, constants=.constants)

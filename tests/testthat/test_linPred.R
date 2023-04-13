@@ -404,12 +404,12 @@ test_that("linPred", {
     quote(log(y[1:n]) ~ forLoop(beta.Intercept + beta.x[x[1:n]]))
   )
 
-  code <- quote(y[1:n] ~ linPred(~1, coefPrior=dnorm(0, 5)))
+  code <- quote(y[1:n] ~ linPred(~1, coefPrior=dnorm(0, sd=5)))
   expect_equal(
     linPred$process(code, dat)$code,
     quote({
       y[1:n] ~ forLoop(beta.Intercept)
-      beta. ~ priors(~1, coefPrior = dnorm(0, 5), sdPrefix=NULL, sdPrior=T(dt(0,0.1,1), 0, ), modMatNames=TRUE)
+      beta. ~ priors(~1, coefPrior = dnorm(0, sd=5), sdPrefix=NULL, sdPrior=T(dt(0,0.1,1), 0, ), modMatNames=TRUE)
     })
   )
 
@@ -418,7 +418,7 @@ test_that("linPred", {
     linPred$process(code, dat)$code,
     quote({
       y[1:n] ~ forLoop(beta.Intercept)
-      beta. ~ priors(~1, coefPrior = dnorm(0, 10), sdPrefix=NULL, sdPrior=dunif(0, 10), modMatNames=TRUE)
+      beta. ~ priors(~1, coefPrior = dnorm(0, sd=10), sdPrefix=NULL, sdPrior=dunif(0, 10), modMatNames=TRUE)
     })
   )
 
