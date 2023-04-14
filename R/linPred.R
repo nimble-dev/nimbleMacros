@@ -368,4 +368,3 @@ linPred <- list(
   }
 )
 class(linPred) <- "model_macro"
-
