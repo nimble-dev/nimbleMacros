@@ -2,7 +2,7 @@
 # corresponding dataset
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
 #' @importFrom stats model.matrix
-makePriorsFromFormula <- function(formula, data, prior, prefix, modMatNames=FALSE){ 
+makeFixedPriorsFromFormula <- function(formula, data, prior, prefix, modMatNames=FALSE){ 
 
   par_struct <- makeParameterStructure(formula, data)
   # Matching structure with the model matrix version of the names
@@ -79,6 +79,39 @@ makeParameterStructureModMatNames <- function(formula, data){
   })
 }
 
+#' Macro to build code for priors on a linear predictor from R formula
+#'
+#' Generates appropriate priors for a linear predictor derived from an 
+#' R formula. As such it makes the most sense to use this macro together with
+#' the linPred macro which takes similar arguments.
+#'
+#' @name priors
+#' @author Ken Kellner
+#'
+#' @param formula An R formula The formula must be right-hand side only (e.g. ~x). 
+#'  This must always be the first argument supplied to priors.
+#' @param sdPrefix All dispersion parameters will begin with this prefix.
+#'  default is no prefix.
+#' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
+#' @param sdPrior BUGS code for prior on dispersion parameters. Default is
+#'  half-Cauchy T(dt(0, 0.1, 1), 0,).
+#' @param modMatNames Logical, should parameters be named so they match the
+#'  names you would get from R's model.matrix function?
+#'
+#' @examples
+#' \donttest{
+#' constants <- list(x = rnorm(10), 
+#'                   x2 = factor(sample(letters[1:3], 10, replace=T)))
+#'
+#' # Just linear predictor
+#' code <- nimbleCode({
+#'   y[1:n] ~ linPred(~x + x2)
+#'   beta. ~ priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
+#'  })
+#' nimble:::codeProcessModelMacros(code, constants)$code
+#' }
+NULL
+
 #' @importFrom lme4 nobars
 #' @export
 priors <- list(process=function(code, .constants, .env=env){
@@ -109,7 +142,7 @@ priors <- list(process=function(code, .constants, .env=env){
     modMatNames <- FALSE
   }
 
-  fixed <- makePriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
+  fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
                                prefix=as.character(deparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- list(fixed)
