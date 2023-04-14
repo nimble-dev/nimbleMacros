@@ -429,3 +429,22 @@ test_that("linPred", {
   )
 
 })
+
+test_that("linPred with random effect", {
+  set.seed(123)
+  dat <- list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3))
+
+  code <- quote(y[1:n] ~ linPred(~x3 + (1|x)))
+ 
+  out <- linPred$process(code, dat)
+  expect_equal(
+    out$code,
+    quote(y[1:n] ~ forLoop(beta.Intercept + beta.x3 * x3[1:n] + beta.x[x[1:n]]))
+  )
+  expect_equal(
+    out$constants,
+    dat
+  )
+})
