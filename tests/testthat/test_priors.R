@@ -146,3 +146,27 @@ test_that("priors macro", {
     })
   )
 })
+
+test_that("priors with random effect", {
+  set.seed(123)
+  dat <- list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3))
+
+  code <- quote(beta. ~ priors(~x3 + (1|x), sdPrior=dunif(0, 3)))
+ 
+  out <- priors$process(code, dat)
+  expect_equal(
+    out$code,
+    quote({
+      beta.Intercept ~ dnorm(0, 10)
+      beta.x3 ~ dnorm(0, 10)
+      sd.x ~ dunif(0, 3)
+      beta.x[1:3] ~ forLoop(dnorm(0, sd = sd.x))
+    })
+  )
+  expect_equal(
+    out$constants,
+    dat
+  )
+})

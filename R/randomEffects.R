@@ -107,20 +107,25 @@ makeRandomParNames <- function(barExp, prefix){
 # Get number of levels for factor in a bar expression from constants
 numRandomFactorLevels <- function(barExp, constants){
   rfact <- getRandomFactorName(barExp)
-  as.numeric(length(levels(constants[[deparse(rfact)]])))
+  facdata <- constants[[deparse(rfact)]]
+  stopifnot(is.factor(facdata))
+  as.numeric(length(levels(facdata)))
 }
 
 # Make uncorrelated random effects prior(s) from a particular bar expression
 makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
   nlev <- numRandomFactorLevels(barExp, constants)
-  sd_name <- getHyperpriorNames(barExp, sdPrefix)[[1]]
+  sd_name <- getHyperpriorNames(barExp, sdPrefix)
+  stopifnot(length(sd_name) == 1)
+  sd_name <- sd_name[[1]]
   par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
   substitute(LHS[1:NLEV] ~ forLoop(dnorm(0, sd=SD)),
     list(LHS=par_name, NLEV=nlev, SD=sd_name))
 }
 
 # Make correlated random effects priors from a particular bar expression
-# check use of i_ index
+# FIXME: check use of i_ index against other created parameters
+# FIXME: this should no longer need to process constants
 makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
 
   stopifnot(isBar(barExp))
@@ -186,6 +191,19 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
 
 # Nimble function needed above
 
+#' uppertri_mult_diag
+#' 
+#' nimbleFunction needed when fitting correlated random effects.
+#' Generates upper triangular Cholesky factor of covariance matrix (U in code)
+#' from upper tri Cholesky factor of correlation matrix (Ustar in code)
+#' and vector of standard deviations. Taken from the NIMBLE manual, 
+#' section 5.2.4.1.2 LKJ distribution for correlation matrices.
+#' 
+#' @param mat upper triangular Cholesky factor of correlation matrix (Ustar)
+#' @param vec vector of standard deviations for individual random effects
+#'
+#' @name uppertri_mult_diag
+
 #' @importFrom nimble nimMatrix
 #' @export
 uppertri_mult_diag <- nimbleFunction(
@@ -219,7 +237,7 @@ removeExtraBracketsInternal <- function(code){
   unlist(lapply(code, function(x){
     if(length(x) == 1) return(x)                       
     if(x[[1]] == "{") x <- as.list(x)[2:length(x)]
-    # handle for loops here
+    # FIXME: handle for loops here
     if(is.list(x)) x <- removeExtraBracketsInternal(x)
     x
   }))
