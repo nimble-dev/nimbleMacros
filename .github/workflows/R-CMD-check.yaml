@@ -69,8 +69,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          remotes::install_deps(dependencies = TRUE)
-          remotes::install_cran("rcmdcheck")
+          remotes::install_cran(c("lme4", "rcmdcheck", "roxygen2", "testthat"))
+          remotes::install_github("kenkellner/nimble", subdir="packages/nimble", ref="macros")
         shell: Rscript {0}
 
       - name: Check
