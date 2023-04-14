@@ -11,7 +11,7 @@
 #'  brackets containing indices. If there are no indices, the macro attempts
 #'  to guess the correct indices from the context. Formulas can include
 #'  random effects via lme4-style notation (e.g. ~ x + (1|group))
-#' @family A description of the error distribution and link function to
+#' @param family A description of the error distribution and link function to
 #'  be used in the model. This can be a character string naming a family function, 
 #'  a family function or the result of a call to a family function. See ?family 
 #' @param coefPrefix All model coefficient names will begin with this prefix.
@@ -28,7 +28,7 @@
 #' \donttest{
 #' constants <- list(y = rnorm(10),
 #'                   x = rnorm(10), 
-#'                   x2 = factor(sample(letters[1:3], 10, replace=T)))
+#'                   x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
 #' 
 #' code <- nimbleCode({
 #'   nimbleLM(y ~ x + x2)

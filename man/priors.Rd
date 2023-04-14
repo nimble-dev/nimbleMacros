@@ -26,7 +26,7 @@ the linPred macro which takes similar arguments.
 \examples{
 \donttest{
 constants <- list(x = rnorm(10), 
-                  x2 = factor(sample(letters[1:3], 10, replace=T)))
+                  x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
 
 # Just linear predictor
 code <- nimbleCode({
