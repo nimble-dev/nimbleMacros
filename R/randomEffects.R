@@ -237,8 +237,11 @@ removeExtraBracketsInternal <- function(code){
   unlist(lapply(code, function(x){
     if(length(x) == 1) return(x)                       
     if(x[[1]] == "{") x <- as.list(x)[2:length(x)]
-    # FIXME: handle for loops here
-    if(is.list(x)) x <- removeExtraBracketsInternal(x)
+    if(is.list(x)){
+      x <- removeExtraBracketsInternal(x)
+    } else if(x[[1]] == "for"){
+      x[[4]] <- removeExtraBrackets(x[[4]])
+    }
     x
   }))
 }
