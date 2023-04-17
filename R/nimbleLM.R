@@ -82,7 +82,7 @@ nimbleLM <- list(process = function(code, .constants, .env){
   
   dataDec <- getDataDistCode(family$family, LHS, idx, sd_res)
   # FIXME: LHS par should not be fixed at mu
-  LP <- substitute(mu[IDX] <- linPred(FORM, link=LINK, prefix=PREFIX),
+  LP <- substitute(mu_[IDX] <- linPred(FORM, link=LINK, coefPrefix=PREFIX),
                    list(IDX=idx, FORM=form, PREFIX=coefPrefix, LINK=link))
   LPprior <- substitute(PREFIX ~ priors(FORM, sdPrefix=SDPREFIX, coefPrior=COEFPRIOR, 
                                         sdPrior=SDPRIOR, modMatNames=TRUE),
@@ -119,11 +119,11 @@ processFamily <- function(fam){
 # FIXME: This should be more general
 getDataDistCode <- function(family, response, idx, dispParName){
   if(family == "gaussian"){
-    out <- substitute(DAT ~ forLoop(DIST(mu[IDX], sd=DISPPAR)),
+    out <- substitute(DAT ~ forLoop(DIST(mu_[IDX], sd=DISPPAR)),
                         list(DAT=response, DIST=quote(dnorm), IDX=idx,
                              DISPPAR=dispParName))
   } else if(family == "poisson"){
-    out <- substitute(DAT ~ forLoop(DIST(mu[IDX])),
+    out <- substitute(DAT ~ forLoop(DIST(mu_[IDX])),
                       list(DAT=response, DIST=quote(dpois), IDX=idx))
   }
   out
