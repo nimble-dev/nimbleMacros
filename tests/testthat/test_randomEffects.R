@@ -183,7 +183,7 @@ test_that("makeCorrelatedRandomPrior", {
         Ustar.group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
         U.group[1:2, 1:2] <- uppertri_mult_diag(Ustar.group[1:2, 1:2], re.sds.group[1:2])
     }
-    re.means.group[1:2] <- forLoop(0)
+    re.means.group[1:2] <- rep(0, 2)
     for (i_ in 1:3) {
         B.group[i_, 1:2] ~ dmnorm(re.means.group[1:2], cholesky = U.group[1:2, 1:2], prec_param = 0)
         beta.group[i_] <- B.group[i_, 1]
@@ -220,7 +220,7 @@ test_that("makeRandomPriorCode", {
         Ustar.group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
         U.group[1:2, 1:2] <- uppertri_mult_diag(Ustar.group[1:2, 1:2], re.sds.group[1:2])
     }
-    re.means.group[1:2] <- forLoop(0)
+    re.means.group[1:2] <- rep(0, 2)
     for (i_ in 1:3) {
         B.group[i_, 1:2] ~ dmnorm(re.means.group[1:2], cholesky = U.group[1:2, 1:2], prec_param = 0)
         beta.group[i_] <- B.group[i_, 1]
@@ -243,7 +243,7 @@ test_that("removeExtraBrackets", {
     re.sds.group[2] <- sd.x.group
     Ustar.group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
     U.group[1:2, 1:2] <- uppertri_mult_diag(Ustar.group[1:2, 1:2], re.sds.group[1:2])
-    re.means.group[1:2] <- forLoop(0)
+    re.means.group[1:2] <- rep(0, 2)
     for (i_ in 1:3) {
         B.group[i_, 1:2] ~ dmnorm(re.means.group[1:2], cholesky = U.group[1:2, 1:2], prec_param = 0)
         beta.group[i_] <- B.group[i_, 1]
