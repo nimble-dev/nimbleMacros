@@ -156,7 +156,8 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
   # Generate name of random effects mean vector (of all 0s)
   rfact <- getRandomFactorName(barExp)
   re_means <- as.name(paste0("re.means.", deparse(rfact)))
-  re_mean_loop <- substitute(REMEAN[1:NP] <- forLoop(0), list(REMEAN=re_means, NP=np))
+  re_mean_loop <- substitute(REMEANS[1:NP] <- rep(0, NP), 
+                             list(REMEANS=re_means, NP=np))
   # and add corresponding vector to constants
   #if(!deparse(re_means) %in% names(constants)){
   #  new_constant <- list(rep(0, np))
