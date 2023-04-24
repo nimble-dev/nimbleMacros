@@ -15,7 +15,7 @@
 #'  be used in the model. This can be a character string naming a family function, 
 #'  a family function or the result of a call to a family function. See ?family 
 #' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta. (so x becomes beta.x, etc.)
+#'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
@@ -71,22 +71,22 @@ nimbleLM <- list(process = function(code, .constants, .env){
 
   coefPrior <- if(is.null(RHS$coefPrior)) quote(dnorm(0, sd=100)) else RHS$coefPrior
   sdPrior <- if(is.null(RHS$sdPrior)) quote(dunif(0, 100)) else RHS$sdPrior
-  coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta.) else RHS$coefPrefix
+  coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta_) else RHS$coefPrefix
   sdPrefix <- RHS$sdPrefix
 
   if(is.null(sdPrefix)){
-    sd_res <- quote(sd.residual)
+    sd_res <- quote(sd_residual)
   } else {
-    sd_res <- str2lang(paste0(deparse(sdPrefix),"sd.residual"))
+    sd_res <- str2lang(paste0(deparse(sdPrefix),"sd_residual"))
   }
   
   dataDec <- getDataDistCode(family$family, LHS, idx, sd_res)
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- linPred(FORM, link=LINK, coefPrefix=PREFIX),
                    list(IDX=idx, FORM=form, PREFIX=coefPrefix, LINK=link))
-  LPprior <- substitute(PREFIX ~ priors(FORM, sdPrefix=SDPREFIX, coefPrior=COEFPRIOR, 
-                                        sdPrior=SDPRIOR, modMatNames=TRUE),
-                        list(PREFIX=coefPrefix, FORM=form, SDPREFIX=sdPrefix,
+  LPprior <- substitute(priors(FORM, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
+                               coefPrior=COEFPRIOR, sdPrior=SDPRIOR, modMatNames=TRUE),
+                        list(COEFPREFIX=coefPrefix, FORM=form, SDPREFIX=sdPrefix,
                              COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
   out <- list(dataDec, LP, LPprior)
 

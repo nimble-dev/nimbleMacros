@@ -14,7 +14,7 @@ be used in the model. This can be a character string naming a family function,
 a family function or the result of a call to a family function. See ?family}
 
 \item{coefPrefix}{All model coefficient names will begin with this prefix.
-default is beta. (so x becomes beta.x, etc.)}
+default is beta_ (so x becomes beta_x, etc.)}
 
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
 default is no prefix.}

@@ -25,14 +25,14 @@ nimble:::codeProcessModelMacros(code, nimble_data)$code
     ## {
     ##     {
     ##         for (i_ in 1:16) {
-    ##             Employed[i_] ~ dnorm(mu[i_], sd = sd.residual)
+    ##             Employed[i_] ~ dnorm(mu_[i_], sd = sd.residual)
     ##         }
     ##         for (i_ in 1:16) {
-    ##             mu[i_] <- beta.Intercept + beta.GNP * GNP[i_]
+    ##             mu_[i_] <- beta_Intercept + beta_GNP * GNP[i_]
     ##         }
     ##         {
-    ##             beta.Intercept ~ dnorm(0, sd = 100)
-    ##             beta.GNP ~ dnorm(0, sd = 100)
+    ##             beta_Intercept ~ dnorm(0, sd = 100)
+    ##             beta_GNP ~ dnorm(0, sd = 100)
     ##         }
     ##         sd.residual ~ dunif(0, 100)
     ##     }
@@ -63,7 +63,7 @@ out <- nimbleMCMC(code, constants=nimble_data, nchains=3, niter=1000, nburnin=50
 
     ## Checking model calculations
 
-    ## [Note] NAs were detected in model variables: beta.Intercept, logProb_beta.Intercept, beta.GNP, logProb_beta.GNP, sd.residual, logProb_sd.residual, mu, logProb_Employed.
+    ## [Note] NAs were detected in model variables: beta_Intercept, logProb_beta_Intercept, beta_GNP, logProb_beta_GNP, sd.residual, logProb_sd.residual, mu_, logProb_Employed.
 
     ## Compiling
     ##   [Note] This may take a minute.
@@ -80,9 +80,9 @@ round(out$summary$all.chains, 3)
 ```
 
     ##                  Mean Median St.Dev. 95%CI_low 95%CI_upp
-    ## beta.GNP        0.035  0.035   0.002     0.031     0.039
-    ## beta.Intercept 51.859 51.792   0.804    50.314    53.480
-    ## sd.residual     0.729  0.700   0.152     0.505     1.110
+    ## beta_GNP        0.035  0.035   0.002     0.030     0.039
+    ## beta_Intercept 51.907 51.925   0.828    50.373    53.703
+    ## sd.residual     0.722  0.686   0.155     0.518     1.139
 
 ``` r
 # Compare to lm

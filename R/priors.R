@@ -90,6 +90,8 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'
 #' @param formula An R formula The formula must be right-hand side only (e.g. ~x). 
 #'  This must always be the first argument supplied to priors.
+#' @param coefPrefix All model coefficient names will begin with this prefix.
+#'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
@@ -106,7 +108,7 @@ makeParameterStructureModMatNames <- function(formula, data){
 #' # Just linear predictor
 #' code <- nimbleCode({
 #'   y[1:n] ~ linPred(~x + x2)
-#'   beta. ~ priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
+#'   priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
 #'  })
 #' nimble:::codeProcessModelMacros(code, constants)$code
 #' }
@@ -115,15 +117,16 @@ NULL
 #' @importFrom lme4 nobars
 #' @export
 priors <- list(process=function(code, .constants, .env=env){
-  form <- getRHS(code)[1:2][[2]]
+  form <- code[[2]]
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
   
-  coefPrefix <- getLHS(code)
-  sdPrefix <- getRHS(code)$sdPrefix
-  coefPrior <- getRHS(code)$coefPrior
-  sdPrior <- getRHS(code)$sdPrior
+  coefPrefix <- if(is.null(code$coefPrefix)) quote(beta_) else code$coefPrefix
+  #coefPrefix <- getLHS(code)
+  sdPrefix <- code$sdPrefix
+  coefPrior <- code$coefPrior
+  sdPrior <- code$sdPrior
   if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
   if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
@@ -137,7 +140,7 @@ priors <- list(process=function(code, .constants, .env=env){
 
   dat <- makeDummyDataFrame(new_form, .constants)
 
-  modMatNames <- getRHS(code)$modMatNames
+  modMatNames <- code$modMatNames
   if(is.null(modMatNames)){
     modMatNames <- FALSE
   }

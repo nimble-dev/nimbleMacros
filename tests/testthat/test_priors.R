@@ -7,73 +7,73 @@ test_that("makeFixedPriorsFromFormula", {
                     x3=rnorm(10))
   
   expect_equal(
-    makeFixedPriorsFromFormula(~1, dat, quote(dnorm(0, sd=5)), quote(beta.)),
+    makeFixedPriorsFromFormula(~1, dat, quote(dnorm(0, sd=5)), quote(beta_)),
     quote({
-      beta.Intercept ~ dnorm(0, sd = 5)
+      beta_Intercept ~ dnorm(0, sd = 5)
     })
   )
 
   expect_equal(
-    makeFixedPriorsFromFormula(~x3, dat, quote(dnorm(0, sd=5)), quote(beta.)),
+    makeFixedPriorsFromFormula(~x3, dat, quote(dnorm(0, sd=5)), quote(beta_)),
     quote({
-      beta.Intercept ~ dnorm(0, sd = 5)
-      beta.x3 ~ dnorm(0, sd = 5)
+      beta_Intercept ~ dnorm(0, sd = 5)
+      beta_x3 ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x3-1, dat, quote(dnorm(0, sd=5)), quote(beta.)),
+    makeFixedPriorsFromFormula(~x3-1, dat, quote(dnorm(0, sd=5)), quote(beta_)),
     quote({
-      beta.x3 ~ dnorm(0, sd = 5)
+      beta_x3 ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=5)), quote(beta.)),
+    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=5)), quote(beta_)),
     quote({
-      beta.Intercept ~ dnorm(0, sd = 5)
-      beta.x[1] <- 0
-      beta.x[2] ~ dnorm(0, sd = 5)
-      beta.x[3] ~ dnorm(0, sd = 5)
+      beta_Intercept ~ dnorm(0, sd = 5)
+      beta_x[1] <- 0
+      beta_x[2] ~ dnorm(0, sd = 5)
+      beta_x[3] ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x*x2, dat, quote(dnorm(0, sd=5)), quote(beta.)),
+    makeFixedPriorsFromFormula(~x*x2, dat, quote(dnorm(0, sd=5)), quote(beta_)),
     quote({
-      beta.Intercept ~ dnorm(0, sd = 5)
-      beta.x[1] <- 0
-      beta.x[2] ~ dnorm(0, sd = 5)
-      beta.x[3] ~ dnorm(0, sd = 5)
-      beta.x2[1] <- 0
-      beta.x2[2] ~ dnorm(0, sd = 5)
-      beta.x.x2[1, 1] <- 0
-      beta.x.x2[2, 1] <- 0
-      beta.x.x2[3, 1] <- 0
-      beta.x.x2[1, 2] <- 0
-      beta.x.x2[2, 2] ~ dnorm(0, sd = 5)
-      beta.x.x2[3, 2] ~ dnorm(0, sd = 5)
+      beta_Intercept ~ dnorm(0, sd = 5)
+      beta_x[1] <- 0
+      beta_x[2] ~ dnorm(0, sd = 5)
+      beta_x[3] ~ dnorm(0, sd = 5)
+      beta_x2[1] <- 0
+      beta_x2[2] ~ dnorm(0, sd = 5)
+      beta_x_x2[1, 1] <- 0
+      beta_x_x2[2, 1] <- 0
+      beta_x_x2[3, 1] <- 0
+      beta_x_x2[1, 2] <- 0
+      beta_x_x2[2, 2] ~ dnorm(0, sd = 5)
+      beta_x_x2[3, 2] ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x*x3, dat, quote(dnorm(0, sd=5)), quote(beta.)),
+    makeFixedPriorsFromFormula(~x*x3, dat, quote(dnorm(0, sd=5)), quote(beta_)),
     quote({
-      beta.Intercept ~ dnorm(0, sd = 5)
-      beta.x[1] <- 0
-      beta.x[2] ~ dnorm(0, sd = 5)
-      beta.x[3] ~ dnorm(0, sd = 5)
-      beta.x3 ~ dnorm(0, sd = 5)
-      beta.x.x3[1] <- 0
-      beta.x.x3[2] ~ dnorm(0, sd = 5)
-      beta.x.x3[3] ~ dnorm(0, sd = 5)
+      beta_Intercept ~ dnorm(0, sd = 5)
+      beta_x[1] <- 0
+      beta_x[2] ~ dnorm(0, sd = 5)
+      beta_x[3] ~ dnorm(0, sd = 5)
+      beta_x3 ~ dnorm(0, sd = 5)
+      beta_x_x3[1] <- 0
+      beta_x_x3[2] ~ dnorm(0, sd = 5)
+      beta_x_x3[3] ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=3)), quote(alpha.), modMatNames=TRUE),
+    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=3)), quote(alpha_), modMatNames=TRUE),
     quote({
-      alpha.Intercept ~ dnorm(0, sd = 3)
-      alpha.x[1] <- 0
-      alpha.x[2] <- alpha.xb
-      alpha.xb ~ dnorm(0, sd = 3)
-      alpha.x[3] <- alpha.xc
-      alpha.xc ~ dnorm(0, sd = 3)
+      alpha_Intercept ~ dnorm(0, sd = 3)
+      alpha_x[1] <- 0
+      alpha_x[2] <- alpha_xb
+      alpha_xb ~ dnorm(0, sd = 3)
+      alpha_x[3] <- alpha_xc
+      alpha_xc ~ dnorm(0, sd = 3)
     })
   )
 })
@@ -110,39 +110,39 @@ test_that("priors macro", {
                     x3=rnorm(10))
 
 
-  out <- priors$process(quote(beta. ~ priors(~1)), dat)  
+  out <- priors$process(quote(priors(~1, coefPrefix=beta_)), dat)  
   expect_equal(out$constants, dat)
   expect_equal(
     out$code,
     quote({
-      beta.Intercept ~ dnorm(0, 10)
+      beta_Intercept ~ dnorm(0, 10)
     })
   )
   expect_equal(
-    priors$process(quote(beta. ~ priors(~x, coefPrior=dnorm(0, sd=3))), dat)$code,
+    priors$process(quote(priors(~x, coefPrior=dnorm(0, sd=3))), dat)$code,
     quote({
-      beta.Intercept ~ dnorm(0, sd = 3)
-      beta.x[1] <- 0
-      beta.x[2] ~ dnorm(0, sd = 3)
-      beta.x[3] ~ dnorm(0, sd = 3)
+      beta_Intercept ~ dnorm(0, sd = 3)
+      beta_x[1] <- 0
+      beta_x[2] ~ dnorm(0, sd = 3)
+      beta_x[3] ~ dnorm(0, sd = 3)
     })
   )
   expect_equal(
-    priors$process(quote(alpha. ~ priors(~x3)), dat)$code,
+    priors$process(quote(priors(~x3, coefPrefix = alpha_)), dat)$code,
     quote({
-      alpha.Intercept ~ dnorm(0, 10)
-      alpha.x3 ~ dnorm(0, 10)
+      alpha_Intercept ~ dnorm(0, 10)
+      alpha_x3 ~ dnorm(0, 10)
     })
   )
   expect_equal(
-    priors$process(quote(beta. ~ priors(~x, modMatNames=TRUE)), dat)$code,
+    priors$process(quote(priors(~x, modMatNames=TRUE)), dat)$code,
     quote({
-      beta.Intercept ~ dnorm(0, 10)
-      beta.x[1] <- 0
-      beta.x[2] <- beta.xb
-      beta.xb ~ dnorm(0, 10)
-      beta.x[3] <- beta.xc
-      beta.xc ~ dnorm(0, 10)
+      beta_Intercept ~ dnorm(0, 10)
+      beta_x[1] <- 0
+      beta_x[2] <- beta_xb
+      beta_xb ~ dnorm(0, 10)
+      beta_x[3] <- beta_xc
+      beta_xc ~ dnorm(0, 10)
     })
   )
 })
@@ -153,16 +153,16 @@ test_that("priors with random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3))
 
-  code <- quote(beta. ~ priors(~x3 + (1|x), sdPrior=dunif(0, 3)))
+  code <- quote(priors(~x3 + (1|x), sdPrior=dunif(0, 3)))
  
   out <- priors$process(code, dat)
   expect_equal(
     out$code,
     quote({
-      beta.Intercept ~ dnorm(0, 10)
-      beta.x3 ~ dnorm(0, 10)
-      sd.x ~ dunif(0, 3)
-      beta.x[1:3] ~ forLoop(dnorm(0, sd = sd.x))
+      beta_Intercept ~ dnorm(0, 10)
+      beta_x3 ~ dnorm(0, 10)
+      sd_x ~ dunif(0, 3)
+      beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
     })
   )
   expect_equal(

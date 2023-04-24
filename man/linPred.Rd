@@ -14,7 +14,7 @@ to linPred.}
 left-hand-side (the response) in the final linear predictor. Default is none.}
 
 \item{coefPrefix}{All model coefficient names will begin with this prefix.
-default is beta. (so x becomes beta.x, etc.)}
+default is beta_ (so x becomes beta_x, etc.)}
 
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
 default is no prefix.}

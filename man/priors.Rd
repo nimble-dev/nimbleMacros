@@ -7,6 +7,9 @@
 \item{formula}{An R formula The formula must be right-hand side only (e.g. ~x). 
 This must always be the first argument supplied to priors.}
 
+\item{coefPrefix}{All model coefficient names will begin with this prefix.
+default is beta_ (so x becomes beta_x, etc.)}
+
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
 default is no prefix.}
 
@@ -31,7 +34,7 @@ constants <- list(x = rnorm(10),
 # Just linear predictor
 code <- nimbleCode({
   y[1:n] ~ linPred(~x + x2)
-  beta. ~ priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
+  priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
  })
 nimble:::codeProcessModelMacros(code, constants)$code
 }
