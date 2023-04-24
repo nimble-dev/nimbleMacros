@@ -156,3 +156,51 @@ priors <- list(process=function(code, .constants, .env=env){
   list(code=out, constants=.constants)
 })
 class(priors) <- "model_macro"
+
+isTilde <- function(code){
+  code[[1]] == "~"
+}
+
+findPriors <- function(code, index=NULL){
+  out <- lapply(1:length(code), function(i){
+    index <- paste0(index, "[[", i, "]]")
+    if(code[[i]] == "{"){
+      return(NULL)
+    } else if(code[[i]][[1]] == "for"){
+      unlist(findPriors(code[[i]][[4]], index=paste0(index, "[[4]]")), recursive=FALSE)
+    } else {
+      if(isTilde(code[[i]])){
+        return(list(par=nimbleMacros:::getLHS(code[[i]]), index=index))
+      } else {
+        return(NULL)
+      }
+    }
+  })
+  out[!sapply(out, function(x) is.null(x[[1]]))]
+}
+
+replaceCode <- function(code, index, newValue){
+
+  codebrack <- str2lang(paste0("code", index))
+
+  run <- substitute(CODEBRACK[[3]] <- quote(NEWVAL),
+                    list(CODEBRACK=codebrack, NEWVAL=newValue))
+  eval(run)
+  code
+}
+
+#' @export
+modifyPrior <- function(code, parameter, newPrior){
+  
+  pr <- findPriors(code)
+  stopifnot(is.call(newPrior) | is.name(newPrior))
+  pars <- lapply(pr, function(x) x$par)
+  indices <- lapply(pr, function(x) x$index)
+  idx <- which(parameter == pars)
+  if(length(idx) != 1){
+    stop("No prior for ",as.character(parameter)," found", call.=FALSE)
+  }
+
+  replaceCode(code, indices[idx], newPrior) 
+
+}
