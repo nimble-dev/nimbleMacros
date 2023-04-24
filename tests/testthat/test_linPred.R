@@ -319,8 +319,8 @@ test_that("getParametersForLP", {
   pars <- names(makeParameterStructure(~x+x2+x:x3, dat))
   
   expect_equal(
-    getParametersForLP(pars, "beta."),
-    c("beta.Intercept", "beta.x", "beta.x2","beta.x.x3")
+    getParametersForLP(pars, "beta_"),
+    c("beta_Intercept", "beta_x", "beta_x2","beta_x_x3")
   )
 })
 
@@ -331,24 +331,24 @@ test_that("makeLPFromFormula", {
                     x3=rnorm(10))
   
   expect_equal(
-    makeLPFromFormula(~1, dat, list(quote(1:n)), quote(beta.)),
-    quote(beta.Intercept)
+    makeLPFromFormula(~1, dat, list(quote(1:n)), quote(beta_)),
+    quote(beta_Intercept)
   )
   expect_equal(
-    makeLPFromFormula(~x, dat, list(quote(1:n)), quote(beta.)),
-    quote(beta.Intercept + beta.x[x[1:n]])
+    makeLPFromFormula(~x, dat, list(quote(1:n)), quote(beta_)),
+    quote(beta_Intercept + beta_x[x[1:n]])
   )
   expect_equal(
-    makeLPFromFormula(~x3-1, dat, list(quote(1:n)), quote(beta.)),
-    quote(beta.x3 * x3[1:n])
+    makeLPFromFormula(~x3-1, dat, list(quote(1:n)), quote(beta_)),
+    quote(beta_x3 * x3[1:n])
   )
   expect_equal(
-    makeLPFromFormula(~x:x2, dat, list(quote(1:n)), quote(beta.)),
-    quote(beta.Intercept + beta.x.x2[x[1:n], x2[1:n]])
+    makeLPFromFormula(~x:x2, dat, list(quote(1:n)), quote(beta_)),
+    quote(beta_Intercept + beta_x_x2[x[1:n], x2[1:n]])
   )
   expect_equal(
-    makeLPFromFormula(~x*x3, dat, list(quote(1:n)), quote(beta.)),
-    quote(beta.Intercept + beta.x[x[1:n]] + beta.x3 * x3[1:n] + beta.x.x3[x[1:n]] * x3[1:n])
+    makeLPFromFormula(~x*x3, dat, list(quote(1:n)), quote(beta_)),
+    quote(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n] + beta_x_x3[x[1:n]] * x3[1:n])
   )
 
 })
@@ -379,7 +379,7 @@ test_that("linPred", {
   out <- linPred$process(code, dat)
   expect_equal(
     out$code,
-    quote(y[1:n] ~ forLoop(beta.Intercept))
+    quote(y[1:n] ~ forLoop(beta_Intercept))
   )
   expect_equal(
     out$constants,
@@ -389,27 +389,27 @@ test_that("linPred", {
   code <- quote(y[1:n] ~ linPred(~x + x3))
   expect_equal(
     linPred$process(code, dat)$code,
-    quote(y[1:n] ~ forLoop(beta.Intercept + beta.x[x[1:n]] + beta.x3 * x3[1:n]))
+    quote(y[1:n] ~ forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ linPred(~x, coefPrefix=alpha.))
+  code <- quote(y[1:n] ~ linPred(~x, coefPrefix=alpha_))
   expect_equal(
     linPred$process(code, dat)$code,
-    quote(y[1:n] ~ forLoop(alpha.Intercept + alpha.x[x[1:n]]))
+    quote(y[1:n] ~ forLoop(alpha_Intercept + alpha_x[x[1:n]]))
   )
 
   code <- quote(y[1:n] ~ linPred(~x, link=log))
   expect_equal(
     linPred$process(code, dat)$code,
-    quote(log(y[1:n]) ~ forLoop(beta.Intercept + beta.x[x[1:n]]))
+    quote(log(y[1:n]) ~ forLoop(beta_Intercept + beta_x[x[1:n]]))
   )
 
   code <- quote(y[1:n] ~ linPred(~1, coefPrior=dnorm(0, sd=5)))
   expect_equal(
     linPred$process(code, dat)$code,
     quote({
-      y[1:n] ~ forLoop(beta.Intercept)
-      beta. ~ priors(~1, coefPrior = dnorm(0, sd=5), sdPrefix=NULL, sdPrior=T(dt(0,0.1,1), 0, ), modMatNames=TRUE)
+      y[1:n] ~ forLoop(beta_Intercept)
+      priors(~1, coefPrefix = beta_, coefPrior = dnorm(0, sd=5), sdPrefix=NULL, sdPrior=T(dt(0,0.1,1), 0, ), modMatNames=TRUE)
     })
   )
 
@@ -417,15 +417,15 @@ test_that("linPred", {
   expect_equal(
     linPred$process(code, dat)$code,
     quote({
-      y[1:n] ~ forLoop(beta.Intercept)
-      beta. ~ priors(~1, coefPrior = dnorm(0, sd=10), sdPrefix=NULL, sdPrior=dunif(0, 10), modMatNames=TRUE)
+      y[1:n] ~ forLoop(beta_Intercept)
+      priors(~1, coefPrefix = beta_, coefPrior = dnorm(0, sd=10), sdPrefix=NULL, sdPrior=dunif(0, 10), modMatNames=TRUE)
     })
   )
 
   code <- quote(y[1:n] ~ linPred(~x + (x|x2)))
   expect_equal(
     linPred$process(code, dat)$code,
-    quote(y[1:n] ~ forLoop(beta.Intercept + beta.x[x[1:n]] + beta.x2[x2[1:n]] + beta.x.x2[x[1:n], x2[1:n]]))
+    quote(y[1:n] ~ forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
   )
 
 })
@@ -441,7 +441,7 @@ test_that("linPred with random effect", {
   out <- linPred$process(code, dat)
   expect_equal(
     out$code,
-    quote(y[1:n] ~ forLoop(beta.Intercept + beta.x3 * x3[1:n] + beta.x[x[1:n]]))
+    quote(y[1:n] ~ forLoop(beta_Intercept + beta_x3 * x3[1:n] + beta_x[x[1:n]]))
   )
   expect_equal(
     out$constants,

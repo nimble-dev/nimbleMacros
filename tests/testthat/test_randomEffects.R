@@ -71,72 +71,72 @@ test_that("addFormulaTerms", {
 
 test_that("getHyperpriorNames", {
   expect_equal(
-    getHyperpriorNames(quote(1|group), quote(beta.)),
-    list(beta.sd.group=quote(beta.sd.group))
+    getHyperpriorNames(quote(1|group), quote(beta_)),
+    list(beta_sd_group=quote(beta_sd_group))
   )
   expect_equal(
     getHyperpriorNames(quote(x|group), NULL),
-    list(sd.group=quote(sd.group), sd.x.group=quote(sd.x.group))
+    list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group))
   )
   expect_equal(
     getHyperpriorNames(quote(x-1|group), NULL),
-    list(sd.x.group=quote(sd.x.group))
+    list(sd_x_group=quote(sd_x_group))
   )
   expect_equal(
     getHyperpriorNames(quote(x*y|group), NULL),
-    list(sd.group=quote(sd.group), sd.x.group=quote(sd.x.group),
-         sd.y.group=quote(sd.y.group), sd.x.y.group=quote(sd.x.y.group))
+    list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group),
+         sd_y_group=quote(sd_y_group), sd_x_y_group=quote(sd_x_y_group))
   )
 })
 
 test_that("makeHyperpriorCode", {  
   expect_equal(
-    makeHyperpriorCode(quote(1|group), quote(alpha.), quote(dunif(0, 3))),
+    makeHyperpriorCode(quote(1|group), quote(alpha_), quote(dunif(0, 3))),
     quote({
-      alpha.sd.group ~ dunif(0, 3)
+      alpha_sd_group ~ dunif(0, 3)
     })
   )
   expect_equal(
     makeHyperpriorCode(quote(x|group), NULL, quote(dunif(0, 3))),
     quote({
-      sd.group ~ dunif(0, 3)
-      sd.x.group ~ dunif(0, 3)
+      sd_group ~ dunif(0, 3)
+      sd_x_group ~ dunif(0, 3)
     })
   )
   expect_equal(
     makeHyperpriorCode(quote(x-1|group), NULL, quote(dunif(0, 3))),
     quote({
-      sd.x.group ~ dunif(0, 3)
+      sd_x_group ~ dunif(0, 3)
     })
   )
   expect_equal(
     makeHyperpriorCode(quote(x*y|group), NULL, quote(dunif(0, 3))),
     quote({
-      sd.group ~ dunif(0, 3)
-      sd.x.group ~ dunif(0, 3)
-      sd.y.group ~ dunif(0, 3)
-      sd.x.y.group ~ dunif(0, 3)
+      sd_group ~ dunif(0, 3)
+      sd_x_group ~ dunif(0, 3)
+      sd_y_group ~ dunif(0, 3)
+      sd_x_y_group ~ dunif(0, 3)
     })
   )
 })
 
 test_that("makeRandomParNames", {  
   expect_equal(
-    makeRandomParNames(quote(1|group), quote(beta.)),
-    list(beta.group=quote(beta.group))
+    makeRandomParNames(quote(1|group), quote(beta_)),
+    list(beta_group=quote(beta_group))
   )
   expect_equal(
-    makeRandomParNames(quote(x|group), quote(beta.)),
-    list(beta.group=quote(beta.group), beta.x.group=quote(beta.x.group))
+    makeRandomParNames(quote(x|group), quote(beta_)),
+    list(beta_group=quote(beta_group), beta_x_group=quote(beta_x_group))
   )
   expect_equal(
-    makeRandomParNames(quote(x-1|group), quote(beta.)),
-    list(beta.x.group=quote(beta.x.group))
+    makeRandomParNames(quote(x-1|group), quote(beta_)),
+    list(beta_x_group=quote(beta_x_group))
   )
   expect_equal(
-    makeRandomParNames(quote(x*y|group), quote(beta.)),
-    list(beta.group=quote(beta.group), beta.x.group=quote(beta.x.group),
-         beta.y.group=quote(beta.y.group), beta.x.y.group=quote(beta.x.y.group))
+    makeRandomParNames(quote(x*y|group), quote(beta_)),
+    list(beta_group=quote(beta_group), beta_x_group=quote(beta_x_group),
+         beta_y_group=quote(beta_y_group), beta_x_y_group=quote(beta_x_y_group))
   )
 })
 
@@ -152,42 +152,42 @@ test_that("numRandomFactorLevels", {
 test_that("makeUncorrelatedRandomPrior", {
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
   expect_equal(
-    makeUncorrelatedRandomPrior(quote(1|group), quote(beta.), NULL, dat),
-    quote(beta.group[1:3] ~ forLoop(dnorm(0, sd = sd.group)))
+    makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, dat),
+    quote(beta_group[1:3] ~ forLoop(dnorm(0, sd = sd_group)))
   )
   expect_equal(
-    makeUncorrelatedRandomPrior(quote(1|group), quote(beta.), quote(alpha.), dat),
-    quote(beta.group[1:3] ~ forLoop(dnorm(0, sd = alpha.sd.group)))
+    makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), quote(alpha_), dat),
+    quote(beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group)))
   )
   expect_equal(
-    makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta.), NULL, dat),
-    quote(beta.x.group[1:3] ~ forLoop(dnorm(0, sd = sd.x.group)))
+    makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta_), NULL, dat),
+    quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
   )
   # Not an uncorrelated random effect
   expect_error(
-    makeUncorrelatedRandomPrior(quote(x|group), quote(beta.), NULL, dat)
+    makeUncorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, dat)
   )
 })
 
 test_that("makeCorrelatedRandomPrior", {
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta.), NULL, dat)
+  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, dat)
   expect_equal(
     out$code,
     quote({
     {
-        re.sds.group[1] <- sd.group
-        re.sds.group[2] <- sd.x.group
+        re_sds_group[1] <- sd_group
+        re_sds_group[2] <- sd_x_group
     }
     {
-        Ustar.group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
-        U.group[1:2, 1:2] <- uppertri_mult_diag(Ustar.group[1:2, 1:2], re.sds.group[1:2])
+        Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+        U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
     }
-    re.means.group[1:2] <- rep(0, 2)
+    re_means_group[1:2] <- rep(0, 2)
     for (i_ in 1:3) {
-        B.group[i_, 1:2] ~ dmnorm(re.means.group[1:2], cholesky = U.group[1:2, 1:2], prec_param = 0)
-        beta.group[i_] <- B.group[i_, 1]
-        beta.x.group[i_] <- B.group[i_, 2]
+        B_group[i_, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_] <- B_group[i_, 1]
+        beta_x_group[i_] <- B_group[i_, 2]
     }
 
 
@@ -195,36 +195,36 @@ test_that("makeCorrelatedRandomPrior", {
   )
 
   expect_error(
-    makeCorrelatedRandomPrior(quote(1|group), quote(beta.), NULL, dat)
+    makeCorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, dat)
   )
 })
 
 test_that("makeRandomPriorCode", {
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
 
-  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta.), NULL, dat)
+  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, dat)
   expect_equal(
     out1$code,
-    quote(beta.x.group[1:3] ~ forLoop(dnorm(0, sd = sd.x.group)))
+    quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
   )
 
-  out2 <- makeRandomPriorCode(quote(x|group), quote(beta.), NULL, dat)
+  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat)
   expect_equal(
     out2$code,
     quote({
     {
-        re.sds.group[1] <- sd.group
-        re.sds.group[2] <- sd.x.group
+        re_sds_group[1] <- sd_group
+        re_sds_group[2] <- sd_x_group
     }
     {
-        Ustar.group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
-        U.group[1:2, 1:2] <- uppertri_mult_diag(Ustar.group[1:2, 1:2], re.sds.group[1:2])
+        Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+        U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
     }
-    re.means.group[1:2] <- rep(0, 2)
+    re_means_group[1:2] <- rep(0, 2)
     for (i_ in 1:3) {
-        B.group[i_, 1:2] ~ dmnorm(re.means.group[1:2], cholesky = U.group[1:2, 1:2], prec_param = 0)
-        beta.group[i_] <- B.group[i_, 1]
-        beta.x.group[i_] <- B.group[i_, 2]
+        B_group[i_, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_] <- B_group[i_, 1]
+        beta_x_group[i_] <- B_group[i_, 2]
     }
 
 
@@ -234,20 +234,20 @@ test_that("makeRandomPriorCode", {
 
 test_that("removeExtraBrackets", {       
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  inp <- makeRandomPriorCode(quote(x|group), quote(beta.), NULL, dat)
+  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat)
   
   expect_equal(
     removeExtraBrackets(inp$code),
     quote({
-    re.sds.group[1] <- sd.group
-    re.sds.group[2] <- sd.x.group
-    Ustar.group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
-    U.group[1:2, 1:2] <- uppertri_mult_diag(Ustar.group[1:2, 1:2], re.sds.group[1:2])
-    re.means.group[1:2] <- rep(0, 2)
+    re_sds_group[1] <- sd_group
+    re_sds_group[2] <- sd_x_group
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
+    re_means_group[1:2] <- rep(0, 2)
     for (i_ in 1:3) {
-        B.group[i_, 1:2] ~ dmnorm(re.means.group[1:2], cholesky = U.group[1:2, 1:2], prec_param = 0)
-        beta.group[i_] <- B.group[i_, 1]
-        beta.x.group[i_] <- B.group[i_, 2]
+        B_group[i_, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_] <- B_group[i_, 1]
+        beta_x_group[i_] <- B_group[i_, 2]
     }
   })
  )
@@ -305,14 +305,14 @@ test_that("processNestedRandomEffects", {
 
 test_that("processBar", { 
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  out <- processBar(quote(1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta.), 
-                    sdPrefix=quote(alpha.), dat)
+  out <- processBar(quote(1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
+                    sdPrefix=quote(alpha_), dat)
   expect_equal(out$formula, quote(group))
   expect_equal(
     out$code,
     quote({
-      alpha.sd.group ~ dunif(0, 3)
-      beta.group[1:3] ~ forLoop(dnorm(0, sd = alpha.sd.group))
+      alpha_sd_group ~ dunif(0, 3)
+      beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group))
     })
   )
   expect_equal(out$constants, dat)
@@ -321,22 +321,22 @@ test_that("processBar", {
 
 test_that("processAllBars", {
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  out <- processAllBars(~(x||group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta.), 
-                    sdPrefix=quote(alpha.), dat)
+  out <- processAllBars(~(x||group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
+                    sdPrefix=quote(alpha_), dat)
   expect_equal(out$formula, quote(group + x:group))
   expect_equal(
     out$code,
     quote({
-      alpha.sd.group ~ dunif(0, 3)
-      beta.group[1:3] ~ forLoop(dnorm(0, sd = alpha.sd.group))
-      alpha.sd.x.group ~ dunif(0, 3)
-      beta.x.group[1:3] ~ forLoop(dnorm(0, sd = alpha.sd.x.group))
+      alpha_sd_group ~ dunif(0, 3)
+      beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group))
+      alpha_sd_x_group ~ dunif(0, 3)
+      beta_x_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_x_group))
     })
   )
   expect_equal(out$constants, dat)
 
   expect_error(
-    processAllBars(~(x||group) + (1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta.), 
-                    sdPrefix=quote(alpha.), dat)
+    processAllBars(~(x||group) + (1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
+                    sdPrefix=quote(alpha_), dat)
   )
 })

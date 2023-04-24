@@ -10,8 +10,8 @@ test_that("nimbleLM", {
     out$code,
     quote({
       y[1:3] ~ forLoop(dnorm(mu_[1:3], sd = sd.residual))
-      mu_[1:3] <- linPred(~x + x2, link = NULL, coefPrefix = beta.)
-      beta. ~ priors(~x + x2, sdPrefix = NULL, coefPrior = dnorm(0, sd = 3), sdPrior = dunif(0, 3), modMatNames = TRUE)
+      mu_[1:3] <- linPred(~x + x2, link = NULL, coefPrefix = beta_)
+      priors(~x + x2, coefPrefix = beta_, sdPrefix = NULL, coefPrior = dnorm(0, sd = 3), sdPrior = dunif(0, 3), modMatNames = TRUE)
       sd.residual ~ dunif(0, 3)
     })
   )
@@ -26,8 +26,8 @@ test_that("nimbleLM", {
     out2$code,
     quote({
       y[1:3] ~ forLoop(dpois(mu_[1:3]))
-      mu_[1:3] <- linPred(~x + x2, link = log, coefPrefix = beta.)
-      beta. ~ priors(~x + x2, sdPrefix = NULL, coefPrior = dnorm(0, sd = 100), sdPrior = dunif(0, 100), modMatNames = TRUE)
+      mu_[1:3] <- linPred(~x + x2, link = log, coefPrefix = beta_)
+      priors(~x + x2, coefPrefix = beta_, sdPrefix = NULL, coefPrior = dnorm(0, sd = 100), sdPrior = dunif(0, 100), modMatNames = TRUE)
     })
   )
 

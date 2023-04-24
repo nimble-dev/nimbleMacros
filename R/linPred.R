@@ -180,10 +180,10 @@ continuousComponent <- function(type, brackets){
 }
 
 # Get parameter names by adding prefix
-getParametersForLP <- function(components, prefix="beta."){
+getParametersForLP <- function(components, prefix="beta_"){
   components <- gsub("(","", components, fixed=TRUE) # possibly not necessary
   components <- gsub(")", "", components, fixed=TRUE) # ditto
-  components <- gsub(":", ".", components, fixed=TRUE)
+  components <- gsub(":", "_", components, fixed=TRUE)
   paste0(prefix, components)
   #paste0("beta[",1:length(components),"]")
 }
@@ -262,7 +262,7 @@ makeDummyDataFrame <- function(formula, constants){
 #' @param link A link function (available in BUGS) which will be applied to the 
 #'  left-hand-side (the response) in the final linear predictor. Default is none.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta. (so x becomes beta.x, etc.)
+#'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
@@ -299,7 +299,7 @@ linPred <- list(
     # Get value for prefix argument
     coefPrefix <- RHS$coefPrefix
     if(is.null(coefPrefix)){
-      coefPrefix <- quote(beta.)
+      coefPrefix <- quote(beta_)
     } else {
       RHS$coefPrefix <- NULL 
     }
@@ -356,9 +356,9 @@ linPred <- list(
       if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, sd=10))
       if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
-      priorCode <- substitute(PREFIX ~ priors(FORMULA, coefPrior=COEFPRIOR, sdPrefix=SDPREFIX, 
-                                              sdPrior=SDPRIOR, modMatNames=TRUE),
-                              list(PREFIX=coefPrefix, FORMULA=form, SDPREFIX=sdPrefix,
+      priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, coefPrior=COEFPRIOR, 
+                                     sdPrefix=SDPREFIX, sdPrior=SDPRIOR, modMatNames=TRUE),
+                              list(COEFPREFIX=coefPrefix, FORMULA=form, SDPREFIX=sdPrefix,
                                    COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
