@@ -44,7 +44,7 @@
 NULL
 
 #' @export
-nimbleLM <- list(process = function(code, .constants, .env){
+nimbleLM <- list(process = function(code, .constants, parameters=list(), .env){
   
   if(isAssignment(code)){
     RHS <- getRHS(code)
@@ -84,6 +84,7 @@ nimbleLM <- list(process = function(code, .constants, .env){
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- linPred(FORM, link=LINK, coefPrefix=PREFIX),
                    list(IDX=idx, FORM=form, PREFIX=coefPrefix, LINK=link))
+  pars_added <- list(quote(mu_))
   LPprior <- substitute(priors(FORM, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                coefPrior=COEFPRIOR, sdPrior=SDPRIOR, modMatNames=TRUE),
                         list(COEFPREFIX=coefPrefix, FORM=form, SDPREFIX=sdPrefix,
@@ -92,10 +93,12 @@ nimbleLM <- list(process = function(code, .constants, .env){
 
   if (family$family == "gaussian"){
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=sd_res))
+    pars_added <- c(pars_added, list(sd_res))
     out <- c(out, list(sigprior))
   }
 
-  list(code=removeExtraBrackets(embedLinesInCurlyBrackets(out)), constants=.constants)
+  list(code=removeExtraBrackets(embedLinesInCurlyBrackets(out)), constants=.constants,
+       parameters=c(parameters, list(nimbleLM = pars_added)))
 })
 class(nimbleLM) <- 'model_macro'
 

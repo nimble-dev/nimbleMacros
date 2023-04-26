@@ -48,7 +48,7 @@ makeFixedPriorsFromFormula <- function(formula, data, prior, prefix, modMatNames
     x
   }))
   
-  embedLinesInCurlyBrackets(all_priors)
+  list(code=embedLinesInCurlyBrackets(all_priors), parameters=par_names)
 }
 
 # Organize model.matrix() version of parameter names into an
@@ -116,7 +116,7 @@ NULL
 
 #' @importFrom lme4 nobars
 #' @export
-priors <- list(process=function(code, .constants, .env=env){
+priors <- list(process=function(code, .constants, parameters=list(), .env=env){
   form <- code[[2]]
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
@@ -148,12 +148,13 @@ priors <- list(process=function(code, .constants, .env=env){
   fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
                                prefix=as.character(deparse(coefPrefix)),
                                modMatNames = modMatNames)
-  out <- list(fixed)
+  out <- list(fixed$code)
   if(!is.null(rand_info$code)) out <- c(out, list(rand_info$code))
   out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
   
-  list(code=out, constants=.constants)
+  parameters <- c(parameters, list(priors=findDeclarations(out)))
+  list(code=out, constants=.constants, parameters=parameters)
 })
 class(priors) <- "model_macro"
 
@@ -190,17 +191,43 @@ replaceCode <- function(code, index, newValue){
 }
 
 #' @export
-modifyPrior <- function(code, parameter, newPrior){
-  
+modifyPrior <- function(code, parameter, newPrior){  
   pr <- findPriors(code)
-  stopifnot(is.call(newPrior) | is.name(newPrior))
+  if(is.character(newPrior)){
+    newPrior <- str2lang(newPrior)
+  }
+  if(is.character(parameter)){
+    parameter <- str2lang(parameter)
+  }
   pars <- lapply(pr, function(x) x$par)
   indices <- lapply(pr, function(x) x$index)
   idx <- which(parameter == pars)
   if(length(idx) != 1){
-    stop("No prior for ",as.character(parameter)," found", call.=FALSE)
+    stop("No prior for ",deparse(parameter)," found", call.=FALSE)
   }
 
   replaceCode(code, indices[idx], newPrior) 
 
 }
+
+findDeclarations <- function(code){
+  out <- lapply(1:length(code), function(i){
+    if(code[[i]] == "{"){
+      return(NULL)
+    } else if(code[[i]][[1]] == "for"){
+      return(findDeclarations(code[[i]][[4]]))
+    } else {
+      if(nimbleMacros:::isAssignment(code[[i]])){
+        return(nimbleMacros:::getLHS(code[[i]]))
+      } else {
+        return(NULL)
+      }
+    }
+  })
+  out <- out[!sapply(out, is.null)]
+  out <- lapply(out, function(x){
+    if(nimbleMacros:::hasBracket(x)) return(x[[2]]) else return(x)
+  })
+  unlist(out[!duplicated(out)])
+}
+
