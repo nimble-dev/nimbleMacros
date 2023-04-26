@@ -186,7 +186,7 @@ NULL
 
 #' @export
 forLoop <- list(
-  process = function(code, .constants, .env){
+  process = function(code, .constants, parameters=list(), .env){
     code <- removeMacroCall(code)
     LHS <- getLHS(code)
     # Stop if there are no brackets
@@ -214,7 +214,7 @@ forLoop <- list(
       code <- newForLoop
     }
 
-    return(list(code=code, constants=.constants))
+    return(list(code=code, constants=.constants, parameters=parameters))
   }
 )
 class(forLoop) <- "model_macro"

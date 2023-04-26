@@ -293,7 +293,7 @@ NULL
 #' @importFrom lme4 nobars
 #' @export
 linPred <- list(
-  process = function(code, .constants, .env){
+  process = function(code, .constants, parameters=list(), .env){
     RHS <- getRHS(code)
     
     # Get value for prefix argument
@@ -363,8 +363,8 @@ linPred <- list(
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
-    # Return code and new constants
-    list(code=code, constants=.constants)
+    # Return code, new constants, and parameters
+    list(code=code, constants=.constants, parameters=parameters)
   }
 )
 class(linPred) <- "model_macro"
