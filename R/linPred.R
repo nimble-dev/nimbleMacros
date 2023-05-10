@@ -293,7 +293,7 @@ NULL
 #' @importFrom lme4 nobars
 #' @export
 linPred <- list(
-  process = function(code, .constants, parameters=list(), .env){
+  process = function(code, .constants, parameters=list(), .env, indexCreator, ...){
     RHS <- getRHS(code)
     
     # Get value for prefix argument
@@ -332,7 +332,7 @@ linPred <- list(
       LHS(code) <- as.call(list(link, getLHS(code)))
     }
     
-    rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants)
+    rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants, indexCreator=NULL)
     .constants <- rand_info$constants
     
     new_form <- form

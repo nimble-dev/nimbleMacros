@@ -126,7 +126,8 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants)
 # Make correlated random effects priors from a particular bar expression
 # FIXME: check use of i_ index against other created parameters
 # FIXME: this should no longer need to process constants
-makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
+makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants,
+                                      indexCreator){
 
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)  
@@ -165,15 +166,22 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
   #  constants <- c(constants, new_constant)
   #}
 
+  # Get index
+  if(!is.null(indexCreator)){
+    idx <- as.name(indexCreator())
+  } else{
+    idx <- quote(i_) # if no indexCreator is available, use a placeholder
+  }
+
   # Generate BUGS code for B
   B_name <- as.name(paste0("B_",deparse(rfact)))
-  B <- substitute(B[i_, 1:NP] ~ dmnorm(REMEANS[1:NP], cholesky = U[1:NP, 1:NP], prec_param=0),
-                  list(B=B_name, NP=np, REMEANS=re_means, U=U_name))
+  B <- substitute(B[IDX, 1:NP] ~ dmnorm(REMEANS[1:NP], cholesky = U[1:NP, 1:NP], prec_param=0),
+                  list(B=B_name, IDX=idx, NP=np, REMEANS=re_means, U=U_name))
   # Generate BUGS code to split parts of B out into separate vectors for each parameter
   par_names <- makeRandomParNames(barExp, coefPrefix)
   B_split <- lapply(1:np, function(j){
-    substitute(PAR[i_] <- B[i_, J], 
-               list(PAR=par_names[[j]], B=B_name, J=as.numeric(j)))
+    substitute(PAR[IDX] <- B[IDX, J], 
+               list(PAR=par_names[[j]], IDX=idx, B=B_name, J=as.numeric(j)))
   })
 
   # Get number of factor levels for random factor
@@ -181,7 +189,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, constants){
 
   # Generate BUGS code combining B and B_split into a for loop
   B_loop <- embedLinesInCurlyBrackets(c(B, B_split))
-  B_loop <- c(list(as.name("for"), quote(i_), substitute(1:NLEV, list(NLEV=nlev))),
+  B_loop <- c(list(as.name("for"), idx, substitute(1:NLEV, list(NLEV=nlev))),
               B_loop)
   B_loop <- as.call(B_loop)
 
@@ -219,14 +227,14 @@ uppertri_mult_diag <- nimbleFunction(
 
 # Decide if correlated or uncorrelated random prior(s) are needed from bar expression
 # And return corresponding BUGS code and constants
-makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, constants){
+makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, constants, indexCreator){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
     prior <- makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, constants)
     return(list(code=prior, constants=constants))
   }
-  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, constants)
+  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, constants, indexCreator)
 }
 
 # Remove extra brackets in BUGS code
@@ -284,7 +292,7 @@ processNestedRandomEffects <- function(barExp, constants){
 # Function to process a single bar expression (barExp) such as (1|group)
 # SDprior is the desired hyperprior, prefix is the prefix on the parameters,
 # and constants are passed so they can be modified if needed
-processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, constants){  
+processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, constants, indexCreator){  
   # Handle nested random effects
   nested <- processNestedRandomEffects(barExp, constants)
   barExp <- nested$barExp
@@ -297,7 +305,7 @@ processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, constants){
   # BUGS Hyperprior code
   hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, sdPrior)
   # BUGS random effect prior code, also updates constants if needed
-  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, constants)
+  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, constants, indexCreator)
   constants <- priors$constants
   priors <- priors$code
   # Combine all code
@@ -309,7 +317,7 @@ processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, constants){
 # Function to handle all bar expressions in a formula, combining results
 
 #' @importFrom lme4 findbars
-processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, constants){
+processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, constants, indexCreator){
   # Generate separate bars from formula
   bars <- lme4::findbars(formula)
 
@@ -321,12 +329,13 @@ processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, constants){
   names(out) <- sapply(bars, deparse)
 
   # Fill in first element of list with first bar expression
-  out[[1]] <- processBar(bars[[1]], sdPrior, coefPrefix, sdPrefix, constants)
+  out[[1]] <- processBar(bars[[1]], sdPrior, coefPrefix, sdPrefix, constants, indexCreator)
   # Work through remaining bar expressions if they exist
   # Make sure to pass updated constants
   if(length(bars) > 1){
     for (i in 2:length(bars)){
-      out[[i]] <- processBar(bars[[i]], sdPrior, coefPrefix, sdPrefix, out[[i-1]]$constants)
+      out[[i]] <- processBar(bars[[i]], sdPrior, coefPrefix, sdPrefix, 
+                             out[[i-1]]$constants, indexCreator)
     }
   }
   

@@ -9,10 +9,10 @@ test_that("nimbleLM", {
   expect_equal(
     out$code,
     quote({
-      y[1:3] ~ forLoop(dnorm(mu_[1:3], sd = sd.residual))
+      y[1:3] ~ forLoop(dnorm(mu_[1:3], sd = sd_residual))
       mu_[1:3] <- linPred(~x + x2, link = NULL, coefPrefix = beta_)
       priors(~x + x2, coefPrefix = beta_, sdPrefix = NULL, coefPrior = dnorm(0, sd = 3), sdPrior = dunif(0, 3), modMatNames = TRUE)
-      sd.residual ~ dunif(0, 3)
+      sd_residual ~ dunif(0, 3)
     })
   )
 

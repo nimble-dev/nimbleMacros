@@ -186,7 +186,7 @@ NULL
 
 #' @export
 forLoop <- list(
-  process = function(code, .constants, parameters=list(), .env){
+  process = function(code, .constants, parameters=list(), .env, indexCreator){
     code <- removeMacroCall(code)
     LHS <- getLHS(code)
     # Stop if there are no brackets
@@ -197,7 +197,8 @@ forLoop <- list(
     if(all(!has_range)) return(list(code=code, constants=.constants))
 
     idx_sub <- idx[has_range]
-    idx_letters <- paste0(c(letters[9:12], letters[-c(9:12)]),"_")
+    #idx_letters <- paste0(c(letters[9:12], letters[-c(9:12)]),"_")
+    idx_letters <- lapply(1:length(idx_sub), function(i) indexCreator())
     idx_letters <- lapply(idx_letters, as.name)
 
     code <- replaceDeclarationIndexRanges(code, idx_letters)
