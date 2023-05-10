@@ -233,70 +233,69 @@ test_that("replaceDeclarationIndexRanges", {
 test_that("forLoop", {
   expect_equal(
     # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
+    nimble:::processModelMacros(nimbleCode({
       beta[1:10] ~ forLoop(dnorm(0, sd=10))
-    })),
+    }), constants=list())$code,
     # reference
-    list(code=nimbleCode({
-      for (i_ in 1:10){
-        beta[i_] ~ dnorm(0, sd = 10)
+    nimbleCode({
+      for (i_1 in 1:10){
+        beta[i_1] ~ dnorm(0, sd = 10)
       }
-    }), constants=list())
+    })  
   )
 
   expect_equal(
     # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
+    nimble:::processModelMacros(nimbleCode({
       beta[1:2,1:10,1] ~ forLoop(dnorm(0, sd=10))
-    })),
+    }), constants=list())$code,
     # reference
-    list(code=nimbleCode({
-      for (i_ in 1:2) {
-        for (j_ in 1:10) {
-            beta[i_, j_, 1] ~ dnorm(0, sd = 10)
+    nimbleCode({
+      for (i_1 in 1:2) {
+        for (i_2 in 1:10) {
+            beta[i_1, i_2, 1] ~ dnorm(0, sd = 10)
         }
       }
-    }), constants=list()
-  ))
+    })
+  )
 
   expect_equal(
     # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
+    nimble:::processModelMacros(nimbleCode({
       sigma ~ forLoop(dunif(0,10))
-    })),
+    }), constants=list())$code,
     # reference
-    list(code=nimbleCode({
+    nimbleCode({
       sigma ~ dunif(0, 10)
-    }), constants=list())
+    })
   )
 
   expect_equal(
     # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
+    nimble:::processModelMacros(nimbleCode({
       beta[1,2] ~ forLoop(dnorm(0, sd=10))
-    })),
+    }), constants=list())$code,
     # reference
-    list(code=nimbleCode({
+    nimbleCode({
       beta[1,2] ~ dnorm(0, sd=10)
-    }), constants=list())
+    })
   )
 
   expect_equal(
     # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
+    nimble:::processModelMacros(nimbleCode({
       beta[1:10,1:k,1:l] ~ forLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
-    })),
+    }), constants=list())$code,
     # reference
-    list(code=nimbleCode({
-      for (i_ in 1:10) {
-        for (j_ in 1:k) {
-            for (k_ in 1:l) {
-                beta[i_, j_, k_] ~ dnorm(alpha[j_, i_], sigma[k_])
+    nimbleCode({
+      for (i_1 in 1:10) {
+        for (i_2 in 1:k) {
+            for (i_3 in 1:l) {
+                beta[i_1, i_2, i_3] ~ dnorm(alpha[i_2, i_1], sigma[i_3])
             }
         }
       }
-    }), constants=list()
-  )
+    })
   )
 
 })

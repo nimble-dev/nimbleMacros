@@ -110,13 +110,14 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'   y[1:n] ~ linPred(~x + x2)
 #'   priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
 #'  })
-#' nimble:::codeProcessModelMacros(code, constants)$code
+#' nimble:::processModelMacros(code, constants)$code
 #' }
 NULL
 
 #' @importFrom lme4 nobars
 #' @export
-priors <- list(process=function(code, .constants, parameters=list(), .env=env){
+priors <- list(process=function(code, .constants, parameters=list(), .env=env,
+                                indexCreator){
   form <- code[[2]]
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
@@ -130,7 +131,7 @@ priors <- list(process=function(code, .constants, parameters=list(), .env=env){
   if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
   if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
-  rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants) 
+  rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants, indexCreator) 
     
   new_form <- form
   if(!is.null(rand_info$formula)){
@@ -171,7 +172,7 @@ findPriors <- function(code, index=NULL){
       unlist(findPriors(code[[i]][[4]], index=paste0(index, "[[4]]")), recursive=FALSE)
     } else {
       if(isTilde(code[[i]])){
-        return(list(par=nimbleMacros:::getLHS(code[[i]]), index=index))
+        return(list(par=getLHS(code[[i]]), index=index))
       } else {
         return(NULL)
       }
@@ -190,7 +191,6 @@ replaceCode <- function(code, index, newValue){
   code
 }
 
-#' @export
 modifyPrior <- function(code, parameter, newPrior){  
   pr <- findPriors(code)
   if(is.character(newPrior)){
@@ -217,8 +217,8 @@ findDeclarations <- function(code){
     } else if(code[[i]][[1]] == "for"){
       return(findDeclarations(code[[i]][[4]]))
     } else {
-      if(nimbleMacros:::isAssignment(code[[i]])){
-        return(nimbleMacros:::getLHS(code[[i]]))
+      if(isAssignment(code[[i]])){
+        return(getLHS(code[[i]]))
       } else {
         return(NULL)
       }
@@ -226,7 +226,7 @@ findDeclarations <- function(code){
   })
   out <- out[!sapply(out, is.null)]
   out <- lapply(out, function(x){
-    if(nimbleMacros:::hasBracket(x)) return(x[[2]]) else return(x)
+    if(hasBracket(x)) return(x[[2]]) else return(x)
   })
   unlist(out[!duplicated(out)])
 }

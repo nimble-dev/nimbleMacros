@@ -171,7 +171,8 @@ test_that("makeUncorrelatedRandomPrior", {
 
 test_that("makeCorrelatedRandomPrior", {
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, dat)
+  idxCreator <- nimble:::labelFunctionCreator("i")
+  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
   expect_equal(
     out$code,
     quote({
@@ -184,10 +185,10 @@ test_that("makeCorrelatedRandomPrior", {
         U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
     }
     re_means_group[1:2] <- rep(0, 2)
-    for (i_ in 1:3) {
-        B_group[i_, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
-        beta_group[i_] <- B_group[i_, 1]
-        beta_x_group[i_] <- B_group[i_, 2]
+    for (i_1 in 1:3) {
+        B_group[i_1, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_1] <- B_group[i_1, 1]
+        beta_x_group[i_1] <- B_group[i_1, 2]
     }
 
 
@@ -201,14 +202,14 @@ test_that("makeCorrelatedRandomPrior", {
 
 test_that("makeRandomPriorCode", {
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-
-  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, dat)
+  idxCreator <- nimble:::labelFunctionCreator("i")
+  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
   expect_equal(
     out1$code,
     quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
   )
 
-  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat)
+  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
   expect_equal(
     out2$code,
     quote({
@@ -221,10 +222,10 @@ test_that("makeRandomPriorCode", {
         U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
     }
     re_means_group[1:2] <- rep(0, 2)
-    for (i_ in 1:3) {
-        B_group[i_, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
-        beta_group[i_] <- B_group[i_, 1]
-        beta_x_group[i_] <- B_group[i_, 2]
+    for (i_1 in 1:3) {
+        B_group[i_1, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_1] <- B_group[i_1, 1]
+        beta_x_group[i_1] <- B_group[i_1, 2]
     }
 
 
@@ -234,7 +235,8 @@ test_that("makeRandomPriorCode", {
 
 test_that("removeExtraBrackets", {       
   dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat)
+  idxCreator <- nimble:::labelFunctionCreator("i")
+  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
   
   expect_equal(
     removeExtraBrackets(inp$code),
@@ -244,10 +246,10 @@ test_that("removeExtraBrackets", {
     Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
     re_means_group[1:2] <- rep(0, 2)
-    for (i_ in 1:3) {
-        B_group[i_, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
-        beta_group[i_] <- B_group[i_, 1]
-        beta_x_group[i_] <- B_group[i_, 2]
+    for (i_1 in 1:3) {
+        B_group[i_1, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_1] <- B_group[i_1, 1]
+        beta_x_group[i_1] <- B_group[i_1, 2]
     }
   })
  )

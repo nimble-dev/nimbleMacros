@@ -36,7 +36,7 @@ code <- nimbleCode({
   y[1:n] ~ linPred(~x + x2)
   priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
  })
-nimble:::codeProcessModelMacros(code, constants)$code
+nimble:::processModelMacros(code, constants)$code
 }
 }
 \author{

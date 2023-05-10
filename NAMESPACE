@@ -2,7 +2,6 @@
 
 export(forLoop)
 export(linPred)
-export(modifyPrior)
 export(nimbleLM)
 export(priors)
 export(uppertri_mult_diag)

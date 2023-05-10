@@ -7,27 +7,27 @@ test_that("makeFixedPriorsFromFormula", {
                     x3=rnorm(10))
   
   expect_equal(
-    makeFixedPriorsFromFormula(~1, dat, quote(dnorm(0, sd=5)), quote(beta_)),
+    makeFixedPriorsFromFormula(~1, dat, quote(dnorm(0, sd=5)), quote(beta_))$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 5)
     })
   )
 
   expect_equal(
-    makeFixedPriorsFromFormula(~x3, dat, quote(dnorm(0, sd=5)), quote(beta_)),
+    makeFixedPriorsFromFormula(~x3, dat, quote(dnorm(0, sd=5)), quote(beta_))$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 5)
       beta_x3 ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x3-1, dat, quote(dnorm(0, sd=5)), quote(beta_)),
+    makeFixedPriorsFromFormula(~x3-1, dat, quote(dnorm(0, sd=5)), quote(beta_))$code,
     quote({
       beta_x3 ~ dnorm(0, sd = 5)
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=5)), quote(beta_)),
+    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=5)), quote(beta_))$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 5)
       beta_x[1] <- 0
@@ -36,7 +36,7 @@ test_that("makeFixedPriorsFromFormula", {
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x*x2, dat, quote(dnorm(0, sd=5)), quote(beta_)),
+    makeFixedPriorsFromFormula(~x*x2, dat, quote(dnorm(0, sd=5)), quote(beta_))$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 5)
       beta_x[1] <- 0
@@ -53,7 +53,7 @@ test_that("makeFixedPriorsFromFormula", {
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x*x3, dat, quote(dnorm(0, sd=5)), quote(beta_)),
+    makeFixedPriorsFromFormula(~x*x3, dat, quote(dnorm(0, sd=5)), quote(beta_))$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 5)
       beta_x[1] <- 0
@@ -66,7 +66,7 @@ test_that("makeFixedPriorsFromFormula", {
     })
   )
   expect_equal(
-    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=3)), quote(alpha_), modMatNames=TRUE),
+    makeFixedPriorsFromFormula(~x, dat, quote(dnorm(0, sd=3)), quote(alpha_), modMatNames=TRUE)$code,
     quote({
       alpha_Intercept ~ dnorm(0, sd = 3)
       alpha_x[1] <- 0
