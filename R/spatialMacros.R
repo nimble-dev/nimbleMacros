@@ -71,40 +71,37 @@ expcov <- nimbleFunction(
     return(result)
 })
 
-getDistMatCoords <- function(data, prefix){
-  dists <- as.matrix(dist(as.matrix(data)))
+
+getDistMat <- function(x, prefix) UseMethod("getDistMat")
+
+getDistMat.matrix <- function(x, prefix){
+  dists <- as.matrix(dist(x))
   dists <- dists / max(dists)
   out <- list(dists, rep(1, nrow(dists)))
   names(out) <- paste0(prefix, c("dists", "ones"))
   out
 }
 
-getDistMatSpPoints <- function(data, prefix){
-  getDistMatCoords(coordinates(data), prefix)
+getDistMat.data.frame <- function(x, prefix){
+  getDistMat(as.matrix(x), prefix)
+}
+
+getDistMat.SpatialPoints <- function(x, prefix){
+  getDistMat(coordinates(x), prefix)
 }
 
 #' @export
-GaussianProcess <- list(process = function(code, .constants, parameters=list(), .env, ...){
-  
-  LHS <- nimbleMacros:::getLHS(code)
+GaussianProcess <- nimble::model_macro_builder(
+function(stoch, LHS, spatData, prefix=quote(GP_), modelInfo, .env){  
   idx <- nimbleMacros:::extractIndices(LHS)[[1]]
-  RHS <- nimbleMacros:::getRHS(code)
-  args <- as.list(RHS)[-1]
-  data <- if(is.null(args$spatData)) eval(args[[1]]) else eval(args$spatData)
-  prefix <- ifelse(is.null(args$prefix), quote(GP_), args$prefix)
+  spatData <- eval(spatData, envir=.env)
   pars <- paste0(deparse(prefix), c("mu0","sigma","rho","mu","cov"))
   names(pars) <- c("mu0","sigma","rho","mu","cov")
   pars_names <- lapply(pars, str2lang)
 
   # New constants
-  if(inherits(data, "SpatialPoints")){
-    new_const <- getDistMatSpPoints(data, prefix)
-  } else if(inherits(data, "data.frame")){
-    new_const <- getDistMatCoords(data, prefix)
-  } else {
-    stop("Unrecognized spatial input", call.=FALSE)
-  }
-  constants <- c(constants, new_const)
+  new_const <- getDistMat(spatData, prefix)
+  modelInfo$constants <- c(modelInfo$constants, new_const)
   
   # Priors
   priors <- substitute({
@@ -126,9 +123,8 @@ GaussianProcess <- list(process = function(code, .constants, parameters=list(), 
   out <- nimbleMacros:::embedLinesInCurlyBrackets(list(priors, mu_line, cov_line, gp_line))
   out <- nimbleMacros:::removeExtraBrackets(out)
 
-  parameters <- c(parameters, list(priors=nimbleMacros:::findDeclarations(out)))
-  list(code=out, constants=constants, parameters=parameters)
-})
-class(GaussianProcess) <- "model_macro"
-
-
+  #parameters <- c(parameters, list(priors=nimbleMacros:::findDeclarations(out)))
+  list(code=out, modelInfo=modelInfo)
+},
+use3pieces=TRUE,
+unpackArgs=TRUE)
