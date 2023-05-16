@@ -116,22 +116,16 @@ NULL
 
 #' @importFrom lme4 nobars
 #' @export
-priors <- list(process=function(code, .constants, parameters=list(), .env=env,
-                                indexCreator){
-  form <- code[[2]]
+
+priors <- nimble::model_macro_builder(
+function(form, coefPrefix=quote(beta_), sdPrefix=NULL, coefPrior=quote(dnorm(0, 10)),
+         sdPrior=quote(T(dt(0, 0.1, 1), 0,)), modMatNames=FALSE, modelInfo, .env){
+
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
   
-  coefPrefix <- if(is.null(code$coefPrefix)) quote(beta_) else code$coefPrefix
-  #coefPrefix <- getLHS(code)
-  sdPrefix <- code$sdPrefix
-  coefPrior <- code$coefPrior
-  sdPrior <- code$sdPrior
-  if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, 10))
-  if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
-
-  rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants, indexCreator) 
+  rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, modelInfo) 
     
   new_form <- form
   if(!is.null(rand_info$formula)){
@@ -139,12 +133,7 @@ priors <- list(process=function(code, .constants, parameters=list(), .env=env,
     new_form <- as.formula(new_form)
   }
 
-  dat <- makeDummyDataFrame(new_form, .constants)
-
-  modMatNames <- code$modMatNames
-  if(is.null(modMatNames)){
-    modMatNames <- FALSE
-  }
+  dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
   fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
                                prefix=as.character(deparse(coefPrefix)),
@@ -154,10 +143,12 @@ priors <- list(process=function(code, .constants, parameters=list(), .env=env,
   out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
   
-  parameters <- c(parameters, list(priors=findDeclarations(out)))
-  list(code=out, constants=.constants, parameters=parameters)
-})
-class(priors) <- "model_macro"
+  #parameters <- c(parameters, list(priors=findDeclarations(out)))
+  list(code=out, modelInfo=modelInfo)
+},
+use3pieces=FALSE,
+unpackArgs=TRUE
+)
 
 isTilde <- function(code){
   code[[1]] == "~"
