@@ -235,7 +235,7 @@ test_that("forLoop", {
     # macro
     nimble:::processModelMacros(nimbleCode({
       beta[1:10] ~ forLoop(dnorm(0, sd=10))
-    }), constants=list())$code,
+    }), modelInfo=list())$code,
     # reference
     nimbleCode({
       for (i_1 in 1:10){
@@ -248,7 +248,7 @@ test_that("forLoop", {
     # macro
     nimble:::processModelMacros(nimbleCode({
       beta[1:2,1:10,1] ~ forLoop(dnorm(0, sd=10))
-    }), constants=list())$code,
+    }), modelInfo=list())$code,
     # reference
     nimbleCode({
       for (i_1 in 1:2) {
@@ -263,7 +263,7 @@ test_that("forLoop", {
     # macro
     nimble:::processModelMacros(nimbleCode({
       sigma ~ forLoop(dunif(0,10))
-    }), constants=list())$code,
+    }), modelInfo=list())$code,
     # reference
     nimbleCode({
       sigma ~ dunif(0, 10)
@@ -274,7 +274,7 @@ test_that("forLoop", {
     # macro
     nimble:::processModelMacros(nimbleCode({
       beta[1,2] ~ forLoop(dnorm(0, sd=10))
-    }), constants=list())$code,
+    }), modelInfo=list())$code,
     # reference
     nimbleCode({
       beta[1,2] ~ dnorm(0, sd=10)
@@ -285,7 +285,7 @@ test_that("forLoop", {
     # macro
     nimble:::processModelMacros(nimbleCode({
       beta[1:10,1:k,1:l] ~ forLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
-    }), constants=list())$code,
+    }), modelInfo=list())$code,
     # reference
     nimbleCode({
       for (i_1 in 1:10) {
