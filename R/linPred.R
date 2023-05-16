@@ -292,64 +292,37 @@ NULL
 
 #' @importFrom lme4 nobars
 #' @export
-linPred <- list(
-  process = function(code, .constants, parameters=list(), .env, indexCreator, ...){
-    RHS <- getRHS(code)
-    
-    # Get value for prefix argument
-    coefPrefix <- RHS$coefPrefix
-    if(is.null(coefPrefix)){
-      coefPrefix <- quote(beta_)
-    } else {
-      RHS$coefPrefix <- NULL 
-    }
-    sdPrefix <- RHS$sdPrefix
-    if(!is.null(sdPrefix)){
-      RHS$sdPrefix <- NULL 
-    }
+linPred <- nimble::model_macro_builder(
+function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
+         sdPrefix=NULL, coefPrior=NULL, sdPrior=NULL, modelInfo, .env){
 
-    # Get value for link argument
-    link <- RHS$link
-    if(!is.null(link)){
-      RHS$link <- NULL 
-    }
-    coefPrior <- RHS$coefPrior
-    if(!is.null(coefPrior)){
-      RHS$coefPrior <- NULL
-    }
-    sdPrior <- RHS$sdPrior
-    if(!is.null(sdPrior)){
-      RHS$sdPrior <- NULL
-    }
+    formula <- as.formula(formula)
 
-    # Get formula
-    RHS <- RHS[[2]]
-    if(RHS[[1]] != quote(`~`)) RHS <- c(quote(`~`),RHS) # 
-    form <- as.formula(RHS)
     # Get index on LHS to use if none are found in RHS formula
-    LHS_ind <- extractIndices(getLHS(code))
+    LHS_ind <- extractIndices(LHS)
     if(!is.null(link)){
-      LHS(code) <- as.call(list(link, getLHS(code)))
+      LHS <- as.call(list(link, LHS))
     }
     
-    rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, .constants, indexCreator=NULL)
-    .constants <- rand_info$constants
+    # FIXME: clunky
+    modelInfo_temp <- modelInfo
+    modelInfo_temp$indexCreator <- NULL # don't want to iterate the index creator here
+    rand_info <- processAllBars(formula, sdPrior, coefPrefix, sdPrefix, modelInfo_temp)
+    modelInfo$constants <- rand_info$modelInfo$constants
     
-    new_form <- form
+    new_form <- formula
     if(!is.null(rand_info)){
-      new_form <- addFormulaTerms(list(lme4::nobars(form), rand_info$formula))
+      new_form <- addFormulaTerms(list(lme4::nobars(formula), rand_info$formula))
     }
     
-    # Convert factors to numeric in constants (may not always be necessary)
-    #newConstants <- addNumericFactorsToConstants(.constants)
     # Make a dummy data frame to inform model.matrix with variable types
-    dat <- makeDummyDataFrame(new_form, .constants)
+    dat <- makeDummyDataFrame(new_form, modelInfo$constants)
     # Make linear predictor from formula and data
-    out <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
+    RHS <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
     # Add forLoop macro to result
-    out <- as.call(list(quote(forLoop), out))
-    # Replace RHS with result
-    RHS(code) <- out
+    RHS <- as.call(list(quote(forLoop), RHS))
+    # Combine LHS and RHS
+    code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
     if(!is.null(coefPrior) | !is.null(sdPrior)){
 
@@ -358,13 +331,14 @@ linPred <- list(
 
       priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, coefPrior=COEFPRIOR, 
                                      sdPrefix=SDPREFIX, sdPrior=SDPRIOR, modMatNames=TRUE),
-                              list(COEFPREFIX=coefPrefix, FORMULA=form, SDPREFIX=sdPrefix,
+                              list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
                                    COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
-    # Return code, new constants, and parameters
-    list(code=code, constants=.constants, parameters=parameters)
-  }
+    # Return code and model info
+    list(code=code, modelInfo=modelInfo)
+  },
+use3pieces=TRUE,
+unpackArgs=TRUE
 )
-class(linPred) <- "model_macro"
