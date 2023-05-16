@@ -1,17 +1,17 @@
-getICARInfoSpPoly <- function(sp, prefix){
-  stopifnot(inherits(sp, "SpatialPolygons"))
-  W_nb <- poly2nb(sp, row.names =  rownames(sp@data))
+getICARInfo <- function(x, prefix, ...) UseMethod("getICARInfo")
+
+getICARInfo.SpatialPolygons <- function(x, prefix, ...){
+  W_nb <- poly2nb(x, row.names =  rownames(x@data))
   nbInfo <- nb2WB(W_nb)
   out <- list(nbInfo$adj, nbInfo$weights, length(nbInfo$adj), nbInfo$num)
   names(out) <- paste0(prefix, c("adj", "weights", "L", "num"))
   out
 }
 
-getICARInfoCoords <- function(coords, threshold, prefix){
-  stopifnot(inherits(coords, "data.frame"))
-  stopifnot(ncol(coords) == 2)
+getICARInfo.data.frame <- function(x, prefix, threshold, ...){
+  stopifnot(ncol(x) == 2)
 
-  distmat <- as.matrix(stats::dist(coords))
+  distmat <- as.matrix(stats::dist(x))
 
   A = matrix(0, nrow(distmat), ncol(distmat))
   A[distmat <= threshold] <- 1
@@ -23,37 +23,22 @@ getICARInfoCoords <- function(coords, threshold, prefix){
   out
 }
 
-getICARInfoSpPoints <- function(sp, threshold, prefix){
-  stopifnot(inherits(sp, "SpatialPoints"))
-  getICARInfoCoords(as.data.frame(coordinates(sp)), threshold, prefix)
+getICARInfo.SpatialPoints <- function(x, prefix, threshold, ...){
+  getICARInfo.data.frame(as.data.frame(coordinates(x)), prefix=prefix, threshold=threshold)
 }
 
 #' @export
-ICAR <- list(process = function(code, .constants, parameters=list(), .env, ...){
-  
-  LHS <- nimbleMacros:::getLHS(code)
-  idx <- nimbleMacros:::extractIndices(LHS)[[1]]
-  RHS <- nimbleMacros:::getRHS(code)
-  args <- as.list(RHS)[-1]
-  data <- if(is.null(args$spatData)) eval(args[[1]]) else eval(args$spatData)
-  threshold <- args$threshold
-  prefix <- ifelse(is.null(args$prefix), quote(ICAR_), args$prefix)
+ICAR <- nimble::model_macro_builder(
+function(stoch, LHS, spatData, threshold=NULL, prefix=quote(ICAR_), zero_mean=0, modelInfo, .env){
+  spatData <- eval(spatData, envir=.env)
+  idx <- extractIndices(LHS)[[1]]
   pars <- paste0(deparse(prefix), c("adj", "weights", "L", "num", "tau", "sigma"))
   names(pars) <- c("adj", "weights", "L", "num", "tau", "sigma")
   pars_names <- lapply(pars, str2lang)
-  zero_mean <- ifelse(is.null(args$zero_mean), 0, args$zero_mean)
-
+  
   # New constants
-  if(inherits(data, "SpatialPoints")){
-    new_const <- getICARInfoSpPoints(data, threshold, prefix)
-  } else if(inherits(data, "data.frame")){
-    new_const <- getICARInfoCoords(data, threshold, prefix)
-  } else if(inherits(data, "SpatialPolygons")){
-    new_const <- getICARInfoSpPoly(data, prefix)
-  } else {
-    stop("Unrecognized spatial input", call.=FALSE)
-  }
-  constants <- c(constants, new_const)
+  new_const <- getICARInfo(x=spatData, prefix=prefix, threshold=threshold)
+  modelInfo$constants <- c(modelInfo$constants, new_const)
 
   icar_line <- substitute(LHS ~ dcar_normal(ADJ[1:L], WEIGHTS[1:L], NUM[IDX], TAU, zero_mean = ZEROMEAN),
                           list(LHS=LHS, ADJ=pars_names$adj, WEIGHTS=pars_names$weights,
@@ -64,13 +49,14 @@ ICAR <- list(process = function(code, .constants, parameters=list(), .env, ...){
     SIGMA ~ dunif(0, 100)
   }, list(TAU=pars_names$tau, SIGMA=pars_names$sigma))
   
-  out <- nimbleMacros:::embedLinesInCurlyBrackets(list(icar_line, tau_lines))
-  out <- nimbleMacros:::removeExtraBrackets(out)
+  out <- embedLinesInCurlyBrackets(list(icar_line, tau_lines))
+  out <- removeExtraBrackets(out)
 
-  parameters <- c(parameters, list(priors=nimbleMacros:::findDeclarations(out)))
-  list(code=out, constants=constants, parameters=parameters)
-})
-class(ICAR) <- "model_macro"
+  #parameters <- c(parameters, list(priors=nimbleMacros:::findDeclarations(out)))
+  list(code=out, modelInfo=modelInfo)
+},
+use3pieces=TRUE,
+unpackArgs=TRUE)
 
 #' @export
 expcov <- nimbleFunction(     
