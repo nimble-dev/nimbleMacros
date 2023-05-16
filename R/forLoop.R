@@ -185,37 +185,36 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
 NULL
 
 #' @export
-forLoop <- list(
-  process = function(code, .constants, parameters=list(), .env, indexCreator){
-    code <- removeMacroCall(code)
-    LHS <- getLHS(code)
-    # Stop if there are no brackets
-    if(!hasBracket(LHS)) return(list(code=code, constants=.constants))
-    idx <- extractIndices(LHS)
-    has_range <- isIndexRange(idx)
-    # Stop if none of the indices are ranges
-    if(all(!has_range)) return(list(code=code, constants=.constants))
+forLoop <- nimble::model_macro_builder(
+function(code, modelInfo, .env){
+  code <- removeMacroCall(code)
+  LHS <- getLHS(code)
+  # Stop if there are no brackets
+  if(!hasBracket(LHS)) return(list(code=code, modelInfo = modelInfo))
+  idx <- extractIndices(LHS)
+  has_range <- isIndexRange(idx)
+  # Stop if none of the indices are ranges
+  if(all(!has_range)) return(list(code=code, modelInfo = modelInfo))
 
-    idx_sub <- idx[has_range]
-    #idx_letters <- paste0(c(letters[9:12], letters[-c(9:12)]),"_")
-    idx_letters <- lapply(1:length(idx_sub), function(i) indexCreator())
-    idx_letters <- lapply(idx_letters, as.name)
+  idx_sub <- idx[has_range]
+  idx_letters <- lapply(1:length(idx_sub), function(i) modelInfo$indexCreator())
+  idx_letters <- lapply(idx_letters, as.name)
+  code <- replaceDeclarationIndexRanges(code, idx_letters)
 
-    code <- replaceDeclarationIndexRanges(code, idx_letters)
-
-    for(i in length(idx_sub):1) {
-      newForLoop <-
-        substitute(
-          for(NEWINDEX_ in RANGE_){
-            INNERCODE
-          },
-          list(NEWINDEX_ = idx_letters[[i]],
-               RANGE_ = idx_sub[[i]],
-               INNERCODE = code))
-      code <- newForLoop
-    }
-
-    return(list(code=code, constants=.constants, parameters=parameters))
+  for(i in length(idx_sub):1) {
+    newForLoop <-
+      substitute(
+        for(NEWINDEX_ in RANGE_){
+          INNERCODE
+        },
+        list(NEWINDEX_ = idx_letters[[i]],
+              RANGE_ = idx_sub[[i]],
+              INNERCODE = code))
+    code <- newForLoop
   }
+
+  return(list(code=code, modelInfo=modelInfo))
+},
+use3pieces=FALSE,
+unpackArgs=FALSE
 )
-class(forLoop) <- "model_macro"
