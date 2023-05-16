@@ -114,7 +114,7 @@ function(stoch, LHS, spatData, prefix=quote(GP_), modelInfo, .env){
                         list(MU=pars_names$mu, IDX=idx, MU0=pars_names$mu0,
                              ONES=str2lang(paste0(prefix, "ones"))))
   dist_name <- str2lang(paste0(prefix, "dists"))
-  cov_line <- substitute(COV[IDX, IDX] <- expcov(DIST[IDX, IDX], RHO, SIGMA),
+  cov_line <- substitute(COV[IDX, IDX] <- SIGMA*SIGMA*exp(-DIST[IDX, IDX] / RHO),
                          list(COV=pars_names$cov, IDX=idx, DIST=dist_name,
                               RHO=pars_names$rho, SIGMA=pars_names$sigma))
   gp_line <- substitute(LHS ~ dmnorm(MU[IDX], cov = COV[IDX, IDX]),
