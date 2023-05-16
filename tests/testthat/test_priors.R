@@ -105,13 +105,13 @@ test_that("makeParameterStructureModMatNames", {
 
 test_that("priors macro", {
   set.seed(123)
-  dat <- data.frame(x=factor(sample(letters[1:3], 10, replace=T)),
+  modInfo <- list(constants=data.frame(x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=rnorm(10))
+                    x3=rnorm(10)))
 
 
-  out <- priors$process(quote(priors(~1, coefPrefix=beta_)), dat)  
-  expect_equal(out$constants, dat)
+  out <- priors$process(quote(priors(~1, coefPrefix=beta_)), modInfo, NULL)  
+  expect_equal(out$modelInfo$constants, modInfo$constants)
   expect_equal(
     out$code,
     quote({
@@ -119,7 +119,7 @@ test_that("priors macro", {
     })
   )
   expect_equal(
-    priors$process(quote(priors(~x, coefPrior=dnorm(0, sd=3))), dat)$code,
+    priors$process(quote(priors(~x, coefPrior=dnorm(0, sd=3))), modInfo, NULL)$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 3)
       beta_x[1] <- 0
@@ -128,14 +128,14 @@ test_that("priors macro", {
     })
   )
   expect_equal(
-    priors$process(quote(priors(~x3, coefPrefix = alpha_)), dat)$code,
+    priors$process(quote(priors(~x3, coefPrefix = alpha_)), modInfo, NULL)$code,
     quote({
       alpha_Intercept ~ dnorm(0, 10)
       alpha_x3 ~ dnorm(0, 10)
     })
   )
   expect_equal(
-    priors$process(quote(priors(~x, modMatNames=TRUE)), dat)$code,
+    priors$process(quote(priors(~x, modMatNames=TRUE)), modInfo, NULL)$code,
     quote({
       beta_Intercept ~ dnorm(0, 10)
       beta_x[1] <- 0
@@ -149,13 +149,13 @@ test_that("priors macro", {
 
 test_that("priors with random effect", {
   set.seed(123)
-  dat <- list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3))
+                    x3=round(rnorm(10),3)))
 
   code <- quote(priors(~x3 + (1|x), sdPrior=dunif(0, 3)))
  
-  out <- priors$process(code, dat)
+  out <- priors$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -166,7 +166,7 @@ test_that("priors with random effect", {
     })
   )
   expect_equal(
-    out$constants,
-    dat
+    out$modelInfo$constants,
+    modInfo$constants
   )
 })
