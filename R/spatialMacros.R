@@ -77,8 +77,8 @@ getDistMat <- function(x, prefix) UseMethod("getDistMat")
 getDistMat.matrix <- function(x, prefix){
   dists <- as.matrix(dist(x))
   dists <- dists / max(dists)
-  out <- list(dists, rep(1, nrow(dists)))
-  names(out) <- paste0(prefix, c("dists", "ones"))
+  out <- list(dists, rep(0, nrow(dists)))
+  names(out) <- paste0(prefix, c("dists", "zeros"))
   out
 }
 
@@ -95,8 +95,8 @@ GaussianProcess <- nimble::model_macro_builder(
 function(stoch, LHS, spatData, prefix=quote(GP_), modelInfo, .env){  
   idx <- nimbleMacros:::extractIndices(LHS)[[1]]
   spatData <- eval(spatData, envir=.env)
-  pars <- paste0(deparse(prefix), c("mu0","sigma","rho","mu","cov"))
-  names(pars) <- c("mu0","sigma","rho","mu","cov")
+  pars <- paste0(deparse(prefix), c("sigma","rho","mu","cov"))
+  names(pars) <- c("sigma","rho","mu","cov")
   pars_names <- lapply(pars, str2lang)
 
   # New constants
@@ -105,22 +105,19 @@ function(stoch, LHS, spatData, prefix=quote(GP_), modelInfo, .env){
   
   # Priors
   priors <- substitute({
-    MU0 ~ dnorm(0, sd = 100)
     SIGMA ~ dunif(0, 100)
     RHO ~ dunif(0, 5)
-  }, list(MU0=pars_names$mu0, SIGMA=pars_names$sigma, RHO=pars_names$rho))
+  }, list(SIGMA=pars_names$sigma, RHO=pars_names$rho))
 
-  mu_line <- substitute(MU[IDX] <- MU0 * ONES[IDX],
-                        list(MU=pars_names$mu, IDX=idx, MU0=pars_names$mu0,
-                             ONES=str2lang(paste0(prefix, "ones"))))
   dist_name <- str2lang(paste0(prefix, "dists"))
   cov_line <- substitute(COV[IDX, IDX] <- SIGMA*SIGMA*exp(-DIST[IDX, IDX] / RHO),
                          list(COV=pars_names$cov, IDX=idx, DIST=dist_name,
                               RHO=pars_names$rho, SIGMA=pars_names$sigma))
-  gp_line <- substitute(LHS ~ dmnorm(MU[IDX], cov = COV[IDX, IDX]),
-                        list(LHS=LHS, MU=pars_names$mu, IDX=idx, COV=pars_names$cov))
+  gp_line <- substitute(LHS ~ dmnorm(ZEROS[IDX], cov = COV[IDX, IDX]),
+                        list(LHS=LHS, ZEROS=str2lang(paste0(prefix, "zeros")),
+                             IDX=idx, COV=pars_names$cov))
   
-  out <- nimbleMacros:::embedLinesInCurlyBrackets(list(priors, mu_line, cov_line, gp_line))
+  out <- nimbleMacros:::embedLinesInCurlyBrackets(list(priors, cov_line, gp_line))
   out <- nimbleMacros:::removeExtraBrackets(out)
 
   #parameters <- c(parameters, list(priors=nimbleMacros:::findDeclarations(out)))
