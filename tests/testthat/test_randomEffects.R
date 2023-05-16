@@ -150,31 +150,31 @@ test_that("numRandomFactorLevels", {
 })
 
 test_that("makeUncorrelatedRandomPrior", {
-  dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)))
   expect_equal(
-    makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, dat),
+    makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo),
     quote(beta_group[1:3] ~ forLoop(dnorm(0, sd = sd_group)))
   )
   expect_equal(
-    makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), quote(alpha_), dat),
+    makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), quote(alpha_), modInfo),
     quote(beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group)))
   )
   expect_equal(
-    makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta_), NULL, dat),
+    makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta_), NULL, modInfo),
     quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
   )
   # Not an uncorrelated random effect
   expect_error(
-    makeUncorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, dat)
+    makeUncorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo)
   )
 })
 
 test_that("makeCorrelatedRandomPrior", {
-  dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  idxCreator <- nimble:::labelFunctionCreator("i")
-  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+                  indexCreator=nimble:::labelFunctionCreator("i"))
+  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo)
   expect_equal(
-    out$code,
+    out,
     quote({
     {
         re_sds_group[1] <- sd_group
@@ -196,22 +196,22 @@ test_that("makeCorrelatedRandomPrior", {
   )
 
   expect_error(
-    makeCorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, dat)
+    makeCorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo)
   )
 })
 
 test_that("makeRandomPriorCode", {
-  dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  idxCreator <- nimble:::labelFunctionCreator("i")
-  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+                  indexCreator=nimble:::labelFunctionCreator("i"))
+  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, modInfo)
   expect_equal(
-    out1$code,
+    out1,
     quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
   )
 
-  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
+  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo)
   expect_equal(
-    out2$code,
+    out2,
     quote({
     {
         re_sds_group[1] <- sd_group
@@ -234,12 +234,12 @@ test_that("makeRandomPriorCode", {
 })
 
 test_that("removeExtraBrackets", {       
-  dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
-  idxCreator <- nimble:::labelFunctionCreator("i")
-  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, dat, indexCreator=idxCreator)
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+                  indexCreator=nimble:::labelFunctionCreator("i"))
+  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo)
   
   expect_equal(
-    removeExtraBrackets(inp$code),
+    removeExtraBrackets(inp),
     quote({
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
@@ -306,9 +306,10 @@ test_that("processNestedRandomEffects", {
 })
 
 test_that("processBar", { 
-  dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+                  indexCreator=nimble:::labelFunctionCreator("i"))
   out <- processBar(quote(1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
-                    sdPrefix=quote(alpha_), dat)
+                    sdPrefix=quote(alpha_), modInfo)
   expect_equal(out$formula, quote(group))
   expect_equal(
     out$code,
@@ -317,14 +318,15 @@ test_that("processBar", {
       beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group))
     })
   )
-  expect_equal(out$constants, dat)
+  expect_equal(out$modelInfo$constants, modInfo$constants)
 
 })
 
 test_that("processAllBars", {
-  dat <- list(group=factor(c("a","b","c")), x=rnorm(3))
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+                  indexCreator=nimble:::labelFunctionCreator("i"))
   out <- processAllBars(~(x||group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
-                    sdPrefix=quote(alpha_), dat)
+                    sdPrefix=quote(alpha_), modInfo)
   expect_equal(out$formula, quote(group + x:group))
   expect_equal(
     out$code,
@@ -335,10 +337,10 @@ test_that("processAllBars", {
       beta_x_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_x_group))
     })
   )
-  expect_equal(out$constants, dat)
+  expect_equal(out$modelInfo$constants, modInfo$constants)
 
   expect_error(
     processAllBars(~(x||group) + (1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
-                    sdPrefix=quote(alpha_), dat)
+                    sdPrefix=quote(alpha_), modInfo)
   )
 })
