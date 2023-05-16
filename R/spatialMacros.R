@@ -58,20 +58,6 @@ function(stoch, LHS, spatData, threshold=NULL, prefix=quote(ICAR_), zero_mean=0,
 use3pieces=TRUE,
 unpackArgs=TRUE)
 
-#' @export
-expcov <- nimbleFunction(     
-  run = function(dists = double(2), rho = double(0), sigma = double(0)) {
-    returnType(double(2))
-    n <- dim(dists)[1]
-    result <- matrix(nrow = n, ncol = n, init = FALSE)
-    sigma2 <- sigma*sigma   # calculate once
-    for(i in 1:n)
-      for(j in 1:n)
-        result[i, j] <- sigma2*exp(-dists[i,j]/rho)
-    return(result)
-})
-
-
 getDistMat <- function(x, prefix) UseMethod("getDistMat")
 
 getDistMat.matrix <- function(x, prefix){

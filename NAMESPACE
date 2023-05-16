@@ -2,7 +2,6 @@
 
 export(GaussianProcess)
 export(ICAR)
-export(expcov)
 export(forLoop)
 export(linPred)
 export(nimbleLM)
