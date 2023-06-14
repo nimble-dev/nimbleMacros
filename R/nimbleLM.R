@@ -44,7 +44,7 @@
 NULL
 
 #' @export
-nimbleLM <- list(process = function(code, .constants, parameters=list(), .env){
+nimbleLM <- list(process = function(code, modelInfo, .env){
   
   if(isAssignment(code)){
     RHS <- getRHS(code)
@@ -60,7 +60,7 @@ nimbleLM <- list(process = function(code, .constants, parameters=list(), .env){
   if(hasBracket(LHS)){
     idx <- extractIndices(LHS)[[1]]
   } else {
-    idx <- substitute(1:LEN, list(LEN=as.numeric(length(.constants[[deparse(LHS)]]))))
+    idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[deparse(LHS)]]))))
     LHS <- substitute(LHS[IDX], list(LHS=LHS, IDX=idx))
   }
 
@@ -97,8 +97,8 @@ nimbleLM <- list(process = function(code, .constants, parameters=list(), .env){
     out <- c(out, list(sigprior))
   }
 
-  list(code=removeExtraBrackets(embedLinesInCurlyBrackets(out)), constants=.constants,
-       parameters=c(parameters, list(nimbleLM = pars_added)))
+  list(code=removeExtraBrackets(embedLinesInCurlyBrackets(out)),
+       modelInfo = modelInfo)
 })
 class(nimbleLM) <- 'model_macro'
 
