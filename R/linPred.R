@@ -188,7 +188,7 @@ getParametersForLP <- function(components, prefix="beta_"){
   #paste0("beta[",1:length(components),"]")
 }
 
-makeLPFromFormula <- function(formula, data, LHSidx, prefix){
+makeLPFromFormula <- function(formula, data, LHSidx, prefix, indicators = FALSE){
   formula_nobrack <- removeBracketsFromFormula(formula)
   #pars <- all.vars(formula_nobrack)
   # Get structure of each parameter
@@ -207,9 +207,21 @@ makeLPFromFormula <- function(formula, data, LHSidx, prefix){
           continuousComponent(types[[i]], brackets))
   })
   names(lp) <- par_names
+  if(indicators) lp <- addIndicatorsToLP(lp, types, prefix)
 
   # Collapse the list into a single linear predictor
   str2lang(paste(unlist(lp), collapse=" + "))
+}
+
+addIndicatorsToLP <- function(lp, types, prefix){
+  idx <- cumsum(sapply(types, function(x) ifelse(x == "Intercept", 0, 1)))
+  out <- lapply(1:length(lp), function(i){
+    if(types[[i]] == "Intercept") return(lp[[i]])
+    ind <- paste0("z_", deparse(prefix), "[", idx[i], "]")
+    paste0(ind, " * ", lp[[i]])
+  })
+  names(out) <- names(lp)
+  out
 }
 
 # Add numeric version of factors to constants, e.g. x2 becomes x2_NEW
@@ -270,6 +282,7 @@ makeDummyDataFrame <- function(formula, constants){
 #' @param sdPrior BUGS code for prior on dispersion parameters. Default is
 #'  half-Cauchy T(dt(0, 0.1, 1), 0,). If this parameter is specified, the
 #'  priors() macro will also be called.
+#' @param indicators If TRUE, add indicator variables to the linear predictor
 #' 
 #' @examples
 #' \donttest{
@@ -294,7 +307,7 @@ NULL
 #' @export
 linPred <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, coefPrior=NULL, sdPrior=NULL, modelInfo, .env){
+         sdPrefix=NULL, coefPrior=NULL, sdPrior=NULL, indicators = FALSE, modelInfo, .env){
 
     formula <- as.formula(formula)
 
@@ -318,7 +331,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
     # Make linear predictor from formula and data
-    RHS <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
+    RHS <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix, indicators)
     # Add forLoop macro to result
     RHS <- as.call(list(quote(forLoop), RHS))
     # Combine LHS and RHS
@@ -330,9 +343,9 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
       if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
 
       priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, coefPrior=COEFPRIOR, 
-                                     sdPrefix=SDPREFIX, sdPrior=SDPRIOR, modMatNames=TRUE),
+                                     sdPrefix=SDPREFIX, sdPrior=SDPRIOR, modMatNames=TRUE, indicators=INDARG),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
+                                   COEFPRIOR=coefPrior, SDPRIOR=sdPrior, INDARG=indicators))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
