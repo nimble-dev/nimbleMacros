@@ -84,11 +84,12 @@ getHyperpriorNames <- function(barExp, prefix){
 
 # Make hyperprior BUGS code chunk from a bar expression
 # (1|group) + dunif(0, 100) --> sd.group ~ dunif(0, 100) 
-makeHyperpriorCode <- function(barExp, sdPrefix, sdPrior){
+makeHyperpriorCode <- function(barExp, sdPrefix, priors){
   stopifnot(isBar(barExp))
   sd_names <- getHyperpriorNames(barExp, sdPrefix)
 
   hyperpriors <- lapply(sd_names, function(x){
+    sdPrior <- findPrior(x, parType="sd", dataType=NULL, priors=priors)
     substitute(LHS ~ PRIOR, list(LHS=x, PRIOR=sdPrior))
   })
   embedLinesInCurlyBrackets(hyperpriors)
@@ -280,7 +281,7 @@ processNestedRandomEffects <- function(barExp, constants){
 # Function to process a single bar expression (barExp) such as (1|group)
 # SDprior is the desired hyperprior, prefix is the prefix on the parameters,
 # and constants are passed so they can be modified if needed
-processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, modelInfo){  
+processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo){  
   # Handle nested random effects
   nested <- processNestedRandomEffects(barExp, modelInfo$constants)
   barExp <- nested$barExp
@@ -291,7 +292,7 @@ processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, modelInfo){
   form <- getCombinedFormulaFromBar(barExp)
    
   # BUGS Hyperprior code
-  hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, sdPrior)
+  hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, priorInfo)
   # BUGS random effect prior code, also updates constants if needed
   priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo)
   # Combine all code
@@ -304,7 +305,7 @@ processBar <- function(barExp, sdPrior, coefPrefix, sdPrefix, modelInfo){
 # Function to handle all bar expressions in a formula, combining results
 
 #' @importFrom lme4 findbars
-processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, modelInfo){
+processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo){
   # Generate separate bars from formula
   bars <- lme4::findbars(formula)
 
@@ -316,12 +317,12 @@ processAllBars <- function(formula, sdPrior, coefPrefix, sdPrefix, modelInfo){
   names(out) <- sapply(bars, deparse)
 
   # Fill in first element of list with first bar expression
-  out[[1]] <- processBar(bars[[1]], sdPrior, coefPrefix, sdPrefix, modelInfo)
+  out[[1]] <- processBar(bars[[1]], priors, coefPrefix, sdPrefix, modelInfo)
   # Work through remaining bar expressions if they exist
   # Make sure to pass updated model info
   if(length(bars) > 1){
     for (i in 2:length(bars)){
-      out[[i]] <- processBar(bars[[i]], sdPrior, coefPrefix, sdPrefix, 
+      out[[i]] <- processBar(bars[[i]], priors, coefPrefix, sdPrefix, 
                              out[[i-1]]$modelInfo)
     }
   }

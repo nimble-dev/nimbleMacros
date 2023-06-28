@@ -277,11 +277,7 @@ makeDummyDataFrame <- function(formula, constants){
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
-#'  If this parameter is specified, the priors() macro will also be called.
-#' @param sdPrior BUGS code for prior on dispersion parameters. Default is
-#'  half-Cauchy T(dt(0, 0.1, 1), 0,). If this parameter is specified, the
-#'  priors() macro will also be called.
+#' @param priorSettings Prior specifications, should be generated with setPrior()
 #' @param indicators If TRUE, add indicator variables to the linear predictor
 #' 
 #' @examples
@@ -307,7 +303,7 @@ NULL
 #' @export
 linPred <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, coefPrior=NULL, sdPrior=NULL, indicators = FALSE, modelInfo, .env){
+         sdPrefix=NULL, priorSettings=setPriors(), indicators = FALSE, modelInfo, .env){
 
     formula <- as.formula(formula)
 
@@ -320,7 +316,8 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # FIXME: clunky
     modelInfo_temp <- modelInfo
     modelInfo_temp$indexCreator <- NULL # don't want to iterate the index creator here
-    rand_info <- processAllBars(formula, sdPrior, coefPrefix, sdPrefix, modelInfo_temp)
+    eval_priors <- eval(priorSettings, envir=.env)
+    rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp)
     modelInfo$constants <- rand_info$modelInfo$constants
     
     new_form <- formula
@@ -337,15 +334,11 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
-    if(!is.null(coefPrior) | !is.null(sdPrior)){
-
-      if(is.null(coefPrior)) coefPrior <- quote(dnorm(0, sd=10))
-      if(is.null(sdPrior)) sdPrior <- quote(T(dt(0, 0.1, 1), 0,))
-
-      priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, coefPrior=COEFPRIOR, 
-                                     sdPrefix=SDPREFIX, sdPrior=SDPRIOR, modMatNames=TRUE, indicators=INDARG),
+    if(!is.null(priorSettings)){
+      priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
+                                     priorSettings=PRIORSET, modMatNames=TRUE, indicators=INDARG),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   COEFPRIOR=coefPrior, SDPRIOR=sdPrior, INDARG=indicators))
+                                   PRIORSET=priorSettings, INDARG=indicators))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 

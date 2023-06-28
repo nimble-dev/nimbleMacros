@@ -19,12 +19,9 @@ default is beta_ (so x becomes beta_x, etc.)}
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
 default is no prefix.}
 
-\item{coefPrior}{BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
-If this parameter is specified, the priors() macro will also be called.}
+\item{priorSettings}{Prior specifications, should be generated with setPrior()}
 
-\item{sdPrior}{BUGS code for prior on dispersion parameters. Default is
-half-Cauchy T(dt(0, 0.1, 1), 0,). If this parameter is specified, the
-priors() macro will also be called.}
+\item{indicators}{If TRUE, add indicator variables to the linear predictor}
 }
 \description{
 Converts an R formula into corresponding code for a linear predictor in BUGS.

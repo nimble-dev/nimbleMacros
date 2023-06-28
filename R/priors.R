@@ -1,8 +1,84 @@
+#' Set up prior values for different categories of nodes
+#'
+#' Generates a list of custom specifications of priors for parameters in the model.
+#' It is possible to set priors for a category of parameters (e.g. intercept,
+#' coefficient, sd, factor, continuous) or to set a prior for a specific
+#' parameter name (optionally including brackets with indices).
+#' Exact name matches including brackets/indices are used first, followed by
+#' name matches without indices, followed by data type (factor/continuous)
+#' followed by parameter type (intercept/coefficient/sd).
+#' Arguments can be supplied as quoted code or as character strings.
+#'
+#' @name setPriors
+#' @author Ken Kellner
+#' 
+#' @param intercept Prior specification for intercepts
+#' @param coefficient Prior specfication for slope coefficients
+#' @param sd Prior specification for random effects SDs
+#' @param factor Prior specifications for slope coefficients corresponding
+#'  to factor data
+#' @param continuous Prior specifications for slope coefficients corresponding
+#'  to continuous data
+#' @param ... Specific parameters, optionally with brackets/indices
+
+#' @export
+setPriors <- function(intercept = quote(dunif(-100, 100)),
+                      coefficient = quote(dnorm(0, sd = 100)),
+                      sd = quote(T(dt(0, 0.01, 1), 0,)),
+                      factor = NULL,
+                      continuous = NULL,
+                      ...){
+  # Get specific prior names
+  extra <- list(...)
+  # Combine everything
+  out <- c(list(intercept = intercept, coefficient = coefficient, sd = sd,
+                factor = factor, continuous = continuous), 
+           extra)
+  # Remove any null values
+  out <- out[sapply(out, function(x) !is.null(x))]
+
+  # Convert characters to code
+  out <- lapply(out, function(x){
+                  if(is.character(x)) return(str2lang(x)) else return(x)
+                      })
+  out
+}
+
+# Remove bracket from node
+removeBracket <- function(node){
+  if(!hasBracket(node)) return(node)
+  node[[2]] 
+}
+
+# From list of prior specifications (priors), select the most
+# appropriate prior based on information given
+findPrior <- function(parName, parType, dataType = NULL, priors){
+  
+  # 1. If exact prior name is specified in priors
+  par_char <- deparse(parName)
+  possible_prior <- priors[[par_char]]
+  if(!is.null(possible_prior)) return(possible_prior)
+
+  # 2. If prior name without brackets is specified
+  par_nobracks <- deparse(removeBracket(parName))
+  possible_prior <- priors[[par_nobracks]]
+  if(!is.null(possible_prior)) return(possible_prior)
+  
+  # 3. If data type is specified
+  if(!is.null(dataType)){
+    possible_prior <- priors[[dataType]]
+    if(!is.null(possible_prior)) return(possible_prior)
+  }
+
+  # 4. Fallback to parameter type (intercept/coefficient/sd)
+  priors[[parType]]
+}
+
 # Generate a code block with parameter priors for a given formula and 
 # corresponding dataset
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
 #' @importFrom stats model.matrix
-makeFixedPriorsFromFormula <- function(formula, data, prior, prefix, modMatNames=FALSE){ 
+makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){ 
 
   par_struct <- makeParameterStructure(formula, data)
   # Matching structure with the model matrix version of the names
@@ -11,7 +87,13 @@ makeFixedPriorsFromFormula <- function(formula, data, prior, prefix, modMatNames
 
   par_names <- getParametersForLP(names(par_struct), prefix)
 
-  getParametersForLP(colnames(model.matrix(formula, data)), prefix)
+  data_types <- sapply(names(par_struct), function(x, data){
+    if(x == "Intercept") return(NULL)
+    if(is.factor(data[[x]])) return("factor")
+    "continuous"
+  }, data = data)
+
+  par_types <- ifelse(names(par_struct) == "Intercept", "intercept", "coefficient")
 
   all_priors <- lapply(1:length(par_struct), function(i){
 
@@ -19,7 +101,9 @@ makeFixedPriorsFromFormula <- function(formula, data, prior, prefix, modMatNames
     inds <- as.matrix(which(par_struct[[i]] < 2, arr.ind=TRUE))
   
     if(nrow(inds) < 2){
-      return(substitute(LHS ~ PRIOR, list(LHS=str2lang(par_names[i]), PRIOR=prior)))
+      node <- str2lang(par_names[i])
+      prior <- findPrior(node, parType=par_types[i], dataType=data_types[[i]], priors=priors)
+      return(substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior)))
     }
 
     lapply(1:nrow(inds), function(j){
@@ -29,11 +113,13 @@ makeFixedPriorsFromFormula <- function(formula, data, prior, prefix, modMatNames
       if(val){
         if(modMatNames){
           alt_par <- str2lang(paste0(prefix, par_mm[[i]][t(inds[j,])]))
+          prior <- findPrior(alt_par, parType=par_types[i], dataType=data_types[[i]], priors=priors)
           embedLinesInCurlyBrackets(
             list(substitute(LHS <- ALT, list(LHS=node, ALT=alt_par)),
                  substitute(ALT ~ PRIOR, list(ALT=alt_par, PRIOR=prior)))
           )
         } else {
+          prior <- findPrior(node, parType=par_types[i], dataType=data_types[[i]], priors=priors)
           substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior))
         }
       } else {
@@ -94,9 +180,8 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
-#' @param sdPrior BUGS code for prior on dispersion parameters. Default is
-#'  half-Cauchy T(dt(0, 0.1, 1), 0,).
+#' @param priorSettings List of prior specifications, should be generated using 
+#'  setPriors()
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
 #' @param indicators If TRUE, add priors for indicator variables
@@ -119,14 +204,16 @@ NULL
 #' @export
 
 priors <- nimble::model_macro_builder(
-function(form, coefPrefix=quote(beta_), sdPrefix=NULL, coefPrior=quote(dnorm(0, 10)),
-         sdPrior=quote(T(dt(0, 0.1, 1), 0,)), modMatNames=FALSE, indicators=FALSE, modelInfo, .env){
+function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
+         modMatNames=FALSE, indicators=FALSE, modelInfo, .env){
 
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
   
-  rand_info <- processAllBars(form, sdPrior, coefPrefix, sdPrefix, modelInfo) 
+  priorSettings <- eval(priorSettings, envir=.env) 
+
+  rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo) 
     
   new_form <- form
   if(!is.null(rand_info$formula)){
@@ -136,7 +223,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, coefPrior=quote(dnorm(0, 
 
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
-  fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, coefPrior, 
+  fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, priorSettings, 
                                prefix=as.character(deparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- list(fixed$code)
