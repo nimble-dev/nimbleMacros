@@ -231,6 +231,8 @@ test_that("replaceDeclarationIndexRanges", {
 })
 
 test_that("forLoop", {
+  comments_on <- nimbleOptions()$enableMacroComments
+  nimbleOptions(enableMacroComments=FALSE)
   expect_equal(
     # macro
     nimble:::processModelMacros(nimbleCode({
@@ -298,4 +300,5 @@ test_that("forLoop", {
     })
   )
 
+  nimbleOptions(enableMacroComments=comments_on)
 })
