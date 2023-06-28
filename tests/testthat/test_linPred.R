@@ -374,7 +374,7 @@ test_that("linPred", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] <- linPred(~1))
+  code <- quote(y[1:n] <- linPred(~1, priorSettings=NULL))
  
   out <- linPred$process(code, modelInfo=modInfo, .env=NULL)
   expect_equal(
@@ -386,43 +386,45 @@ test_that("linPred", {
     modInfo
   )
 
-  code <- quote(y[1:n] ~ linPred(~x + x3))
+  code <- quote(y[1:n] ~ linPred(~x + x3, priorSettings=NULL))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
     quote(y[1:n] <- forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ linPred(~x, coefPrefix=alpha_))
+  code <- quote(y[1:n] ~ linPred(~x, priorSettings=NULL, coefPrefix=alpha_))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
     quote(y[1:n] <- forLoop(alpha_Intercept + alpha_x[x[1:n]]))
   )
 
-  code <- quote(y[1:n] <- linPred(~x, link=log))
+  code <- quote(y[1:n] <- linPred(~x, link=log, priorSettings=NULL))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
     quote(log(y[1:n]) <- forLoop(beta_Intercept + beta_x[x[1:n]]))
   )
 
-  code <- quote(y[1:n] <- linPred(~1, coefPrior=dnorm(0, sd=5)))
+
+  code <- quote(y[1:n] <- linPred(~1, priorSettings=setPriors()))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, coefPrior = dnorm(0, sd=5), sdPrefix=NULL, sdPrior=T(dt(0,0.1,1), 0, ), modMatNames=TRUE)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, indicators=FALSE)
     })
   )
-
-  code <- quote(y[1:n] ~ linPred(~1, sdPrior=dunif(0, 10)))
+  
+  pr <- setPriors(sd=quote(dunif(0, 10)))
+  code <- quote(y[1:n] ~ linPred(~1, priorSettings=pr))
   expect_equal(
-    linPred$process(code, modInfo, NULL)$code,
+    linPred$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, coefPrior = dnorm(0, sd=10), sdPrefix=NULL, sdPrior=dunif(0, 10), modMatNames=TRUE)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, indicators=FALSE)
     })
   )
 
-  code <- quote(y[1:n] ~ linPred(~x + (x|x2)))
+  code <- quote(y[1:n] ~ linPred(~x + (x|x2), priorSettings=NULL))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
     quote(y[1:n] <- forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
@@ -436,7 +438,7 @@ test_that("linPred with random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] ~ linPred(~x3 + (1|x)))
+  code <- quote(y[1:n] ~ linPred(~x3 + (1|x), priorSettings=NULL))
  
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
