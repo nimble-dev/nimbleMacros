@@ -13,13 +13,13 @@ default is beta_ (so x becomes beta_x, etc.)}
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
 default is no prefix.}
 
-\item{coefPrior}{BUGS code for prior on coefficients. Default is dnorm(0, sd=10).}
-
-\item{sdPrior}{BUGS code for prior on dispersion parameters. Default is
-half-Cauchy T(dt(0, 0.1, 1), 0,).}
+\item{priorSettings}{List of prior specifications, should be generated using 
+setPriors()}
 
 \item{modMatNames}{Logical, should parameters be named so they match the
 names you would get from R's model.matrix function?}
+
+\item{indicators}{If TRUE, add priors for indicator variables}
 }
 \description{
 Generates appropriate priors for a linear predictor derived from an 
