@@ -1,6 +1,6 @@
 Package: nimbleMacros
-Version: 0.0.3
-Date: 2023-5-10
+Version: 0.0.4
+Date: 2023-6-29
 Title: Macros for 'nimble' Code
 Authors@R: person("Ken", "Kellner", email="contact@kenkellner.com", 
                   role=c("cre","aut"))
@@ -11,6 +11,8 @@ Imports:
     lme4
 Suggests:
     roxygen2,
+    sp,
+    spdep,
     testthat
 Description: A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
 License: GPL-3

@@ -89,28 +89,29 @@ test_that("getHyperpriorNames", {
   )
 })
 
-test_that("makeHyperpriorCode", {  
+test_that("makeHyperpriorCode", {
+  pr <- setPriors(sd = quote(dunif(0, 3)))
   expect_equal(
-    makeHyperpriorCode(quote(1|group), quote(alpha_), quote(dunif(0, 3))),
+    makeHyperpriorCode(quote(1|group), quote(alpha_), pr),
     quote({
       alpha_sd_group ~ dunif(0, 3)
     })
   )
   expect_equal(
-    makeHyperpriorCode(quote(x|group), NULL, quote(dunif(0, 3))),
+    makeHyperpriorCode(quote(x|group), NULL, pr),
     quote({
       sd_group ~ dunif(0, 3)
       sd_x_group ~ dunif(0, 3)
     })
   )
   expect_equal(
-    makeHyperpriorCode(quote(x-1|group), NULL, quote(dunif(0, 3))),
+    makeHyperpriorCode(quote(x-1|group), NULL, pr),
     quote({
       sd_x_group ~ dunif(0, 3)
     })
   )
   expect_equal(
-    makeHyperpriorCode(quote(x*y|group), NULL, quote(dunif(0, 3))),
+    makeHyperpriorCode(quote(x*y|group), NULL, pr),
     quote({
       sd_group ~ dunif(0, 3)
       sd_x_group ~ dunif(0, 3)
@@ -308,7 +309,8 @@ test_that("processNestedRandomEffects", {
 test_that("processBar", { 
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  out <- processBar(quote(1|group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
+  pr <- setPriors(sd = quote(dunif(0, 3)))
+  out <- processBar(quote(1|group), priorInfo=pr, coefPrefix=quote(beta_), 
                     sdPrefix=quote(alpha_), modInfo)
   expect_equal(out$formula, quote(group))
   expect_equal(
@@ -325,7 +327,8 @@ test_that("processBar", {
 test_that("processAllBars", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  out <- processAllBars(~(x||group), sdPrior=quote(dunif(0, 3)), coefPrefix=quote(beta_), 
+  pr <- setPriors(sd = quote(dunif(0, 3)))
+  out <- processAllBars(~(x||group), priors=pr, coefPrefix=quote(beta_), 
                     sdPrefix=quote(alpha_), modInfo)
   expect_equal(out$formula, quote(group + x:group))
   expect_equal(
