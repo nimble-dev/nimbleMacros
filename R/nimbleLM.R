@@ -78,16 +78,15 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
   
   dataDec <- getDataDistCode(family$family, LHS, idx, sd_res)
   # FIXME: LHS par should not be fixed at mu
-  LP <- substitute(mu_[IDX] <- linPred(FORM, link=LINK, coefPrefix=PREFIX),
-                   list(IDX=idx, FORM=form, PREFIX=coefPrefix, LINK=link))
+  LP <- substitute(mu_[IDX] <- linPred(FORM, link=LINK, coefPrefix=COEFPREFIX,
+                                       sdPrefix=SDPREFIX, priorSettings=PRIORS),
+                   list(IDX=idx, FORM=form, COEFPREFIX=coefPrefix, SDPREFIX=sdPrefix,
+                        PRIORS=priorSettings, LINK=link))
   pars_added <- list(quote(mu_))
-  LPprior <- substitute(priors(FORM, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                               priorSettings=PRIORS, modMatNames=TRUE),
-                        list(COEFPREFIX=coefPrefix, FORM=form, SDPREFIX=sdPrefix,
-                             PRIORS=priorSettings))
-  out <- list(dataDec, LP, LPprior)
+  out <- list(dataDec, LP)
 
   if (family$family == "gaussian"){
+    priorSettings <- eval(priorSettings, envir=.env)
     sdPrior <- findPrior(sd_res, "sd", dataType=NULL, priorSettings) 
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=sd_res))
     pars_added <- c(pars_added, list(sd_res))
