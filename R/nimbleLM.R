@@ -18,11 +18,8 @@
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param coefPrior BUGS code for prior on coefficients. Default is dnorm(0, sd=10).
-#'  If this parameter is specified, the priors() macro will also be called.
-#' @param sdPrior BUGS code for prior on dispersion parameters. Default is
-#'  half-Cauchy T(dt(0, 0.1, 1), 0,). If this parameter is specified, the
-#'  priors() macro will also be called.
+#' @param priorSettings List of prior specifications, should be generated using 
+#'  setPriors()
 #'
 #' @examples
 #' \donttest{
@@ -68,9 +65,8 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
   family <- if(is.null(RHS$family)) quote(gaussian) else RHS$family
   family <- processFamily(family)
   link <- if(family$link == "identity") NULL else as.name(family$link)
-
-  coefPrior <- if(is.null(RHS$coefPrior)) quote(dnorm(0, sd=100)) else RHS$coefPrior
-  sdPrior <- if(is.null(RHS$sdPrior)) quote(dunif(0, 100)) else RHS$sdPrior
+  
+  priorSettings <- if(is.null(RHS$priorSettings)) quote(setPriors()) else RHS$priorSettings
   coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta_) else RHS$coefPrefix
   sdPrefix <- RHS$sdPrefix
 
@@ -86,12 +82,13 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
                    list(IDX=idx, FORM=form, PREFIX=coefPrefix, LINK=link))
   pars_added <- list(quote(mu_))
   LPprior <- substitute(priors(FORM, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                               coefPrior=COEFPRIOR, sdPrior=SDPRIOR, modMatNames=TRUE),
+                               priorSettings=PRIORS, modMatNames=TRUE),
                         list(COEFPREFIX=coefPrefix, FORM=form, SDPREFIX=sdPrefix,
-                             COEFPRIOR=coefPrior, SDPRIOR=sdPrior))
+                             PRIORS=priorSettings))
   out <- list(dataDec, LP, LPprior)
 
   if (family$family == "gaussian"){
+    sdPrior <- findPrior(sd_res, "sd", dataType=NULL, priorSettings) 
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=sd_res))
     pars_added <- c(pars_added, list(sd_res))
     out <- c(out, list(sigprior))

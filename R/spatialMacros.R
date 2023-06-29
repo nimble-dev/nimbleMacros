@@ -1,13 +1,15 @@
 getICARInfo <- function(x, prefix, ...) UseMethod("getICARInfo")
 
 getICARInfo.SpatialPolygons <- function(x, prefix, ...){
-  W_nb <- poly2nb(x, row.names =  rownames(x@data))
-  nbInfo <- nb2WB(W_nb)
+  if(!requireNamespace("spdep", quietly=TRUE)) stop("Package spdep required", call.=FALSE)
+  W_nb <- spdep::poly2nb(x, row.names =  rownames(x@data))
+  nbInfo <- spdep::nb2WB(W_nb)
   out <- list(nbInfo$adj, nbInfo$weights, length(nbInfo$adj), nbInfo$num)
   names(out) <- paste0(prefix, c("adj", "weights", "L", "num"))
   out
 }
 
+#' @importFrom stats dist
 getICARInfo.data.frame <- function(x, prefix, threshold, ...){
   stopifnot(ncol(x) == 2)
 
@@ -24,8 +26,29 @@ getICARInfo.data.frame <- function(x, prefix, threshold, ...){
 }
 
 getICARInfo.SpatialPoints <- function(x, prefix, threshold, ...){
-  getICARInfo.data.frame(as.data.frame(coordinates(x)), prefix=prefix, threshold=threshold)
+  if(!requireNamespace("sp", quietly=TRUE)) stop("Package sp required", call.=FALSE)
+  getICARInfo.data.frame(as.data.frame(sp::coordinates(x)), prefix=prefix, threshold=threshold)
 }
+
+#' Macro to build code for an ICAR random effect
+#'
+#' Takes spatial data as a Spatial object or data frame of coordinates, and
+#' generates corresponding code for an ICAR random effect
+#'
+#' @name ICAR
+#' @author Ken Kellner
+#' 
+#' @param spatData Spatial data object; can be SpatialPoints, SpatialPolygons,
+#'  or data frame of coordinates
+#' @param threshold Distance at and below which two points will be considered
+#'  neighbors
+#' @param prefix All macro-generated parameters will begin with this prefix,
+#'  default is ICAR_ (so x becomes ICAR_x)
+#' @param zero_mean Value passed to corresponding argument in dcar_normal() 
+#'  distribution in NIMBLE code
+#'
+#'
+NULL
 
 #' @export
 ICAR <- nimble::model_macro_builder(
@@ -73,8 +96,23 @@ getDistMat.data.frame <- function(x, prefix){
 }
 
 getDistMat.SpatialPoints <- function(x, prefix){
-  getDistMat(coordinates(x), prefix)
+  if(!requireNamespace("sp", quietly=TRUE)) stop("Package sp required", call.=FALSE)
+  getDistMat(sp::coordinates(x), prefix)
 }
+
+#' Macro to build code for an Gaussian Process random effect
+#'
+#' Takes spatial data as a Spatial object or data frame of coordinates, and
+#' generates corresponding code for an Gaussian process random effect
+#'
+#' @name GaussianProcess
+#' @author Ken Kellner
+#' 
+#' @param spatData Spatial data object; can be SpatialPoints, SpatialPolygons,
+#'  or data frame of coordinates
+#' @param prefix All macro-generated parameters will begin with this prefix,
+#'  default is GP_ (so x becomes GP_x)
+NULL
 
 #' @export
 GaussianProcess <- nimble::model_macro_builder(
