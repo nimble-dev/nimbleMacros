@@ -4,15 +4,15 @@ test_that("nimbleLM", {
 
   dat <- list(x = rnorm(3), x2 = factor(c("a","b","c")), y = rnorm(3))
   modelInfo <- list(constants=dat)
-  code <- quote(nimbleLM(y ~ x + x2, priorSettings=setPriors(sd=dunif(0, 5))))
-  out <- nimbleLM$process(code, modelInfo)
+  code <- quote(nimbleLM(y ~ x + x2, priorSettings=setPriors(sd="dunif(0, 5)")))
+  out <- nimbleLM$process(code, modelInfo, environment())
 
   expect_equal(
     out$code,
     quote({
       y[1:3] ~ forLoop(dnorm(mu_[1:3], sd = sd_residual))
-      mu_[1:3] <- linPred(~x + x2, link = NULL, coefPrefix = beta_)
-      priors(~x + x2, coefPrefix = beta_, sdPrefix = NULL, priorSettings=setPriors(sd = dunif(0, 5)), modMatNames = TRUE)
+      mu_[1:3] <- linPred(~x + x2, link = NULL, coefPrefix = beta_, sdPrefix = NULL,
+                    priorSettings=setPriors(sd = "dunif(0, 5)"))
       sd_residual ~ dunif(0, 5)
     })
   )
@@ -27,8 +27,8 @@ test_that("nimbleLM", {
     out2$code,
     quote({
       y[1:3] ~ forLoop(dpois(mu_[1:3]))
-      mu_[1:3] <- linPred(~x + x2, link = log, coefPrefix = beta_)
-      priors(~x + x2, coefPrefix = beta_, sdPrefix = NULL, priorSettings = setPriors(), modMatNames = TRUE)
+      mu_[1:3] <- linPred(~x + x2, link = log, coefPrefix = beta_,
+                    sdPrefix = NULL, priorSettings = setPriors())
     })
   )
 
