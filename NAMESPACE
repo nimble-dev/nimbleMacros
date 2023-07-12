@@ -2,9 +2,12 @@
 
 export(GaussianProcess)
 export(ICAR)
+export(dynocc)
 export(forLoop)
 export(linPred)
 export(nimbleLM)
+export(nmixture)
+export(occupancy)
 export(priors)
 export(setPriors)
 export(uppertri_mult_diag)
