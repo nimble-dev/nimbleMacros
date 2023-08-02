@@ -2,9 +2,12 @@
 
 export(GaussianProcess)
 export(ICAR)
+export(as.mcarray)
 export(dynocc)
 export(forLoop)
 export(linPred)
+export(nimble2gam)
+export(nimbleJagam)
 export(nimbleLM)
 export(nmixture)
 export(occupancy)
