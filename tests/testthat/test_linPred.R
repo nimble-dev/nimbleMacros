@@ -450,3 +450,21 @@ test_that("linPred with random effect", {
     modInfo$constants
   )
 })
+
+test_that("linPred with factor array covariate", {
+  set.seed(123)
+  modInfo <- list(constants=list(y=matrix(rnorm(12), 3, 4),
+                                 x=matrix(sample(letters[1:3], 12, replace=T), 3, 4),
+                                 M=3, J=4))
+  code <- quote(y[1:M,1:J] ~ linPred(~x[1:M,1:J], priorSettings=NULL))
+  out <- linPred$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote(y[1:M, 1:J] <- forLoop(beta_Intercept + beta_x[x[1:M, 1:J]]))
+  )
+  expect_equal(dim(out$modelInfo$constants$x), c(3,4))
+
+  p <- nimble:::processModelMacros(code, modInfo, NULL)
+  expect_true(is.numeric(p$modelInfo$constants$x))
+  expect_equal(dim(p$modelInfo$constants$x), c(3,4))
+})

@@ -252,6 +252,8 @@ makeDummyDataFrame <- function(formula, constants){
       out[[i]] <- 0
     } else if (is.factor(constants[[i]]) | is.numeric(constants[[i]])){
       out[[i]] <- constants[[i]][1]
+    } else if (is.character(constants[[i]])){
+      out[[i]] <- as.factor(constants[[i]])[1]
     }
   }
   as.data.frame(out)
@@ -321,7 +323,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     modelInfo$constants <- rand_info$modelInfo$constants
     
     new_form <- formula
-    if(!is.null(rand_info)){
+    if(!is.null(rand_info$formula)){
       new_form <- addFormulaTerms(list(lme4::nobars(formula), rand_info$formula))
     }
     
