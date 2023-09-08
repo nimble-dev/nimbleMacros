@@ -54,7 +54,7 @@ test_that("removeBracket", {
     removeBracket(quote(alpha[1,2])), quote(alpha))
 })
 
-test_that("findPrior", {
+test_that("choosePriorFromSettings", {
 
   priors <- setPriors(intercept = quote(dnorm(0, 1)),
                       coefficient = quote(dnorm(0, 2)),
@@ -63,26 +63,32 @@ test_that("findPrior", {
                       alpha = quote(dnorm(0, 5)),
                       "alpha[1]" = quote(dnorm(0, 6)))
   
-  expect_equal(findPrior(quote(beta), "intercept", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(beta), "intercept", priorSettings=priors),
                quote(dnorm(0,1)))
 
-  expect_equal(findPrior(quote(beta), "coefficient", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(beta), "coefficient", priorSettings=priors),
                quote(dnorm(0,2)))
 
-  expect_equal(findPrior(quote(beta), "continuous", "coefficient", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(beta), "continuous", "coefficient", priorSettings=priors),
                quote(dnorm(0,3)))
 
-  expect_equal(findPrior(quote(beta), "factor", "coefficient", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(beta), "factor", "coefficient", priorSettings=priors),
                quote(dnorm(0,4)))
 
-  expect_equal(findPrior(quote(alpha), "coefficient", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(alpha), "coefficient", priorSettings=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(findPrior(quote(alpha[2]), "coefficient", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(alpha[2]), "coefficient", priorSettings=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(findPrior(quote(alpha[1]), "coefficient", priorSettings=priors),
+  expect_equal(choosePriorFromSettings(quote(alpha[1]), "coefficient", priorSettings=priors),
                quote(dnorm(0,6)))
+  
+  # Possible errors
+  expect_error(choosePriorFromSettings(quote(beta), "fake", priorSettings=priors))
+
+  priors$bad <- "dnorm(0, 1)"
+  expect_error(choosePriorFromSettings(quote(beta), "bad", priorSettings=priors))
 })
 
 test_that("makeFixedPriorsFromFormula", {

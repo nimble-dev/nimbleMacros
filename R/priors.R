@@ -60,7 +60,7 @@ removeBracket <- function(node){
 #' settings list. Once a match is found the function returns the corresponding
 #' prior value.
 #'
-#' @name findPrior
+#' @name choosePriorFromSettings
 #' @author Ken Kellner
 #' 
 #' @param parName Parameter to get a prior for, as quoted code/name, possibly
@@ -72,27 +72,40 @@ removeBracket <- function(node){
 #'  \code{setPriors}
 #'
 #' @export
-findPrior <- function(parName, ..., priorSettings){
+choosePriorFromSettings <- function(parName, ..., priorSettings){
   
   # 1. If exact prior name is specified in priors
   par_char <- deparse(parName)
   possible_prior <- priorSettings[[par_char]]
-  if(!is.null(possible_prior)) return(possible_prior)
+  if(!is.null(possible_prior)){
+    checkValidPrior(possible_prior)
+    return(possible_prior)
+  }
 
   # 2. If prior name without brackets is specified
   par_nobracks <- deparse(removeBracket(parName))
   possible_prior <- priorSettings[[par_nobracks]]
-  if(!is.null(possible_prior)) return(possible_prior)
+  if(!is.null(possible_prior)){
+    checkValidPrior(possible_prior)
+    return(possible_prior)
+  }
   
   # 3. Other possible categories in ..., in order
   par_types <- list(...)
   for (i in par_types){
     if(is.null(i) || is.na(i)) next
     if(i %in% names(priorSettings)){
+      if(is.null(priorSettings[[i]])) next
+      checkValidPrior(priorSettings[[i]])
       return(priorSettings[[i]])
     }
   }
   stop("Unable to set prior for parameter ", parName, call.=FALSE)
+}
+
+checkValidPrior <- function(prior){
+  if(!(is.call(prior) | is.name(prior))) stop("Invalid prior ", prior, call.=FALSE)
+  invisible()
 }
 
 # Generate a code block with parameter priors for a given formula and 
@@ -124,7 +137,7 @@ makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatName
     if(nrow(inds) < 2){
       node <- str2lang(par_names[i])
       # Search in order: parameter name exactly, without brackets, data type, parameter type
-      prior <- findPrior(node, data_types[[i]], par_types[i], priorSettings=priors)
+      prior <- choosePriorFromSettings(node, data_types[[i]], par_types[i], priorSettings=priors)
       return(substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior)))
     }
 
@@ -135,13 +148,13 @@ makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatName
       if(val){
         if(modMatNames){
           alt_par <- str2lang(paste0(prefix, par_mm[[i]][t(inds[j,])]))
-          prior <- findPrior(alt_par, data_types[[i]], par_types[i], priorSettings=priors)
+          prior <- choosePriorFromSettings(alt_par, data_types[[i]], par_types[i], priorSettings=priors)
           embedLinesInCurlyBrackets(
             list(substitute(LHS <- ALT, list(LHS=node, ALT=alt_par)),
                  substitute(ALT ~ PRIOR, list(ALT=alt_par, PRIOR=prior)))
           )
         } else {
-          prior <- findPrior(node, data_types[[i]], par_types[i], priorSettings=priors)
+          prior <- choosePriorFromSettings(node, data_types[[i]], par_types[i], priorSettings=priors)
           substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior))
         }
       } else {
