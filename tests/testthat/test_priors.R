@@ -63,25 +63,25 @@ test_that("findPrior", {
                       alpha = quote(dnorm(0, 5)),
                       "alpha[1]" = quote(dnorm(0, 6)))
   
-  expect_equal(findPrior(quote(beta), "intercept", priors=priors),
+  expect_equal(findPrior(quote(beta), "intercept", priorSettings=priors),
                quote(dnorm(0,1)))
 
-  expect_equal(findPrior(quote(beta), "coefficient", priors=priors),
+  expect_equal(findPrior(quote(beta), "coefficient", priorSettings=priors),
                quote(dnorm(0,2)))
 
-  expect_equal(findPrior(quote(beta), "coefficient", dataType="continuous", priors=priors),
+  expect_equal(findPrior(quote(beta), "continuous", "coefficient", priorSettings=priors),
                quote(dnorm(0,3)))
 
-  expect_equal(findPrior(quote(beta), "coefficient", dataType="factor", priors=priors),
+  expect_equal(findPrior(quote(beta), "factor", "coefficient", priorSettings=priors),
                quote(dnorm(0,4)))
 
-  expect_equal(findPrior(quote(alpha), "coefficient", priors=priors),
+  expect_equal(findPrior(quote(alpha), "coefficient", priorSettings=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(findPrior(quote(alpha[2]), "coefficient", priors=priors),
+  expect_equal(findPrior(quote(alpha[2]), "coefficient", priorSettings=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(findPrior(quote(alpha[1]), "coefficient", priors=priors),
+  expect_equal(findPrior(quote(alpha[1]), "coefficient", priorSettings=priors),
                quote(dnorm(0,6)))
 })
 
