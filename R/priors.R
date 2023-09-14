@@ -219,7 +219,6 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  setPriors()
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
-#' @param indicators If TRUE, add priors for indicator variables
 #'
 #' @examples
 #' \donttest{
@@ -240,7 +239,7 @@ NULL
 
 priors <- nimble::model_macro_builder(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
-         modMatNames=FALSE, indicators=FALSE, modelInfo, .env){
+         modMatNames=FALSE, modelInfo, .env){
 
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
@@ -262,10 +261,6 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
                                prefix=as.character(deparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- list(fixed$code)
-  if(indicators){
-    ind_priors <- indicatorVarPriors(lme4::nobars(form), dat, coefPrefix)
-    out <- c(out, list(ind_priors))
-  }
   if(!is.null(rand_info$code)) out <- c(out, list(rand_info$code))
   out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
@@ -347,18 +342,4 @@ findDeclarations <- function(code){
     if(hasBracket(x)) return(x[[2]]) else return(x)
   })
   unlist(out[!duplicated(out)])
-}
-
-indicatorVarPriors <- function(formula, data, prefix){
-  formula_nobrack <- removeBracketsFromFormula(formula)
-  par_struct <- makeParameterStructure(formula_nobrack, data)
-  n_zbeta <- as.numeric(length(names(par_struct)[names(par_struct)!="Intercept"]))
-  z_name <- str2lang(paste0("z_", deparse(prefix)))
-  psi_name <- str2lang(paste0("psi_", deparse(prefix)))
-
-  substitute({
-    PSI ~ dunif(0, 1)
-    ZNAME[1:NZ] ~ forLoop(dbern(PSI))
-    }, list(ZNAME=z_name, NZ=n_zbeta, PSI=psi_name)
-  )
 }
