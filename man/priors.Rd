@@ -18,6 +18,8 @@ setPriors()}
 
 \item{modMatNames}{Logical, should parameters be named so they match the
 names you would get from R's model.matrix function?}
+
+\item{indicators}{If TRUE, add priors for indicator variables}
 }
 \description{
 Generates appropriate priors for a linear predictor derived from an 

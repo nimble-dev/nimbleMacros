@@ -20,6 +20,8 @@ default is beta_ (so x becomes beta_x, etc.)}
 default is no prefix.}
 
 \item{priorSettings}{Prior specifications, should be generated with setPrior()}
+
+\item{indicators}{If TRUE, add indicator variables to the linear predictor}
 }
 \description{
 Converts an R formula into corresponding code for a linear predictor in BUGS.
