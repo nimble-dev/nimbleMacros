@@ -265,81 +265,8 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
   
-  #parameters <- c(parameters, list(priors=findDeclarations(out)))
   list(code=out, modelInfo=modelInfo)
 },
 use3pieces=FALSE,
 unpackArgs=TRUE
 )
-
-isTilde <- function(code){
-  code[[1]] == "~"
-}
-
-findPriors <- function(code, index=NULL){
-  out <- lapply(1:length(code), function(i){
-    index <- paste0(index, "[[", i, "]]")
-    if(code[[i]] == "{"){
-      return(NULL)
-    } else if(code[[i]][[1]] == "for"){
-      unlist(findPriors(code[[i]][[4]], index=paste0(index, "[[4]]")), recursive=FALSE)
-    } else {
-      if(isTilde(code[[i]])){
-        return(list(par=getLHS(code[[i]]), index=index))
-      } else {
-        return(NULL)
-      }
-    }
-  })
-  out[!sapply(out, function(x) is.null(x[[1]]))]
-}
-
-replaceCode <- function(code, index, newValue){
-
-  codebrack <- str2lang(paste0("code", index))
-
-  run <- substitute(CODEBRACK[[3]] <- quote(NEWVAL),
-                    list(CODEBRACK=codebrack, NEWVAL=newValue))
-  eval(run)
-  code
-}
-
-modifyPrior <- function(code, parameter, newPrior){  
-  pr <- findPriors(code)
-  if(is.character(newPrior)){
-    newPrior <- str2lang(newPrior)
-  }
-  if(is.character(parameter)){
-    parameter <- str2lang(parameter)
-  }
-  pars <- lapply(pr, function(x) x$par)
-  indices <- lapply(pr, function(x) x$index)
-  idx <- which(parameter == pars)
-  if(length(idx) != 1){
-    stop("No prior for ",deparse(parameter)," found", call.=FALSE)
-  }
-
-  replaceCode(code, indices[idx], newPrior) 
-
-}
-
-findDeclarations <- function(code){
-  out <- lapply(1:length(code), function(i){
-    if(code[[i]] == "{"){
-      return(NULL)
-    } else if(code[[i]][[1]] == "for"){
-      return(findDeclarations(code[[i]][[4]]))
-    } else {
-      if(isAssignment(code[[i]])){
-        return(getLHS(code[[i]]))
-      } else {
-        return(NULL)
-      }
-    }
-  })
-  out <- out[!sapply(out, is.null)]
-  out <- lapply(out, function(x){
-    if(hasBracket(x)) return(x[[2]]) else return(x)
-  })
-  unlist(out[!duplicated(out)])
-}
