@@ -1,4 +1,4 @@
-context("Random effects functions")
+context("random effects functions")
 
 test_that("isBar", {
   expect_true(isBar(quote(1|group)))
