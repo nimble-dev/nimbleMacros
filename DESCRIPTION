@@ -11,6 +11,8 @@ Imports:
     lme4
 Suggests:
     roxygen2,
+    sp,
+    spdep,
     testthat
 Description: A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
 License: GPL-3
