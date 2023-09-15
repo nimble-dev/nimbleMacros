@@ -39,7 +39,26 @@ test_that("setPriors",{
          sd=quote(T(dt(0, 0.01 ,1),0,)),
          "alpha[1]"=quote(dnorm(0, 1)))
   )
+  expect_equal(
+    setPriors(sd = list("dnorm", 0, sd = 3)),
+    list(intercept=quote(dunif(-100,100)),
+         coefficient=quote(dnorm(0, sd = 100)),
+         sd=quote(dnorm(0, sd = 3)))
+  )
 
+})
+
+test_that("convertListToPrior", {
+  
+  expect_equal(
+    convertListToPrior(list("dunif", 0, 10)),
+    quote(dunif(0, 10))
+  )
+  expect_equal(
+    convertListToPrior(list(quote(dnorm), 0, sd = 10)),
+    quote(dnorm(0, sd = 10))
+  )
+  expect_error(convertListToPrior(list(dnorm, 0, sd = 10)))
 
 })
 

@@ -7,7 +7,10 @@
 #' Exact name matches including brackets/indices are used first, followed by
 #' name matches without indices, followed by data type (factor/continuous)
 #' followed by parameter type (intercept/coefficient/sd).
-#' Arguments can be supplied as quoted code or as character strings.
+#' Arguments can be supplied as quoted code, a character string, or
+#' as a list of prior components. For example, to specify the prior
+#' \code{dnorm(0, sd = 10)} you could specify \code{quote(dnorm(0, sd = 10))},
+#' or \code{"dnorm(0, sd = 10)"}, or \code{list("dnorm", 0, sd = 10)}.
 #'
 #' @name setPriors
 #' @author Ken Kellner
@@ -36,12 +39,30 @@ setPriors <- function(intercept = quote(dunif(-100, 100)),
            extra)
   # Remove any null values
   out <- out[sapply(out, function(x) !is.null(x))]
+  
+  # Convert prior provided as list to quoted code
+  out <- lapply(out, convertListToPrior)
 
   # Convert characters to code
   out <- lapply(out, function(x){
                   if(is.character(x)) return(str2lang(x)) else return(x)
                       })
   out
+}
+
+# Convert a list of prior components into a call
+# e.g. list(quote(dnorm), 0, sd = 10) results in quote(dnorm(0, sd = 10))
+convertListToPrior <- function(input){
+  if(!is.list(input)) return(input)
+  if(is.function(input[[1]])){
+    stop("Function name must be a character string or wrapped in quote()", call.=FALSE)
+  }
+  
+  out <- input
+  # Convert character strings to quoted code
+  out <- lapply(out, function(x) if(is.character(x)) str2lang(x) else x)
+  
+  as.call(out)
 }
 
 # Remove bracket from node
