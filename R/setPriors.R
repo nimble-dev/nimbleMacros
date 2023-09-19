@@ -27,7 +27,7 @@
 #' @export
 setPriors <- function(intercept = quote(dunif(-100, 100)),
                       coefficient = quote(dnorm(0, sd = 100)),
-                      sd = quote(T(dt(0, 0.01, 1), 0,)),
+                      sd = quote(dunif(0, 100)),
                       factor = NULL,
                       continuous = NULL,
                       ...){
