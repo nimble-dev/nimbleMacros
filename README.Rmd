@@ -28,7 +28,7 @@ code <- nimbleCode({
 })
 
 # View expanded code
-nimble:::codeProcessModelMacros(code, nimble_data)$code
+nimbleModel(code, nimble_data)$getCode()
 ```
 
 ```{r}
