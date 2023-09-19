@@ -6,14 +6,14 @@ test_that("setPriors",{
   expect_equal(setPriors(),
                list(intercept=quote(dunif(-100,100)),
                     coefficient=quote(dnorm(0, sd = 100)),
-                    sd=quote(T(dt(0, 0.01 ,1),0,)))
+                    sd=quote(dunif(0, 100)))
                )
 
   expect_equal(
     setPriors(factor = quote(dnorm(0, 1))),
     list(intercept=quote(dunif(-100,100)),
          coefficient=quote(dnorm(0, sd = 100)),
-         sd=quote(T(dt(0, 0.01 ,1),0,)),
+         sd=quote(dunif(0, 100)),
          factor=quote(dnorm(0, 1)))
   )
 
@@ -21,7 +21,7 @@ test_that("setPriors",{
     setPriors(continuous = quote(dnorm(0, 1))),
     list(intercept=quote(dunif(-100,100)),
          coefficient=quote(dnorm(0, sd = 100)),
-         sd=quote(T(dt(0, 0.01 ,1),0,)),
+         sd=quote(dunif(0, 100)),
          continuous=quote(dnorm(0, 1)))
   )
 
@@ -29,14 +29,14 @@ test_that("setPriors",{
     setPriors("alpha[1]" = quote(dnorm(0, 1))),
     list(intercept=quote(dunif(-100,100)),
          coefficient=quote(dnorm(0, sd = 100)),
-         sd=quote(T(dt(0, 0.01 ,1),0,)),
+         sd=quote(dunif(0, 100)),
          "alpha[1]"=quote(dnorm(0, 1)))
   )
   expect_equal(
     setPriors("alpha[1]" = "dnorm(0, 1)"),
     list(intercept=quote(dunif(-100,100)),
          coefficient=quote(dnorm(0, sd = 100)),
-         sd=quote(T(dt(0, 0.01 ,1),0,)),
+         sd=quote(dunif(0, 100)),
          "alpha[1]"=quote(dnorm(0, 1)))
   )
   expect_equal(

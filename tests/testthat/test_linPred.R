@@ -662,7 +662,7 @@ test_that("priors with random effect", {
     quote({
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
-      sd_x ~ T(dt(0,0.01,1),0,)
+      sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
     })
   )
