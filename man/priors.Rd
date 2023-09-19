@@ -25,17 +25,12 @@ R formula. As such it makes the most sense to use this macro together with
 the linPred macro which takes similar arguments.
 }
 \examples{
-\donttest{
-constants <- list(x = rnorm(10), 
-                  x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
-
-# Just linear predictor
 code <- nimbleCode({
-  y[1:n] ~ linPred(~x + x2)
-  priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
- })
-nimble:::processModelMacros(code, constants)$code
-}
+  priors(~x + x2)
+})
+
+mod <- nimbleModel(code)
+mod$getCode()
 }
 \author{
 Ken Kellner

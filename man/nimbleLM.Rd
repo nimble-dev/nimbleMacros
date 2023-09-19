@@ -28,22 +28,16 @@ such as lm(), glm(), and lmer()/glmer(). Currently only normal and Poisson
 models are supported.
 }
 \examples{
-\donttest{
 constants <- list(y = rnorm(10),
                   x = rnorm(10), 
                   x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
-
+ 
 code <- nimbleCode({
-  nimbleLM(y ~ x + x2)
+   nimbleLM(y ~ x + x2)
 })
-nimble:::codeProcessModelMacros(code, constants)$code
 
-# equivalent
-code <- nimbleCode({
-  y ~ nimbleLM(~ x + x2)
-})
-nimble:::codeProcessModelMacros(code, constants)$code
-}
+mod <- nimbleModel(code, constants=constants)
+mod$getCode()
 }
 \author{
 Ken Kellner

@@ -140,13 +140,13 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
 #' @param code The right-hand side of a parameter declaration
 #'
 #' @examples
-#' \donttest{
 #' code <- nimbleCode({
-#'   y[1:n, 1:2, 1] ~ forLoop(dnorm(mu[1:n], sigma))
-#'   mu[1:n] <- forLoop(beta[1] + beta[2]*x[1:n])
+#'    y[1:n, 1:2, 1] ~ forLoop(dnorm(mu[1:n], sigma))
+#'    mu[1:n] <- forLoop(beta[1] + beta[2]*x[1:n])
 #' })
-#' nimble:::codeProcessModelMacros(code)
-#' }
+#'
+#' mod <- nimbleModel(code, constants=list(n=10))
+#' mod$getCode()
 NULL
 
 #' @export
