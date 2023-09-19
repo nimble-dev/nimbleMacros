@@ -270,22 +270,12 @@ makeDummyDataFrame <- function(formula, constants){
 #' @param priorSettings Prior specifications, should be generated with setPrior()
 #' 
 #' @examples
-#' \donttest{
-#' constants <- list(x = rnorm(10), 
-#'                   x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
+#' code <- nimbleCode({
+#'   mu[1:10] <- linPred(~x + x2)
+#' })
 #'
-#' # Just linear predictor
-#' code <- nimbleCode({
-#'   y[1:n] ~ linPred(~x + x2)
-#' })
-#' nimble:::codeProcessModelMacros(code, constants)$code
-#' 
-#' # Also generate matching priors
-#' code <- nimbleCode({
-#'   y[1:n] ~ linPred(~x + x2, coefPrior=dnorm(0, sd=10))
-#' })
-#' nimble:::codeProcessModelMacros(code, constants)$code
-#' }
+#' mod <- nimbleModel(code)
+#' mod$getCode()
 NULL
 
 #' @importFrom lme4 nobars
@@ -453,17 +443,12 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  names you would get from R's model.matrix function?
 #'
 #' @examples
-#' \donttest{
-#' constants <- list(x = rnorm(10), 
-#'                   x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
-#'
-#' # Just linear predictor
 #' code <- nimbleCode({
-#'   y[1:n] ~ linPred(~x + x2)
-#'   priors(~x + x2, coefPrior = dnorm(0, sd = 5), modMatNames=TRUE)
-#'  })
-#' nimble:::processModelMacros(code, constants)$code
-#' }
+#'   priors(~x + x2)
+#' })
+#' 
+#' mod <- nimbleModel(code)
+#' mod$getCode()
 NULL
 
 #' @importFrom lme4 nobars
