@@ -94,7 +94,7 @@ makeHyperpriorCode <- function(barExp, sdPrefix, priorSettings){
     if(is.null(priorSettings)){
       sdPrior <- quote(PLACEHOLDER)
     } else {
-      sdPrior <- choosePriorFromSettings(x, "sd", priorSettings=priorSettings)
+      sdPrior <- matchPrior(x, "sd", priorSettings=priorSettings)
     }
     substitute(LHS ~ PRIOR, list(LHS=x, PRIOR=sdPrior))
   })

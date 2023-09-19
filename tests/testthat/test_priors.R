@@ -73,7 +73,7 @@ test_that("removeBracket", {
     removeBracket(quote(alpha[1,2])), quote(alpha))
 })
 
-test_that("choosePriorFromSettings", {
+test_that("matchPrior", {
 
   priors <- setPriors(intercept = quote(dnorm(0, 1)),
                       coefficient = quote(dnorm(0, 2)),
@@ -82,30 +82,30 @@ test_that("choosePriorFromSettings", {
                       alpha = quote(dnorm(0, 5)),
                       "alpha[1]" = quote(dnorm(0, 6)))
   
-  expect_equal(choosePriorFromSettings(quote(beta), "intercept", priorSettings=priors),
+  expect_equal(matchPrior(quote(beta), "intercept", priorSettings=priors),
                quote(dnorm(0,1)))
 
-  expect_equal(choosePriorFromSettings(quote(beta), "coefficient", priorSettings=priors),
+  expect_equal(matchPrior(quote(beta), "coefficient", priorSettings=priors),
                quote(dnorm(0,2)))
 
-  expect_equal(choosePriorFromSettings(quote(beta), "continuous", "coefficient", priorSettings=priors),
+  expect_equal(matchPrior(quote(beta), "continuous", "coefficient", priorSettings=priors),
                quote(dnorm(0,3)))
 
-  expect_equal(choosePriorFromSettings(quote(beta), "factor", "coefficient", priorSettings=priors),
+  expect_equal(matchPrior(quote(beta), "factor", "coefficient", priorSettings=priors),
                quote(dnorm(0,4)))
 
-  expect_equal(choosePriorFromSettings(quote(alpha), "coefficient", priorSettings=priors),
+  expect_equal(matchPrior(quote(alpha), "coefficient", priorSettings=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(choosePriorFromSettings(quote(alpha[2]), "coefficient", priorSettings=priors),
+  expect_equal(matchPrior(quote(alpha[2]), "coefficient", priorSettings=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(choosePriorFromSettings(quote(alpha[1]), "coefficient", priorSettings=priors),
+  expect_equal(matchPrior(quote(alpha[1]), "coefficient", priorSettings=priors),
                quote(dnorm(0,6)))
   
   # Possible errors
-  expect_error(choosePriorFromSettings(quote(beta), "fake", priorSettings=priors))
+  expect_error(matchPrior(quote(beta), "fake", priorSettings=priors))
 
   priors$bad <- "dnorm(0, 1)"
-  expect_error(choosePriorFromSettings(quote(beta), "bad", priorSettings=priors))
+  expect_error(matchPrior(quote(beta), "bad", priorSettings=priors))
 })
