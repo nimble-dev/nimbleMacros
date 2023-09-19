@@ -19,23 +19,46 @@ code <- nimbleCode({
 })
 
 # View expanded code
-nimble:::codeProcessModelMacros(code, nimble_data)$code
+nimbleModel(code, nimble_data)$getCode()
 ```
 
+    ## Defining model
+
+    ##   [Note] Using 'Employed' (given within 'constants') as data.
+
+    ## Building model
+
+    ## Setting data and initial values
+
+    ## Running calculate on model
+    ##   [Note] Any error reports that follow may simply reflect missing values in model variables.
+
+    ## Checking model sizes and dimensions
+
+    ##   [Note] This model is not fully initialized. This is not an error.
+    ##          To see which variables are not initialized, use model$initializeInfo().
+    ##          For more information on model initialization, see help(modelInitialization).
+
     ## {
-    ##     {
-    ##         for (i_ in 1:16) {
-    ##             Employed[i_] ~ dnorm(mu_[i_], sd = sd.residual)
-    ##         }
-    ##         for (i_ in 1:16) {
-    ##             mu_[i_] <- beta_Intercept + beta_GNP * GNP[i_]
-    ##         }
-    ##         {
-    ##             beta_Intercept ~ dnorm(0, sd = 100)
-    ##             beta_GNP ~ dnorm(0, sd = 100)
-    ##         }
-    ##         sd.residual ~ dunif(0, 100)
+    ##     "# nimbleLM"
+    ##     "  ## forLoop"
+    ##     for (i_1 in 1:16) {
+    ##         Employed[i_1] ~ dnorm(mu_[i_1], sd = sd_residual)
     ##     }
+    ##     "  ## ----"
+    ##     "  ## linPred"
+    ##     "    ### forLoop"
+    ##     for (i_2 in 1:16) {
+    ##         mu_[i_2] <- beta_Intercept + beta_GNP * GNP[i_2]
+    ##     }
+    ##     "    ### ----"
+    ##     "    ### priors"
+    ##     beta_Intercept ~ dunif(-100, 100)
+    ##     beta_GNP ~ dnorm(0, sd = 100)
+    ##     "    ### ----"
+    ##     "  ## ----"
+    ##     sd_residual ~ dunif(0, 100)
+    ##     "# ----"
     ## }
 
 ``` r
@@ -63,7 +86,7 @@ out <- nimbleMCMC(code, constants=nimble_data, nchains=3, niter=1000, nburnin=50
 
     ## Checking model calculations
 
-    ## [Note] NAs were detected in model variables: beta_Intercept, logProb_beta_Intercept, beta_GNP, logProb_beta_GNP, sd.residual, logProb_sd.residual, mu_, logProb_Employed.
+    ## [Note] NAs were detected in model variables: beta_Intercept, logProb_beta_Intercept, beta_GNP, logProb_beta_GNP, sd_residual, logProb_sd_residual, mu_, logProb_Employed.
 
     ## Compiling
     ##   [Note] This may take a minute.
@@ -80,9 +103,9 @@ round(out$summary$all.chains, 3)
 ```
 
     ##                  Mean Median St.Dev. 95%CI_low 95%CI_upp
-    ## beta_GNP        0.035  0.035   0.002     0.030     0.039
-    ## beta_Intercept 51.907 51.925   0.828    50.373    53.703
-    ## sd.residual     0.722  0.686   0.155     0.518     1.139
+    ## beta_GNP        0.036  0.036   0.002     0.033     0.039
+    ## beta_Intercept 51.469 51.500   0.594    50.268    52.505
+    ## sd_residual     0.713  0.696   0.146     0.464     1.022
 
 ``` r
 # Compare to lm
