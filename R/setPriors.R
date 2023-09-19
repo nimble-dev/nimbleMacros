@@ -71,7 +71,7 @@ removeBracket <- function(node){
   node[[2]] 
 }
 
-#' Choose a prior from a list of prior settings
+#' Match a prior from a list of prior settings
 #'
 #' Attempts to determine which prior to put on a parameter based on a list of settings,
 #' such as the output from setPriors(). The function follows the following
@@ -81,7 +81,7 @@ removeBracket <- function(node){
 #' settings list. Once a match is found the function returns the corresponding
 #' prior value.
 #'
-#' @name choosePriorFromSettings
+#' @name matchPrior
 #' @author Ken Kellner
 #' 
 #' @param parName Parameter to get a prior for, as quoted code/name, possibly
@@ -93,7 +93,7 @@ removeBracket <- function(node){
 #'  \code{setPriors}
 #'
 #' @export
-choosePriorFromSettings <- function(parName, ..., priorSettings){
+matchPrior <- function(parName, ..., priorSettings){
   
   # 1. If exact prior name is specified in priors
   par_char <- deparse(parName)

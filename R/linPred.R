@@ -369,7 +369,7 @@ makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatName
     if(nrow(inds) < 2){
       node <- str2lang(par_names[i])
       # Search in order: parameter name exactly, without brackets, data type, parameter type
-      prior <- choosePriorFromSettings(node, data_types[[i]], par_types[i], priorSettings=priors)
+      prior <- matchPrior(node, data_types[[i]], par_types[i], priorSettings=priors)
       return(substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior)))
     }
 
@@ -380,13 +380,13 @@ makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatName
       if(val){
         if(modMatNames){
           alt_par <- str2lang(paste0(prefix, par_mm[[i]][t(inds[j,])]))
-          prior <- choosePriorFromSettings(alt_par, data_types[[i]], par_types[i], priorSettings=priors)
+          prior <- matchPrior(alt_par, data_types[[i]], par_types[i], priorSettings=priors)
           embedLinesInCurlyBrackets(
             list(substitute(LHS <- ALT, list(LHS=node, ALT=alt_par)),
                  substitute(ALT ~ PRIOR, list(ALT=alt_par, PRIOR=prior)))
           )
         } else {
-          prior <- choosePriorFromSettings(node, data_types[[i]], par_types[i], priorSettings=priors)
+          prior <- matchPrior(node, data_types[[i]], par_types[i], priorSettings=priors)
           substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior))
         }
       } else {

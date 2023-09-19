@@ -87,7 +87,7 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
 
   if (family$family == "gaussian"){
     priorSettings <- eval(priorSettings, envir=.env)
-    sdPrior <- choosePriorFromSettings(sd_res, "sd", priorSettings = priorSettings) 
+    sdPrior <- matchPrior(sd_res, "sd", priorSettings = priorSettings) 
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=sd_res))
     pars_added <- c(pars_added, list(sd_res))
     out <- c(out, list(sigprior))
