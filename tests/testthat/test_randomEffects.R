@@ -148,6 +148,11 @@ test_that("numRandomFactorLevels", {
     3
   )
   expect_error(numRandomFactorLevels(quote(1|x), dat))
+  dat2 <- list(group = matrix(c("a","b","a","b"), 2, 2), x = rnorm(3))
+  expect_equal(
+    numRandomFactorLevels(quote(1|group), dat2),
+    2
+  )
 })
 
 test_that("makeUncorrelatedRandomPrior", {
@@ -304,6 +309,18 @@ test_that("processNestedRandomEffects", {
   out3 <- processNestedRandomEffects(quote(1|group:group2), dat2)
   expect_equal(out3$constants, dat2)
 
+  # Handle character matrices
+  dat2 <- list(group=matrix(c("a","b","b","a"), 2, 2),
+              group2=matrix(c("c","d","c","d"), 2, 2))
+
+  out4 <- processNestedRandomEffects(quote(1|group:group2), dat2)
+  expect_equal(out4$constants$group_group2,
+               matrix(c("a:c","b:d","b:c","a:d"), 2, 2))
+  
+  # Mismatched array sizes should error
+  dat3 <- list(group=matrix(c("a","b","b","a","z","z"), 3, 2),
+              group2=matrix(c("c","d","c","d"), 2, 2))
+  expect_error(processNestedRandomEffects(quote(1|group:group2), dat3))
 })
 
 test_that("processBar", { 

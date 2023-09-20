@@ -115,7 +115,8 @@ makeRandomParNames <- function(barExp, prefix){
 numRandomFactorLevels <- function(barExp, constants){
   rfact <- getRandomFactorName(barExp)
   facdata <- constants[[deparse(rfact)]]
-  stopifnot(is.factor(facdata))
+  stopifnot(is.factor(facdata)|is.character(facdata))
+  if(is.character(facdata)) facdata <- as.factor(facdata)
   as.numeric(length(levels(facdata)))
 }
 
@@ -274,15 +275,34 @@ processNestedRandomEffects <- function(barExp, constants){
   if(! comb_name %in% names(constants)){
     fac_dat <- constants[fac_names]
     fac_len <- sapply(fac_dat, length)
-    stopifnot(all(sapply(fac_dat, class) == "factor"))
     stopifnot(all(fac_len == fac_len[1]))
-    new_fac <- apply(as.data.frame(fac_dat), 1, paste, collapse=":")
-    new_fac <- factor(new_fac)
+
+    are_facs <- all(sapply(fac_dat, is.factor))
+    are_chars <- all(sapply(fac_dat, is.character))
+    stopifnot(are_facs | are_chars)
+
+    if(are_facs){
+      new_fac <- apply(as.data.frame(fac_dat), 1, paste, collapse=":")
+      new_fac <- factor(new_fac)
+    } else if(are_chars){
+      match_dim <- dim(fac_dat[[1]])
+      stopifnot(all(sapply(lapply(fac_dat, dim), function(x) identical(x, match_dim))))
+      if(is.null(match_dim)){
+        new_fac <- apply(as.data.frame(fac_dat), 1, paste, collapse=":")
+      } else {
+        as_vecs <- as.data.frame(lapply(fac_dat, as.vector))
+        new_fac <- apply(as_vecs, 1, paste, collapse=":")
+        new_fac <- array(new_fac, dim=match_dim)
+      }
+    } else {
+      stop("Invalid input", call.=FALSE)
+    }
     constants[[comb_name]] <- new_fac
   }
 
   list(barExp=barExp, constants=constants)
 }
+
 
 # Function to process a single bar expression (barExp) such as (1|group)
 # SDprior is the desired hyperprior, prefix is the prefix on the parameters,
