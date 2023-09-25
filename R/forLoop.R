@@ -64,23 +64,45 @@ extractAllIndices <- function(code){
   return(out)
 }
 
+removeIndexAdjustments <- function(idx){
+  if(length(idx) == 1) return(idx) 
+  if(idx[[1]] == ":") return(idx)
+  has_range <- which(sapply(idx, function(x){
+    if(!is.call(x)) return(FALSE)
+    if(is.name(x)) return(FALSE)
+    if(x[[1]] == ":") return(TRUE)
+    FALSE
+  }))
+  idx[[has_range]]
+}
+
 # Check if index range on both sides of declaration are the same
 # Specifically, all indices on RHS have to be present in LHS
-hasMatchingIndexRanges <- function(LHS, RHS){
-  idx_LHS <- extractIndices(LHS)
-  idx_LHS <- idx_LHS[isIndexRange(idx_LHS)]
-  idx_RHS <- extractAllIndices(RHS)
-  idx_RHS <- idx_RHS[isIndexRange(idx_RHS)]
-  all(idx_RHS %in% idx_LHS)
-  #all(mapply(function(x, y) x==y, idx_LHS, idx_RHS))
+hasMatchingIndexRanges <- function (LHS, RHS){
+    idx_LHS <- extractIndices(LHS)
+    idx_LHS <- idx_LHS[isIndexRange(idx_LHS)]
+    idx_LHS <- lapply(idx_LHS, removeIndexAdjustments)
+    idx_RHS <- extractAllIndices(RHS)
+    idx_RHS <- idx_RHS[isIndexRange(idx_RHS)]
+    idx_RHS <- lapply(idx_RHS, removeIndexAdjustments)
+    all(idx_RHS %in% idx_LHS)
+}
+
+hasAdjustment <- function(code){
+  if(is.name(code)) return(FALSE)
+  if(length(code) < 3) return(FALSE)
+  code[[1]] == "-" | code[[1]] == "+"
 }
 
 # Replace a provided index in some code with a new value
 replaceIndex <- function(code, old_idx, new_idx){
-  stopifnot(hasBracket(code))
+  #stopifnot(hasBracket(code))
   code_list <- as.list(code)
   code_list <- lapply(code_list, function(x){
     if(hasBracket(x)){
+      return(replaceIndex(x, old_idx, new_idx))
+    }
+    if(hasAdjustment(x)){
       return(replaceIndex(x, old_idx, new_idx))
     }
     x
@@ -95,7 +117,7 @@ replaceIndex <- function(code, old_idx, new_idx){
 # Recursive version of replaceIndex
 # Typically used to handle RHS where there are nested lists in the call
 recursiveReplaceIndex <- function(code, old_idx, new_idx){
-  if(hasBracket(code)){
+  if(hasBracket(code) && code[[1]] == "["){
     out <- replaceIndex(code, old_idx, new_idx)
   } else{
     if(is.call(code)){

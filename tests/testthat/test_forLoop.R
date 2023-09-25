@@ -64,6 +64,17 @@ test_that("extractAllIndices", {
   )
 })
 
+test_that("removeIndexAdjustments", {
+  idx <- quote(1:n)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+  idx <- quote(1:n - 1)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+  idx <- quote(1-1:n)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+  idx <- quote(1:n+2)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+})
+
 test_that("hasMatchingIndexRanges", {
   expect_true(
     hasMatchingIndexRanges(quote(beta[1]), quote(dnorm(alpha[1])))
@@ -80,6 +91,18 @@ test_that("hasMatchingIndexRanges", {
   expect_false(
     hasMatchingIndexRanges(quote(beta[1:k, 2:3]), quote(dnorm(alpha[1:k, 3:4])))
   )
+  expect_true(
+    hasMatchingIndexRanges(quote(beta[1:n]), quote(dnorm(alpha[1:n-1])))
+  )
+})
+
+test_that("hasAdjustment", {
+  idx <- quote(1:n)
+  expect_false(hasAdjustment(idx))
+  idx <- quote(1:n+1)
+  expect_true(hasAdjustment(idx))
+  idx <- quote(1:n -1)
+  expect_true(hasAdjustment(idx))
 })
 
 test_that("replaceIndex", {
@@ -94,6 +117,10 @@ test_that("replaceIndex", {
   expect_equal(
     replaceIndex(quote(alpha[3,1:k]), quote(1:l), quote(j)),
     quote(alpha[3,1:k])
+  )
+  expect_equal(
+    replaceIndex(quote(alpha[3,1:k-1]), quote(1:k), quote(j)),
+    quote(alpha[3,j-1])
   )
 })
 
@@ -113,6 +140,10 @@ test_that("recursiveReplaceIndex", {
   expect_equal(
     recursiveReplaceIndex(quote(dnorm(alpha[1:10,3], sigma[1:10])), quote(1:10), quote(k)),
     quote(dnorm(alpha[k, 3], sigma[k]))
+  )
+  expect_equal(
+    recursiveReplaceIndex(quote(1 - (1 - alpha[1:10,3])), quote(1:10), quote(k)),
+    quote(1-(1-alpha[k, 3]))
   )
 })
 
