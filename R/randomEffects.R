@@ -10,19 +10,20 @@ isBar <- function(code){
 # the LHS and RHS of bar
 # Also first expand LHS if needed (e.g. from x*y to x+y+x:y)
 #' @importFrom stats as.formula terms
-barToTerms <- function(barExp){
+barToTerms <- function(barExp, keep_idx = FALSE){
   stopifnot(isBar(barExp))
 
   # Get random factor
-  rfact <- getRandomFactorName(barExp)
+  rfact <- getRandomFactorName(barExp, keep_idx)
   
   # Expand LHS formula into full set of terms
   LHS <- as.formula(as.call(list(as.name("~"), barExp[[2]])))
+  if(!keep_idx) LHS <- removeBracketsFromFormula(LHS)
   trms <- attr(terms(LHS), "term.labels")
   int <- as.logical(attr(terms(LHS), "intercept"))
 
   # If only intercept on LHS return just factor
-  if(length(trms)==0 & int) return(rfact)
+  if(length(trms)==0 & int) return(list(rfact))
   
   all_terms <- list()
 
@@ -34,19 +35,29 @@ barToTerms <- function(barExp){
   all_terms <- c(all_terms, lapply(trms, function(x){
     substitute(PAR:RFACT, list(PAR=x, RFACT=rfact))
   }))
+  #if(!is.list(all_terms)) all_terms <- list(all_terms)
   all_terms
 }
 
 #  Get factor name on RHS of bar
-getRandomFactorName <- function(barExp){
-  barExp[[3]]
+getRandomFactorName <- function(barExp, keep_idx = FALSE){
+  out <- barExp[[3]]
+  if(is.name(out)) return(out)
+  if(out[[1]] == "["){
+    if(keep_idx){
+      return(out)
+    } else{
+      return(out[[2]])
+    }
+  }
+  stop("Something went wrong")
 }
 
 # Convert bar expression into a complete formula component
 # with interactions between terms on LHS of bar and random factor
 getCombinedFormulaFromBar <- function(barExp){
   stopifnot(isBar(barExp))
-  trms <- barToTerms(barExp)
+  trms <- barToTerms(barExp, keep_idx = TRUE)
   addFormulaTerms(trms)
 }
 
@@ -56,10 +67,8 @@ getCombinedFormulaFromBar <- function(barExp){
 addFormulaTerms <- function(trms){
 
   # If only one term, return it
-  if(length(trms) == 1){
-    if(is.list(trms)) trms <- trms[[1]]
-    return(trms)
-  }  
+  if(length(trms) == 1) return(trms[[1]])
+
   # Otherwise add them together
   form <- str2lang(paste(sapply(trms, deparse), collapse="+"))
   #form <- substitute(A+B, list(A=trms[[1]], B=trms[[2]]))
@@ -76,8 +85,15 @@ addFormulaTerms <- function(trms){
 getHyperpriorNames <- function(barExp, prefix){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
+  if(is.call(trms)){
+    trms <- deparse(trms)
+  } else if(is.list(trms)){
+    trms <- sapply(trms, deparse)
+  }
+  trms <- sub("\\[.*?\\]", "", trms)
+  trms <- gsub("\\[|\\]", "", trms)
   sdPrefix <- ifelse(is.null(prefix), "", deparse(prefix))
-  sd_names <- paste0(prefix, "sd_", sapply(trms, deparse))
+  sd_names <- paste0(prefix, "sd_", trms)
   sd_names <- gsub(":", "_", sd_names) # replace : since it can't be in BUGS
   sapply(sd_names, str2lang)
 }
@@ -107,7 +123,8 @@ makeRandomParNames <- function(barExp, prefix){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
   par_names <- paste0(deparse(prefix), sapply(trms, deparse))
-  par_names <- gsub(":", "_", par_names) # for BUGS compatibility
+  #par_names <- gsub(":", "_", par_names) # for BUGS compatibility
+  par_names <- gsub(":(?=(((?!\\]).)*\\[)|[^\\[\\]]*$)", "_", par_names, perl=TRUE) # for BUGS compatibility
   sapply(par_names, str2lang)
 }
 
@@ -333,6 +350,7 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo){
 #' @importFrom lme4 findbars
 processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo){
   # Generate separate bars from formula
+  #formula <- removeBracketsFromFormula(formula) 
   bars <- lme4::findbars(formula)
 
   # Return NULL if there are no bars
