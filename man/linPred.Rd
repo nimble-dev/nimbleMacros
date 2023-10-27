@@ -27,22 +27,12 @@ Options are available to specify a link function and to also generate
 code for priors corresponding to the parameters in the linear predictor.
 }
 \examples{
-\donttest{
-constants <- list(x = rnorm(10), 
-                  x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
-
-# Just linear predictor
 code <- nimbleCode({
-  y[1:n] ~ linPred(~x + x2)
+  mu[1:10] <- linPred(~x + x2)
 })
-nimble:::codeProcessModelMacros(code, constants)$code
 
-# Also generate matching priors
-code <- nimbleCode({
-  y[1:n] ~ linPred(~x + x2, coefPrior=dnorm(0, sd=10))
-})
-nimble:::codeProcessModelMacros(code, constants)$code
-}
+mod <- nimbleModel(code)
+mod$getCode()
 }
 \author{
 Ken Kellner

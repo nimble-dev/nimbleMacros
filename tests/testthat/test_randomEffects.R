@@ -1,4 +1,4 @@
-context("Random effects functions")
+context("random effects functions")
 
 test_that("isBar", {
   expect_true(isBar(quote(1|group)))
@@ -8,7 +8,7 @@ test_that("isBar", {
 test_that("barToTerms", {  
   expect_equal(
     barToTerms(quote(1|group)),
-    quote(group)
+    list(quote(group))
   )
   expect_equal(
     barToTerms(quote(x|group)),
@@ -26,6 +26,22 @@ test_that("barToTerms", {
     barToTerms(quote(x*y|group)),
     list(quote(group), x=quote(x:group), y=quote(y:group), `x:y`=quote(x:y:group))
   )
+  expect_equal(
+    barToTerms(quote(1|group[1:n]), keep_idx = TRUE),
+    list(quote(group[1:n]))
+  )
+  expect_equal(
+    barToTerms(quote(x|group[1:n]), keep_idx = TRUE),
+    list(quote(group[1:n]), x=quote(x:group[1:n]))
+  )
+  expect_equal(
+    barToTerms(quote(1|group[1:n]), keep_idx = FALSE),
+    list(quote(group))
+  )
+  expect_equal(
+    barToTerms(quote(x|group[1:n]), keep_idx = FALSE),
+    list(quote(group), x=quote(x:group))
+  )
 })
 
 test_that("getRandomFactorName", {
@@ -35,6 +51,10 @@ test_that("getRandomFactorName", {
   )
   expect_equal(
     getRandomFactorName(quote(x|group2)),
+    quote(group2)
+  )
+  expect_equal(
+    getRandomFactorName(quote(x|group2[1:n])),
     quote(group2)
   )
 })
@@ -55,6 +75,10 @@ test_that("getCombinedFormulaFromBar", {
   expect_equal(
     getCombinedFormulaFromBar(quote(x*y|group)),
     quote(group + x:group + y:group + x:y:group)
+  )
+  expect_equal(
+    getCombinedFormulaFromBar(quote(x|group[1:n])),
+    quote(group[1:n] + x:group[1:n])
   )
 })
 
@@ -86,6 +110,10 @@ test_that("getHyperpriorNames", {
     getHyperpriorNames(quote(x*y|group), NULL),
     list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group),
          sd_y_group=quote(sd_y_group), sd_x_y_group=quote(sd_x_y_group))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(x|group[1:n]), NULL),
+    list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group))
   )
 })
 
@@ -148,6 +176,11 @@ test_that("numRandomFactorLevels", {
     3
   )
   expect_error(numRandomFactorLevels(quote(1|x), dat))
+  dat2 <- list(group = matrix(c("a","b","a","b"), 2, 2), x = rnorm(3))
+  expect_equal(
+    numRandomFactorLevels(quote(1|group), dat2),
+    2
+  )
 })
 
 test_that("makeUncorrelatedRandomPrior", {
@@ -304,6 +337,18 @@ test_that("processNestedRandomEffects", {
   out3 <- processNestedRandomEffects(quote(1|group:group2), dat2)
   expect_equal(out3$constants, dat2)
 
+  # Handle character matrices
+  dat2 <- list(group=matrix(c("a","b","b","a"), 2, 2),
+              group2=matrix(c("c","d","c","d"), 2, 2))
+
+  out4 <- processNestedRandomEffects(quote(1|group:group2), dat2)
+  expect_equal(out4$constants$group_group2,
+               matrix(c("a:c","b:d","b:c","a:d"), 2, 2))
+  
+  # Mismatched array sizes should error
+  dat3 <- list(group=matrix(c("a","b","b","a","z","z"), 3, 2),
+              group2=matrix(c("c","d","c","d"), 2, 2))
+  expect_error(processNestedRandomEffects(quote(1|group:group2), dat3))
 })
 
 test_that("processBar", { 

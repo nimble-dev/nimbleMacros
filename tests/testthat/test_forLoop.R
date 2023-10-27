@@ -1,82 +1,5 @@
 context("forLoop and related functions")
 
-test_that("hasBracket", {
-  expect_true(hasBracket(quote(beta[1])))
-  expect_false(hasBracket(quote(beta)))
-  expect_true(hasBracket(quote(alpha[beta[1]])))
-  expect_true(hasBracket(quote(~x[1:n])))
-  expect_false(hasBracket(quote(~x[1:n]), recursive=FALSE))
-})
-
-test_that("isAssignment", {
-  expect_true(isAssignment(quote(alpha <- 1)))
-  expect_false(isAssignment(quote(alpha(1))))
-})
-
-test_that("isAssignment", {
-  expect_true(
-    isAssignment(quote(alpha ~ dbern(omega)))
-  )
-  expect_true(
-    isAssignment(quote(alpha <- beta[1]))
-  )
-  expect_false(
-    isAssignment(quote(beta[1]))
-  )
-})
-
-test_that("getLHS", {
-  expect_equal(
-    getLHS(quote(alpha ~ dbern(omega))),
-    quote(alpha)
-  )
-  expect_equal(
-    getLHS(quote(alpha <- beta[1])),
-    quote(alpha)
-  )
-  expect_error(
-    getLHS(quote(beta[1]))
-  )
-})
-
-test_that("getRHS", {
-  expect_equal(
-    getRHS(quote(alpha ~ dbern(omega))),
-    quote(dbern(omega))
-  )
-  expect_equal(
-    getRHS(quote(alpha <- beta[1])),
-    quote(beta[1])
-  )
-  expect_error(
-    getRHS(quote(beta[1]))
-  )
-})
-
-test_that("LHS<-", {
-  code <- quote(beta[1] ~ dnorm(0, 10))
-  LHS(code) <- quote(test)
-  expect_equal(
-    code,
-    quote(test ~ dnorm(0,10))
-  )
-  expect_error(LHS(code) <- "test")
-  code2 <- quote(alpha[1])
-  expect_error(LHS(code2) <- quote(test))
-})
-
-test_that("RHS<-", {
-  code <- quote(beta[1] ~ dnorm(0, 10))
-  RHS(code) <- quote(test)
-  expect_equal(
-    code,
-    quote(beta[1] ~ test)
-  )
-  expect_error(RHS(code) <- "test")
-  code2 <- quote(alpha[1])
-  expect_error(RHS(code2) <- quote(test))
-})
-
 test_that("extractIndices", {
   expect_equal(
     extractIndices(quote(beta[1:10])),
@@ -141,6 +64,17 @@ test_that("extractAllIndices", {
   )
 })
 
+test_that("removeIndexAdjustments", {
+  idx <- quote(1:n)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+  idx <- quote(1:n - 1)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+  idx <- quote(1-1:n)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+  idx <- quote(1:n+2)
+  expect_equal(removeIndexAdjustments(idx), quote(1:n))
+})
+
 test_that("hasMatchingIndexRanges", {
   expect_true(
     hasMatchingIndexRanges(quote(beta[1]), quote(dnorm(alpha[1])))
@@ -157,6 +91,18 @@ test_that("hasMatchingIndexRanges", {
   expect_false(
     hasMatchingIndexRanges(quote(beta[1:k, 2:3]), quote(dnorm(alpha[1:k, 3:4])))
   )
+  expect_true(
+    hasMatchingIndexRanges(quote(beta[1:n]), quote(dnorm(alpha[1:n-1])))
+  )
+})
+
+test_that("hasAdjustment", {
+  idx <- quote(1:n)
+  expect_false(hasAdjustment(idx))
+  idx <- quote(1:n+1)
+  expect_true(hasAdjustment(idx))
+  idx <- quote(1:n -1)
+  expect_true(hasAdjustment(idx))
 })
 
 test_that("replaceIndex", {
@@ -171,6 +117,10 @@ test_that("replaceIndex", {
   expect_equal(
     replaceIndex(quote(alpha[3,1:k]), quote(1:l), quote(j)),
     quote(alpha[3,1:k])
+  )
+  expect_equal(
+    replaceIndex(quote(alpha[3,1:k-1]), quote(1:k), quote(j)),
+    quote(alpha[3,j-1])
   )
 })
 
@@ -190,6 +140,10 @@ test_that("recursiveReplaceIndex", {
   expect_equal(
     recursiveReplaceIndex(quote(dnorm(alpha[1:10,3], sigma[1:10])), quote(1:10), quote(k)),
     quote(dnorm(alpha[k, 3], sigma[k]))
+  )
+  expect_equal(
+    recursiveReplaceIndex(quote(1 - (1 - alpha[1:10,3])), quote(1:10), quote(k)),
+    quote(1-(1-alpha[k, 3]))
   )
 })
 

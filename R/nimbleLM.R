@@ -22,22 +22,16 @@
 #'  setPriors()
 #'
 #' @examples
-#' \donttest{
 #' constants <- list(y = rnorm(10),
 #'                   x = rnorm(10), 
 #'                   x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
-#' 
+#'  
 #' code <- nimbleCode({
-#'   nimbleLM(y ~ x + x2)
+#'    nimbleLM(y ~ x + x2)
 #' })
-#' nimble:::codeProcessModelMacros(code, constants)$code
 #' 
-#' # equivalent
-#' code <- nimbleCode({
-#'   y ~ nimbleLM(~ x + x2)
-#' })
-#' nimble:::codeProcessModelMacros(code, constants)$code
-#' }
+#' mod <- nimbleModel(code, constants=constants)
+#' mod$getCode()
 NULL
 
 #' @export
@@ -87,7 +81,7 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
 
   if (family$family == "gaussian"){
     priorSettings <- eval(priorSettings, envir=.env)
-    sdPrior <- choosePriorFromSettings(sd_res, "sd", priorSettings = priorSettings) 
+    sdPrior <- matchPrior(sd_res, "sd", priorSettings = priorSettings) 
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=sd_res))
     pars_added <- c(pars_added, list(sd_res))
     out <- c(out, list(sigprior))

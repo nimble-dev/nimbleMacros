@@ -14,6 +14,8 @@ Suggests:
     sp,
     spdep,
     testthat
+Remotes:
+    nimble=github::kenkellner/nimble/packages/nimble@macros
 Description: A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
 License: GPL-3
 NeedsCompilation: no

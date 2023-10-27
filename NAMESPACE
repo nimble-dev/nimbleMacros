@@ -2,9 +2,9 @@
 
 export(GaussianProcess)
 export(ICAR)
-export(choosePriorFromSettings)
 export(forLoop)
 export(linPred)
+export(matchPrior)
 export(nimbleLM)
 export(priors)
 export(setPriors)
