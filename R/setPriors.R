@@ -95,6 +95,10 @@ removeBracket <- function(node){
 #' @export
 matchPrior <- function(parName, ..., priorSettings){
   
+  if(is.call(priorSettings) | is.name(priorSettings)){
+    priorSettings <- eval(priorSettings)
+  }
+
   # 1. If exact prior name is specified in priors
   par_char <- deparse(parName)
   possible_prior <- priorSettings[[par_char]]
