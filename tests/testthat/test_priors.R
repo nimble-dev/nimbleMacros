@@ -109,3 +109,20 @@ test_that("matchPrior", {
   priors$bad <- "dnorm(0, 1)"
   expect_error(matchPrior(quote(beta), "bad", priorSettings=priors))
 })
+
+test_that("spaces in factor levels are handled", {
+  y <- rnorm(3)
+  x <- rnorm(3)
+  z <- factor(c("lev1", "lev 2", "lev3"), levels=c("lev1","lev 2", "lev3"))
+
+  dat <- list(y=y, x=x, z=z, n=3)
+
+  code <- nimbleCode({
+    priors(~x + z, modMatNames=TRUE) 
+  })
+  
+  nimbleOptions(enableMacroComments=FALSE)
+  mod <- nimbleModel(code, constants=dat)
+  expect_equal(mod$getCode()[[5]],
+               quote(beta_z[2] <- beta_zlev_2))
+})

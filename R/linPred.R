@@ -408,6 +408,7 @@ makeParameterStructureModMatNames <- function(formula, data){
   pars_full <- gsub("(","", pars_full, fixed=TRUE)
   pars_full <- gsub(")", "", pars_full, fixed=TRUE)
   pars_full <- gsub(":", ".", pars_full, fixed=TRUE)
+  pars_full <- gsub(" ", "_", pars_full, fixed=TRUE)
   
   # Replace elements of parameter structure for which we actually estimate
   # a parameter with 1
