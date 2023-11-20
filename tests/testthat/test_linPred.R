@@ -366,6 +366,11 @@ test_that("makeDummyDataFrame", {
     makeDummyDataFrame(~x + x3 + x4, dat),
     data.frame(x=factor("c", levels=levels(dat$x)), x3=1.224, x4=0)
   )
+  dat <- list(x=rnorm(3), z=NULL)
+  expect_error(
+    makeDummyDataFrame(~x + z, dat),
+    "List element z in constants is NULL"
+  )
 })
 
 test_that("linPred", {
