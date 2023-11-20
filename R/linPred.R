@@ -238,6 +238,8 @@ makeDummyDataFrame <- function(formula, constants){
     # and that it is continuous
     if(! i %in% names(constants)){
       out[[i]] <- 0
+    } else if (is.null(constants[[i]])){
+      stop("List element ", i, " in constants is NULL", call.=FALSE)
     } else if (is.factor(constants[[i]]) | is.numeric(constants[[i]])){
       out[[i]] <- constants[[i]][1]
     } else if (is.character(constants[[i]])){
