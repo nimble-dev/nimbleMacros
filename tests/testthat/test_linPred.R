@@ -469,7 +469,7 @@ test_that("linPred with factor array covariate", {
   )
   expect_equal(dim(out$modelInfo$constants$x), c(3,4))
 
-  p <- nimble:::processModelMacros(code, modInfo, NULL)
+  p <- nimble:::codeProcessModelMacros(code, modInfo, NULL)
   expect_true(is.numeric(p$modelInfo$constants$x))
   expect_equal(dim(p$modelInfo$constants$x), c(3,4))
 })
