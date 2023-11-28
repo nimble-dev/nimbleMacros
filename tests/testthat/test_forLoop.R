@@ -189,7 +189,7 @@ test_that("forLoop", {
   nimbleOptions(enableMacroComments=FALSE)
   expect_equal(
     # macro
-    nimble:::processModelMacros(nimbleCode({
+    nimble:::codeProcessModelMacros(nimbleCode({
       beta[1:10] ~ forLoop(dnorm(0, sd=10))
     }), modelInfo=list())$code,
     # reference
@@ -202,7 +202,7 @@ test_that("forLoop", {
 
   expect_equal(
     # macro
-    nimble:::processModelMacros(nimbleCode({
+    nimble:::codeProcessModelMacros(nimbleCode({
       beta[1:2,1:10,1] ~ forLoop(dnorm(0, sd=10))
     }), modelInfo=list())$code,
     # reference
@@ -217,7 +217,7 @@ test_that("forLoop", {
 
   expect_equal(
     # macro
-    nimble:::processModelMacros(nimbleCode({
+    nimble:::codeProcessModelMacros(nimbleCode({
       sigma ~ forLoop(dunif(0,10))
     }), modelInfo=list())$code,
     # reference
@@ -228,7 +228,7 @@ test_that("forLoop", {
 
   expect_equal(
     # macro
-    nimble:::processModelMacros(nimbleCode({
+    nimble:::codeProcessModelMacros(nimbleCode({
       beta[1,2] ~ forLoop(dnorm(0, sd=10))
     }), modelInfo=list())$code,
     # reference
@@ -239,7 +239,7 @@ test_that("forLoop", {
 
   expect_equal(
     # macro
-    nimble:::processModelMacros(nimbleCode({
+    nimble:::codeProcessModelMacros(nimbleCode({
       beta[1:10,1:k,1:l] ~ forLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
     }), modelInfo=list())$code,
     # reference
