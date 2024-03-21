@@ -147,6 +147,22 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
   return(as.call(list(op, LHS, RHS)))
 }
 
+# Handle situation when idx range itself contains another idx range
+# like 1:len[1:N]
+replaceRanges <- function(ranges, idx_letters){
+  for (i in 1:length(ranges)){
+    idx_has_bracket <- any(sapply(as.list(ranges[[i]]), nimbleMacros:::hasBracket)) 
+    if(idx_has_bracket){
+      other_ranges <- ranges[-i]
+      idx_letters_sub <- idx_letters[-i]
+      for (j in 1:length(other_ranges)){
+        ranges[[i]] <- nimbleMacros:::recursiveReplaceIndex(ranges[[i]], other_ranges[[j]], idx_letters_sub[[j]])
+      }
+    }
+  }
+  ranges
+}
+
 
 #' Macro to build for loop(s) from code with index ranges in brackets
 #'
@@ -187,6 +203,8 @@ function(code, modelInfo, .env){
   idx_letters <- lapply(1:length(idx_sub), function(i) modelInfo$indexCreator())
   idx_letters <- lapply(idx_letters, as.name)
   code <- replaceDeclarationIndexRanges(code, idx_letters)
+
+  idx_sub <- replaceRanges(idx_sub, idx_letters)
 
   for(i in length(idx_sub):1) {
     newForLoop <-
