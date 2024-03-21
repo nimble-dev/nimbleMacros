@@ -184,6 +184,29 @@ test_that("replaceDeclarationIndexRanges", {
   )
 })
 
+test_that("replaceRanges", {
+  idx_letters <- list(quote(i_1), quote(i_2), quote(i_3))
+  expect_equal(
+    replaceRanges(list(quote(1:N), quote(1:J)), idx_letters),
+    list(quote(1:N), quote(1:J)))
+
+  expect_equal(
+    replaceRanges(list(quote(1:N), quote(1:len[1:N])), idx_letters),
+    list(quote(1:N), quote(1:len[i_1]))
+  )
+
+  expect_equal(
+    replaceRanges(list(quote(len[1:J]:3), quote(1:J)), idx_letters),
+    list(quote(len[i_2]:3), quote(1:J))
+  )
+
+  expect_equal(
+    replaceRanges(list(quote(1:N), quote(1:K), quote(1:len[1:N, 1:K])), idx_letters),
+    list(quote(1:N), quote(1:K), quote(1:len[i_1, i_2]))
+  )
+
+})
+
 test_that("forLoop", {
   comments_on <- nimbleOptions()$enableMacroComments
   nimbleOptions(enableMacroComments=FALSE)
@@ -191,7 +214,7 @@ test_that("forLoop", {
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
       beta[1:10] ~ forLoop(dnorm(0, sd=10))
-    }), modelInfo=list())$code,
+    }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
       for (i_1 in 1:10){
@@ -204,7 +227,7 @@ test_that("forLoop", {
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
       beta[1:2,1:10,1] ~ forLoop(dnorm(0, sd=10))
-    }), modelInfo=list())$code,
+    }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
       for (i_1 in 1:2) {
@@ -219,7 +242,7 @@ test_that("forLoop", {
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
       sigma ~ forLoop(dunif(0,10))
-    }), modelInfo=list())$code,
+    }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
       sigma ~ dunif(0, 10)
@@ -230,7 +253,7 @@ test_that("forLoop", {
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
       beta[1,2] ~ forLoop(dnorm(0, sd=10))
-    }), modelInfo=list())$code,
+    }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
       beta[1,2] ~ dnorm(0, sd=10)
@@ -241,7 +264,7 @@ test_that("forLoop", {
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
       beta[1:10,1:k,1:l] ~ forLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
-    }), modelInfo=list())$code,
+    }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
       for (i_1 in 1:10) {
