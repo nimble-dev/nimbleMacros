@@ -70,7 +70,7 @@ addFormulaTerms <- function(trms){
   if(length(trms) == 1) return(trms[[1]])
 
   # Otherwise add them together
-  form <- str2lang(paste(sapply(trms, deparse), collapse="+"))
+  form <- str2lang(paste(sapply(trms, safeDeparse), collapse="+"))
   #form <- substitute(A+B, list(A=trms[[1]], B=trms[[2]]))
   #if(length(trms) > 2){
   #  for (i in 3:length(trms)){
@@ -86,13 +86,13 @@ getHyperpriorNames <- function(barExp, prefix){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
   if(is.call(trms)){
-    trms <- deparse(trms)
+    trms <- safeDeparse(trms)
   } else if(is.list(trms)){
-    trms <- sapply(trms, deparse)
+    trms <- sapply(trms, safeDeparse)
   }
   trms <- sub("\\[.*?\\]", "", trms)
   trms <- gsub("\\[|\\]", "", trms)
-  sdPrefix <- ifelse(is.null(prefix), "", deparse(prefix))
+  sdPrefix <- ifelse(is.null(prefix), "", safeDeparse(prefix))
   sd_names <- paste0(prefix, "sd_", trms)
   sd_names <- gsub(":", "_", sd_names) # replace : since it can't be in BUGS
   sapply(sd_names, str2lang)
@@ -122,7 +122,7 @@ makeHyperpriorCode <- function(barExp, sdPrefix, priorSettings){
 makeRandomParNames <- function(barExp, prefix){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
-  par_names <- paste0(deparse(prefix), sapply(trms, deparse))
+  par_names <- paste0(safeDeparse(prefix), sapply(trms, safeDeparse))
   #par_names <- gsub(":", "_", par_names) # for BUGS compatibility
   par_names <- gsub(":(?=(((?!\\]).)*\\[)|[^\\[\\]]*$)", "_", par_names, perl=TRUE) # for BUGS compatibility
   sapply(par_names, str2lang)
@@ -131,7 +131,7 @@ makeRandomParNames <- function(barExp, prefix){
 # Get number of levels for factor in a bar expression from constants
 numRandomFactorLevels <- function(barExp, constants){
   rfact <- getRandomFactorName(barExp)
-  facdata <- constants[[deparse(rfact)]]
+  facdata <- constants[[safeDeparse(rfact)]]
   stopifnot(is.factor(facdata)|is.character(facdata))
   if(is.character(facdata)) facdata <- as.factor(facdata)
   as.numeric(length(levels(facdata)))
@@ -159,8 +159,8 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo){
   # BUGS code to assign hyperprior SDs into vector
   rfact <- getRandomFactorName(barExp)
   sd_names <- getHyperpriorNames(barExp, sdPrefix)
-  sdPrefix <- ifelse(is.null(sdPrefix), "", deparse(sdPrefix))
-  sd_vec <- as.name(paste0(sdPrefix, "re_sds_", deparse(rfact)))
+  sdPrefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
+  sd_vec <- as.name(paste0(sdPrefix, "re_sds_", safeDeparse(rfact)))
   sds <- lapply(1:length(sd_names), function(i){
     substitute(SDS[IDX] <- SDPAR, 
                list(SDS = sd_vec, IDX=as.numeric(i), SDPAR=sd_names[[i]]))
@@ -168,8 +168,8 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo){
   sds <- embedLinesInCurlyBrackets(sds)
 
   # BUGS code for Ustar and U
-  Ustar_name <- as.name(paste0("Ustar_",deparse(rfact)))
-  U_name <- as.name(paste0("U_",deparse(rfact)))
+  Ustar_name <- as.name(paste0("Ustar_",safeDeparse(rfact)))
+  U_name <- as.name(paste0("U_",safeDeparse(rfact)))
   u <- substitute({
     USTAR[1:NP, 1:NP] ~ dlkj_corr_cholesky(1.3, NP)
     U[1:NP, 1:NP] <- uppertri_mult_diag(USTAR[1:NP, 1:NP], SDS[1:NP])
@@ -178,7 +178,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo){
 
   # Generate name of random effects mean vector (of all 0s)
   rfact <- getRandomFactorName(barExp)
-  re_means <- as.name(paste0("re_means_", deparse(rfact)))
+  re_means <- as.name(paste0("re_means_", safeDeparse(rfact)))
   re_mean_loop <- substitute(REMEANS[1:NP] <- rep(0, NP), 
                              list(REMEANS=re_means, NP=np))
   # Get index
@@ -189,7 +189,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo){
   }
 
   # Generate BUGS code for B
-  B_name <- as.name(paste0("B_",deparse(rfact)))
+  B_name <- as.name(paste0("B_",safeDeparse(rfact)))
   B <- substitute(B[IDX, 1:NP] ~ dmnorm(REMEANS[1:NP], cholesky = U[1:NP, 1:NP], prec_param=0),
                   list(B=B_name, IDX=idx, NP=np, REMEANS=re_means, U=U_name))
   # Generate BUGS code to split parts of B out into separate vectors for each parameter
@@ -283,7 +283,7 @@ processNestedRandomEffects <- function(barExp, constants){
   if(!is_nested) return(list(barExp=barExp, constants=constants))
 
   # Create new combined random factor term
-  fac_names <- strsplit(deparse(RHS), ":")[[1]]
+  fac_names <- strsplit(safeDeparse(RHS), ":")[[1]]
   comb_name <- paste(fac_names, collapse="_")
   barExp[[3]] <- as.name(comb_name)
 
@@ -358,7 +358,7 @@ processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo){
 
   # Create empty output list
   out <- vector("list", length(bars))
-  names(out) <- sapply(bars, deparse)
+  names(out) <- sapply(bars, safeDeparse)
 
   # Fill in first element of list with first bar expression
   out[[1]] <- processBar(bars[[1]], priors, coefPrefix, sdPrefix, modelInfo)

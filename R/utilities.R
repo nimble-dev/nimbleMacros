@@ -36,3 +36,19 @@ getRHS <- function(code){
 embedLinesInCurlyBrackets <- function(lines) {
   as.call(c(list(quote(`{`)), lines))
 }
+
+# Stolen from nimble; avoid splitting output into multiple lines
+safeDeparse <- function(..., warn = FALSE) {
+    out <- deparse(...)
+    if(nimbleOptions('useSafeDeparse')) {
+        dotArgs <- list(...)
+        if("nlines" %in% names(dotArgs))
+            nlines <- dotArgs$nlines else nlines <- 1L
+        if(nlines != -1L && length(out) > nlines) {
+            if(warn)
+                message("  [Note] safeDeparse: truncating deparse output to ", nlines, " line", if(nlines>1) "s" else "")
+            out <- out[1:nlines]
+        }
+    }
+    return(out)
+}

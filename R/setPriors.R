@@ -100,7 +100,7 @@ matchPrior <- function(parName, ..., priorSettings){
   }
 
   # 1. If exact prior name is specified in priors
-  par_char <- deparse(parName)
+  par_char <- safeDeparse(parName)
   possible_prior <- priorSettings[[par_char]]
   if(!is.null(possible_prior)){
     checkValidPrior(possible_prior)
@@ -108,7 +108,7 @@ matchPrior <- function(parName, ..., priorSettings){
   }
 
   # 2. If prior name without brackets is specified
-  par_nobracks <- deparse(removeBracket(parName))
+  par_nobracks <- safeDeparse(removeBracket(parName))
   possible_prior <- priorSettings[[par_nobracks]]
   if(!is.null(possible_prior)){
     checkValidPrior(possible_prior)

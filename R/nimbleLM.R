@@ -51,7 +51,7 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
   if(hasBracket(LHS)){
     idx <- extractIndices(LHS)[[1]]
   } else {
-    idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[deparse(LHS)]]))))
+    idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[safeDeparse(LHS)]]))))
     LHS <- substitute(LHS[IDX], list(LHS=LHS, IDX=idx))
   }
 
@@ -67,7 +67,7 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
   if(is.null(sdPrefix)){
     sd_res <- quote(sd_residual)
   } else {
-    sd_res <- str2lang(paste0(deparse(sdPrefix),"sd_residual"))
+    sd_res <- str2lang(paste0(safeDeparse(sdPrefix),"sd_residual"))
   }
   
   dataDec <- getDataDistCode(family$family, LHS, idx, sd_res)

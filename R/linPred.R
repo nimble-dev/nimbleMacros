@@ -76,7 +76,7 @@ makeParameterStructure <- function(formula, data){
 # the code directly instead of using regular expressions
 #' @importFrom stats as.formula
 removeBracketsFromFormula <- function(formula){
-  out <- gsub("\\[.*?\\]", "", deparse(formula))
+  out <- gsub("\\[.*?\\]", "", safeDeparse(formula))
   as.formula(gsub("\\[|\\]", "", out))
 }
 
@@ -86,7 +86,7 @@ extractBracket <- function(formula){
   stopifnot(hasBracket(formula))
   #out <- regmatches(deparse(formula), regexpr("\\[.*?\\]", deparse(formula)))
   #extract out to the last bracket in case of nested brackets
-  out <- regmatches(deparse(formula), regexpr("\\[.*\\]", deparse(formula)))
+  out <- regmatches(safeDeparse(formula), regexpr("\\[.*\\]", safeDeparse(formula)))
   names(out) <- as.character(formula[[2]])
   out
 }
@@ -113,7 +113,7 @@ getFormulaBrackets <- function(formula, LHSidx){
   vars <- all.vars(removeBracketsFromFormula(formula))
   inds <- extractAllBrackets(formula)
   if(is.null(inds)){
-    idx <- paste0("[",paste(sapply(LHSidx, deparse), collapse=", "),"]")
+    idx <- paste0("[",paste(sapply(LHSidx, safeDeparse), collapse=", "),"]")
     inds <- replicate(idx, n=length(vars))
     names(inds) <- vars
   }
@@ -478,7 +478,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
   fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, priorSettings, 
-                               prefix=as.character(deparse(coefPrefix)),
+                               prefix=as.character(safeDeparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- list(fixed$code)
   if(!is.null(rand_info$code)) out <- c(out, list(rand_info$code))
