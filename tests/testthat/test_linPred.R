@@ -131,6 +131,10 @@ test_that("removeBracketsFromFormula",{
     removeBracketsFromFormula(~x[alpha[1:n]] + x2[1:m]),
     ~x + x2
   )
+  expect_equal(
+    removeBracketsFromFormula(~x[1:N, 1:J, 1:K[1:N]] + x2[1:m]),
+    ~x + x2
+  )
 })
 
 test_that("extractBracket", {

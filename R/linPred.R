@@ -72,12 +72,27 @@ makeParameterStructure <- function(formula, data){
 
 # Remove brackets and everything inside them from formula
 # E.g. ~x[1:n] + x2[1:k] --> ~x + x2
-# This should probably be replaced with something that works on
-# the code directly instead of using regular expressions
 #' @importFrom stats as.formula
 removeBracketsFromFormula <- function(formula){
-  out <- gsub("\\[.*?\\]", "", safeDeparse(formula))
-  as.formula(gsub("\\[|\\]", "", out))
+  out <- removeSquareBrackets(formula)
+  as.formula(out)
+}
+
+removeSquareBrackets <- function(code){
+  if(is.name(code)) return(code)
+  if(code[[1]] == "["){
+    out <- code[[2]]
+  } else {
+    if(is.call(code)){
+      out <- lapply(code, removeSquareBrackets)
+    } else {
+      out <- code
+    }
+  }
+  if(!is.name(out) & !is.numeric(out)){
+    out <- as.call(out)
+  }
+  out
 }
 
 # Extract entire bracket structure
