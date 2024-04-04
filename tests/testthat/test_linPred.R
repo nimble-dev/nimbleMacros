@@ -419,7 +419,7 @@ test_that("linPred", {
     linPred$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, center=NULL)
     })
   )
   
@@ -429,7 +429,7 @@ test_that("linPred", {
     linPred$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, center=NULL)
     })
   )
 

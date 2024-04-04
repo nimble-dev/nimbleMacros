@@ -144,7 +144,7 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
   stopifnot(length(sd_name) == 1)
   sd_name <- sd_name[[1]]
   par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
-  rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, center)
+  rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, modelInfo, center)
 
   substitute(LHS[1:NLEV] ~ forLoop(dnorm(MEAN, sd=SD)),
     list(LHS=par_name, NLEV=nlev, SD=sd_name, MEAN=rand_mean))
@@ -152,7 +152,7 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
 
 # Figure out of mean of random effects should be 0 (non-centered)
 # or centered on some mean value based on which grouping factor we're dealing with
-getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, center){
+getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, center){
   if(is.null(center)) return(0)
 
   rfact <- getRandomFactorName(barExp)
