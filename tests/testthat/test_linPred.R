@@ -494,6 +494,13 @@ test_that("linPred with 'centered' random effect", {
     quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
+  code <- quote(y[1:n] ~ linPred(~(x3|x), priorSettings=NULL, center=x))
+  out <- linPred$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
+  )
+
 })
 
 test_that("linPred with factor array covariate", {
