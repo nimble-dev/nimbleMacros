@@ -339,6 +339,8 @@ makeAdjustedFormula <- function(formula, rand_formula, center=NULL){
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param priorSettings Prior specifications, should be generated with setPrior()
+#' @param center Grouping covariate to 'center' on in parameterization. By
+#'  default all random effects have mean 0 as with lme4.
 #' 
 #' @examples
 #' code <- nimbleCode({
@@ -510,6 +512,8 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  setPriors()
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
+#' @param center Grouping covariate to 'center' on in parameterization. By
+#'  default all random effects have mean 0 as with lme4.
 #'
 #' @examples
 #' code <- nimbleCode({

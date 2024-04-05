@@ -151,12 +151,12 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
 # like 1:len[1:N]
 replaceRanges <- function(ranges, idx_letters){
   for (i in 1:length(ranges)){
-    idx_has_bracket <- any(sapply(as.list(ranges[[i]]), nimbleMacros:::hasBracket)) 
+    idx_has_bracket <- any(sapply(as.list(ranges[[i]]), hasBracket)) 
     if(idx_has_bracket){
       other_ranges <- ranges[-i]
       idx_letters_sub <- idx_letters[-i]
       for (j in 1:length(other_ranges)){
-        ranges[[i]] <- nimbleMacros:::recursiveReplaceIndex(ranges[[i]], other_ranges[[j]], idx_letters_sub[[j]])
+        ranges[[i]] <- recursiveReplaceIndex(ranges[[i]], other_ranges[[j]], idx_letters_sub[[j]])
       }
     }
   }
