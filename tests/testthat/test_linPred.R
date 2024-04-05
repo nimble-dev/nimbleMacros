@@ -460,6 +460,42 @@ test_that("linPred with random effect", {
   )
 })
 
+test_that("linPred with 'centered' random effect", {
+  set.seed(123)
+  modInfo <- list(constants= list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3)))
+
+  code <- quote(y[1:n] ~ linPred(~x3 + (1|x), priorSettings=NULL, center=x))
+ 
+  out <- linPred$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote(y[1:n] <- forLoop(beta_x3 * x3[1:n] + beta_x[x[1:n]]))
+  )
+  expect_equal(
+    out$modelInfo$constants,
+    modInfo$constants
+  )
+
+  code <- quote(y[1:n] ~ linPred(~x3 + (x3|x), priorSettings=NULL, center=x))
+ 
+  out <- linPred$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
+  )
+
+  code <- quote(y[1:n] ~ linPred(~x3 + (x3|x) + (1|x2), priorSettings=NULL, center=x))
+ 
+  out <- linPred$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
+  )
+
+})
+
 test_that("linPred with factor array covariate", {
   set.seed(123)
   modInfo <- list(constants=list(y=matrix(rnorm(12), 3, 4),
@@ -692,6 +728,79 @@ test_that("priors with random effect", {
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(-10, 10)
       beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
+    })
+  )
+
+})
+
+test_that("priors with 'centered' random effect", {
+  set.seed(123)
+  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3)))
+
+  code <- quote(priors(~x3 + (1|x), center=x))
+ 
+  out <- nimbleMacros::priors$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_Intercept ~ dunif(-100, 100)
+      beta_x3 ~ dnorm(0, sd=100)
+      sd_x ~ dunif(0, 100)
+      beta_x[1:3] ~ forLoop(dnorm(beta_Intercept, sd = sd_x))
+    })
+  )
+
+  code <- quote(priors(~x3 + (1|x), center=test))
+ 
+  out <- nimbleMacros::priors$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_Intercept ~ dunif(-100, 100)
+      beta_x3 ~ dnorm(0, sd=100)
+      sd_x ~ dunif(0, 100)
+      beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
+    })
+  )
+
+  code <- quote(priors(~x3 + (x3||x), center=x))
+ 
+  out <- nimbleMacros::priors$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_Intercept ~ dunif(-100, 100)
+      beta_x3 ~ dnorm(0, sd=100)
+      sd_x ~ dunif(0, 100)
+      beta_x[1:3] ~ forLoop(dnorm(beta_Intercept, sd = sd_x))
+      sd_x3_x ~ dunif(0, 100)
+      beta_x3_x[1:3] ~ forLoop(dnorm(beta_x3, sd = sd_x3_x))
+    })
+  )
+
+  code <- quote(priors(~x3 + (x3|x), center=x))
+ 
+  out <- nimbleMacros::priors$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_Intercept ~ dunif(-100, 100)
+      beta_x3 ~ dnorm(0, sd = 100)
+      sd_x ~ dunif(0, 100)
+      sd_x3_x ~ dunif(0, 100)
+      re_sds_x[1] <- sd_x
+      re_sds_x[2] <- sd_x3_x
+      Ustar_x[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+      U_x[1:2, 1:2] <- uppertri_mult_diag(Ustar_x[1:2, 1:2], re_sds_x[1:2])
+      re_means_x[1] <- beta_Intercept
+      re_means_x[2] <- beta_x3
+      for (i_ in 1:3) {
+        B_x[i_, 1:2] ~ dmnorm(re_means_x[1:2], cholesky= U_x[1:2,1:2], prec_param = 0)
+        beta_x[i_] <- B_x[i_, 1]
+        beta_x3_x[i_] <- B_x[i_, 2]
+      }
     })
   )
 
