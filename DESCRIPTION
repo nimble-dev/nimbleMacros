@@ -1,6 +1,6 @@
 Package: nimbleMacros
-Version: 0.0.6
-Date: 2023-09-14
+Version: 0.0.7
+Date: 2024-04-05
 Title: Macros for 'nimble' Code
 Authors@R: person("Ken", "Kellner", email="contact@kenkellner.com", 
                   role=c("cre","aut"))
@@ -17,4 +17,4 @@ Description: A plug-in to the 'nimble' R package that provides various macros us
 License: GPL-3
 NeedsCompilation: no
 Encoding: UTF-8
-RoxygenNote: 7.2.2
+RoxygenNote: 7.3.1
