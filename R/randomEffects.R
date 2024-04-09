@@ -161,7 +161,9 @@ getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, cente
     bar_lhs <- list(as.name("~"), bar_lhs)
     bar_lhs <- as.call(bar_lhs)
     bar_lhs <- as.formula(bar_lhs)
-    par_struct <- makeParameterStructure(bar_lhs, modelInfo$constants)
+    dat <- makeDummyDataFrame(bar_lhs, modelInfo$constants)
+    bar_lhs <- removeBracketsFromFormula(bar_lhs)
+    par_struct <- makeParameterStructure(bar_lhs, dat)
     par_name <- getParametersForLP(names(par_struct), coefPrefix)
     out <- str2lang(par_name)
   } else {
@@ -252,7 +254,9 @@ getCorrelatedRandomEffectMeanCode <- function(barExp, coefPrefix, modelInfo, cen
     bar_lhs <- list(as.name("~"), bar_lhs)
     bar_lhs <- as.call(bar_lhs)
     bar_lhs <- as.formula(bar_lhs)
-    par_struct <- makeParameterStructure(bar_lhs, modelInfo$constants)
+    dat <- makeDummyDataFrame(bar_lhs, modelInfo$constants)
+    bar_lhs <- removeBracketsFromFormula(bar_lhs)
+    par_struct <- makeParameterStructure(bar_lhs, dat)
     par_names <- getParametersForLP(names(par_struct), coefPrefix)
     par_names <- lapply(par_names, str2lang)
 
