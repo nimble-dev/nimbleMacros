@@ -138,13 +138,13 @@ numRandomFactorLevels <- function(barExp, constants){
 }
 
 # Make uncorrelated random effects prior(s) from a particular bar expression
-makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, center=NULL){
+makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL){
   nlev <- numRandomFactorLevels(barExp, modelInfo$constants)
   sd_name <- getHyperpriorNames(barExp, sdPrefix)
   stopifnot(length(sd_name) == 1)
   sd_name <- sd_name[[1]]
   par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
-  rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, modelInfo, center)
+  rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, modelInfo, centerVar)
 
   substitute(LHS[1:NLEV] ~ forLoop(dnorm(MEAN, sd=SD)),
     list(LHS=par_name, NLEV=nlev, SD=sd_name, MEAN=rand_mean))
@@ -152,11 +152,11 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
 
 # Figure out of mean of random effects should be 0 (non-centered)
 # or centered on some mean value based on which grouping factor we're dealing with
-getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, center){
-  if(is.null(center)) return(0)
+getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, centerVar){
+  if(is.null(centerVar)) return(0)
 
   rfact <- getRandomFactorName(barExp)
-  if(identical(rfact, center)){
+  if(identical(rfact, centerVar)){
     bar_lhs <- barExp[[2]]
     bar_lhs <- list(as.name("~"), bar_lhs)
     bar_lhs <- as.call(bar_lhs)
@@ -173,7 +173,7 @@ getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, cente
 }
 
 # Make correlated random effects priors from a particular bar expression
-makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, center=NULL){
+makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL){
 
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)  
@@ -202,7 +202,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, c
 
   # Generate name of random effects mean vector
   # This will be all 0s if center = NULL, or center does not match the bar expression
-  mean_info <- getCorrelatedRandomEffectMeanCode(barExp, coefPrefix, modelInfo, center)
+  mean_info <- getCorrelatedRandomEffectMeanCode(barExp, coefPrefix, modelInfo, centerVar)
   re_means <- mean_info$re_means
   re_mean_loop <- mean_info$re_mean_loop
 
@@ -239,14 +239,14 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, c
 
 # Function to generate the correct code for the mean vector, depending on the
 # grouping factor, bar expression, and if the random effect should be 'centered'
-getCorrelatedRandomEffectMeanCode <- function(barExp, coefPrefix, modelInfo, center){
+getCorrelatedRandomEffectMeanCode <- function(barExp, coefPrefix, modelInfo, centerVar){
 
   rfact <- getRandomFactorName(barExp)
   trms <- barToTerms(barExp)  
   np <- as.numeric(length(trms))
   re_means = as.name(paste0("re_means_", safeDeparse(rfact)))
 
-  if(is.null(center) | !identical(rfact, center)){
+  if(is.null(centerVar) | !identical(rfact, centerVar)){
     re_mean_loop <- substitute(REMEANS[1:NP] <- rep(0, NP), 
                              list(REMEANS=re_means, NP=np))
   } else {
@@ -298,18 +298,18 @@ uppertri_mult_diag <- nimbleFunction(
 
 # Decide if correlated or uncorrelated random prior(s) are needed from bar expression
 # And return corresponding BUGS code and constants
-# 'center' can (optionally) be a grouping factor to "center" the random effects on, e.g.
+# 'centerVar' can (optionally) be a grouping factor to "centerVar" the random effects on, e.g.
 # instead of: alpha + beta * x + re[group], where re[group] ~ dnorm(0, sd_group)
 # we have: beta * x + re[group], where re[group] ~ dnorm(alpha, sd_group)
 # If NULL, re mean will be 0, or if the grouping factor provided to
-# 'center' does not match the one in the bar expression, then re mean will be 0. 
-makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, center = NULL){
+# 'centerVar' does not match the one in the bar expression, then re mean will be 0. 
+makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar = NULL){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
-    return(makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, center))
+    return(makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, centerVar))
   }
-  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, center)
+  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, centerVar)
 }
 
 # Remove extra brackets in BUGS code
@@ -386,7 +386,7 @@ processNestedRandomEffects <- function(barExp, constants){
 # Function to process a single bar expression (barExp) such as (1|group)
 # SDprior is the desired hyperprior, prefix is the prefix on the parameters,
 # and constants are passed so they can be modified if needed
-processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo, center=NULL){  
+processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo, centerVar=NULL){  
   # Handle nested random effects
   nested <- processNestedRandomEffects(barExp, modelInfo$constants)
   barExp <- nested$barExp
@@ -399,7 +399,7 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo, cente
   # BUGS Hyperprior code
   hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, priorInfo)
   # BUGS random effect prior code, also updates constants if needed
-  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo, center)
+  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo, centerVar)
   # Combine all code
   code <- embedLinesInCurlyBrackets(list(hyperpriors, priors))
   # Return formula component, prior code, and (possibly) updated model info
@@ -410,7 +410,7 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo, cente
 # Function to handle all bar expressions in a formula, combining results
 
 #' @importFrom lme4 findbars
-processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo, center=NULL){
+processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo, centerVar=NULL){
   # Generate separate bars from formula
   #formula <- removeBracketsFromFormula(formula) 
   bars <- lme4::findbars(formula)
@@ -423,13 +423,13 @@ processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo, cen
   names(out) <- sapply(bars, safeDeparse)
 
   # Fill in first element of list with first bar expression
-  out[[1]] <- processBar(bars[[1]], priors, coefPrefix, sdPrefix, modelInfo, center)
+  out[[1]] <- processBar(bars[[1]], priors, coefPrefix, sdPrefix, modelInfo, centerVar)
   # Work through remaining bar expressions if they exist
   # Make sure to pass updated model info
   if(length(bars) > 1){
     for (i in 2:length(bars)){
       out[[i]] <- processBar(bars[[i]], priors, coefPrefix, sdPrefix, 
-                             out[[i-1]]$modelInfo, center)
+                             out[[i-1]]$modelInfo, centerVar)
     }
   }
   
