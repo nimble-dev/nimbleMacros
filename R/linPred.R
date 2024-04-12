@@ -267,11 +267,11 @@ makeDummyDataFrame <- function(formula, constants){
 # When centering on some grouping factor, determine which fixed effect terms
 # to drop from the formula
 # Returns a character vector of terms (e.g. c("1", "x"))
-centeredFormulaDropTerms <- function(formula, center){
-  if(is.null(center)) return(NULL)
+centeredFormulaDropTerms <- function(formula, centerVar){
+  if(is.null(centerVar)) return(NULL)
   bars <- lme4::findbars(formula)
   rfacts <- lapply(bars, getRandomFactorName)
-  bars_keep <- bars[sapply(rfacts, function(x) x == center)]
+  bars_keep <- bars[sapply(rfacts, function(x) x == centerVar)]
   if(length(bars_keep) == 0) return(NULL)
   form_comps <- lapply(bars_keep, function(x) x[[2]])
 
@@ -288,11 +288,11 @@ centeredFormulaDropTerms <- function(formula, center){
 }
 
 # Combine fixed and random terms into final formula
-makeAdjustedFormula <- function(formula, rand_formula, center=NULL){
+makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   # If there are no random effects just return the original formula
   if(is.null(rand_formula)) return(formula)
   # Find fixed terms to remove if centered
-  adj <- centeredFormulaDropTerms(formula, center)
+  adj <- centeredFormulaDropTerms(formula, centerVar)
   # Find fixed terms
   fixed_form <- lme4::nobars(formula)
   trms <- stats::terms(fixed_form)
@@ -339,7 +339,7 @@ makeAdjustedFormula <- function(formula, rand_formula, center=NULL){
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param priorSettings Prior specifications, should be generated with setPrior()
-#' @param center Grouping covariate to 'center' on in parameterization. By
+#' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
 #' 
 #' @examples
@@ -355,7 +355,7 @@ NULL
 #' @export
 linPred <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSettings=setPriors(), center=NULL, modelInfo, .env){
+         sdPrefix=NULL, priorSettings=setPriors(), centerVar=NULL, modelInfo, .env){
 
     formula <- as.formula(formula)
 
@@ -369,10 +369,10 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     modelInfo_temp <- modelInfo
     modelInfo_temp$indexCreator <- NULL # don't want to iterate the index creator here
     eval_priors <- eval(priorSettings, envir=.env)
-    rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp, center)
+    rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp, centerVar)
     modelInfo$constants <- rand_info$modelInfo$constants
     
-    new_form <- makeAdjustedFormula(formula, rand_info$formula, center)
+    new_form <- makeAdjustedFormula(formula, rand_info$formula, centerVar)
     
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
@@ -385,9 +385,9 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
 
     if(!is.null(priorSettings)){
       priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSettings=PRIORSET, modMatNames=TRUE, center=CENTER),
+                                     priorSettings=PRIORSET, modMatNames=TRUE, centerVar=CENTER),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSettings, CENTER=center))
+                                   PRIORSET=priorSettings, CENTER=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -512,7 +512,7 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  setPriors()
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
-#' @param center Grouping covariate to 'center' on in parameterization. By
+#' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
 #'
 #' @examples
@@ -529,7 +529,7 @@ NULL
 
 priors <- nimble::model_macro_builder(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
-         modMatNames=FALSE, center=NULL, modelInfo, .env){
+         modMatNames=FALSE, centerVar=NULL, modelInfo, .env){
 
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
@@ -537,7 +537,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   
   priorSettings <- eval(priorSettings, envir=.env) 
 
-  rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo, center) 
+  rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo, centerVar) 
     
   new_form <- form
   if(!is.null(rand_info$formula)){

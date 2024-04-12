@@ -419,7 +419,7 @@ test_that("linPred", {
     linPred$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, center=NULL)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, centerVar=NULL)
     })
   )
   
@@ -429,7 +429,7 @@ test_that("linPred", {
     linPred$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, center=NULL)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, centerVar=NULL)
     })
   )
 
@@ -466,7 +466,7 @@ test_that("linPred with 'centered' random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] ~ linPred(~x3 + (1|x), priorSettings=NULL, center=x))
+  code <- quote(y[1:n] ~ linPred(~x3 + (1|x), priorSettings=NULL, centerVar=x))
  
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
@@ -478,7 +478,7 @@ test_that("linPred with 'centered' random effect", {
     modInfo$constants
   )
 
-  code <- quote(y[1:n] ~ linPred(~x3 + (x3|x), priorSettings=NULL, center=x))
+  code <- quote(y[1:n] ~ linPred(~x3 + (x3|x), priorSettings=NULL, centerVar=x))
  
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
@@ -486,7 +486,7 @@ test_that("linPred with 'centered' random effect", {
     quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ linPred(~x3 + (x3|x) + (1|x2), priorSettings=NULL, center=x))
+  code <- quote(y[1:n] ~ linPred(~x3 + (x3|x) + (1|x2), priorSettings=NULL, centerVar=x))
  
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
@@ -494,7 +494,7 @@ test_that("linPred with 'centered' random effect", {
     quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ linPred(~(x3|x), priorSettings=NULL, center=x))
+  code <- quote(y[1:n] ~ linPred(~(x3|x), priorSettings=NULL, centerVar=x))
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
@@ -746,7 +746,7 @@ test_that("priors with 'centered' random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(priors(~x3 + (1|x), center=x))
+  code <- quote(priors(~x3 + (1|x), centerVar=x))
  
   out <- nimbleMacros::priors$process(code, modInfo, NULL)
   expect_equal(
@@ -759,7 +759,7 @@ test_that("priors with 'centered' random effect", {
     })
   )
 
-  code <- quote(priors(~x3 + (1|x), center=test))
+  code <- quote(priors(~x3 + (1|x), centerVar=test))
  
   out <- nimbleMacros::priors$process(code, modInfo, NULL)
   expect_equal(
@@ -772,7 +772,7 @@ test_that("priors with 'centered' random effect", {
     })
   )
 
-  code <- quote(priors(~x3 + (x3||x), center=x))
+  code <- quote(priors(~x3 + (x3||x), centerVar=x))
  
   out <- nimbleMacros::priors$process(code, modInfo, NULL)
   expect_equal(
@@ -787,7 +787,7 @@ test_that("priors with 'centered' random effect", {
     })
   )
 
-  code <- quote(priors(~x3 + (x3|x), center=x))
+  code <- quote(priors(~x3 + (x3|x), centerVar=x))
  
   out <- nimbleMacros::priors$process(code, modInfo, NULL)
   expect_equal(
