@@ -264,6 +264,60 @@ makeDummyDataFrame <- function(formula, constants){
   as.data.frame(out)
 }
 
+# When centering on some grouping factor, determine which fixed effect terms
+# to drop from the formula
+# Returns a character vector of terms (e.g. c("1", "x"))
+centeredFormulaDropTerms <- function(formula, center){
+  if(is.null(center)) return(NULL)
+  bars <- lme4::findbars(formula)
+  rfacts <- lapply(bars, getRandomFactorName)
+  bars_keep <- bars[sapply(rfacts, function(x) x == center)]
+  if(length(bars_keep) == 0) return(NULL)
+  form_comps <- lapply(bars_keep, function(x) x[[2]])
+
+  comb_form <- sapply(form_comps, function(x){
+    x <- list(as.name("~"), x)
+    x <- as.formula(as.call(x))
+    trms <- stats::terms(x)
+    has_int <- attr(trms, "intercept")
+    out <- attr(trms, "term.labels")
+    if(has_int) out <- c("1", out)
+    out
+  })
+  drop(comb_form)
+}
+
+# Combine fixed and random terms into final formula
+makeAdjustedFormula <- function(formula, rand_formula, center=NULL){
+  # If there are no random effects just return the original formula
+  if(is.null(rand_formula)) return(formula)
+  # Find fixed terms to remove if centered
+  adj <- centeredFormulaDropTerms(formula, center)
+  # Find fixed terms
+  fixed_form <- lme4::nobars(formula)
+  trms <- stats::terms(fixed_form)
+  has_int <- attr(trms, "intercept")
+  fixed_trms <- attr(trms, "term.labels")
+  if(has_int) fixed_trms <- c("1", fixed_trms)
+  # Remove the appropriate terms
+  fixed_trms <- fixed_trms[!fixed_trms %in% adj]
+  # Combine remaining fixed terms and random terms into a formula
+  fixed_terms <- paste(fixed_trms, collapse=" + ")
+  if(fixed_terms == ""){
+    out <- list(as.name("~"), rand_formula)
+    out <- as.formula(as.call(out))
+  } else {
+    out <- list(as.name("~"), str2lang(fixed_terms))
+    out <- as.formula(as.call(out))
+    out <- addFormulaTerms(list(out, rand_formula))
+  }
+  # Make sure the intercept is explicitly dropped if needed
+  if("1" %in% adj) out <- addFormulaTerms(list(out, quote(-1)))
+
+  out
+}
+
+
 #' Macro to build code for linear predictor from R formula
 #'
 #' Converts an R formula into corresponding code for a linear predictor in BUGS.
@@ -285,6 +339,8 @@ makeDummyDataFrame <- function(formula, constants){
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param priorSettings Prior specifications, should be generated with setPrior()
+#' @param center Grouping covariate to 'center' on in parameterization. By
+#'  default all random effects have mean 0 as with lme4.
 #' 
 #' @examples
 #' code <- nimbleCode({
@@ -299,7 +355,7 @@ NULL
 #' @export
 linPred <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSettings=setPriors(), modelInfo, .env){
+         sdPrefix=NULL, priorSettings=setPriors(), center=NULL, modelInfo, .env){
 
     formula <- as.formula(formula)
 
@@ -313,13 +369,10 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     modelInfo_temp <- modelInfo
     modelInfo_temp$indexCreator <- NULL # don't want to iterate the index creator here
     eval_priors <- eval(priorSettings, envir=.env)
-    rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp)
+    rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp, center)
     modelInfo$constants <- rand_info$modelInfo$constants
     
-    new_form <- formula
-    if(!is.null(rand_info$formula)){
-      new_form <- addFormulaTerms(list(lme4::nobars(formula), rand_info$formula))
-    }
+    new_form <- makeAdjustedFormula(formula, rand_info$formula, center)
     
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
@@ -332,9 +385,9 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
 
     if(!is.null(priorSettings)){
       priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSettings=PRIORSET, modMatNames=TRUE),
+                                     priorSettings=PRIORSET, modMatNames=TRUE, center=CENTER),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSettings))
+                                   PRIORSET=priorSettings, CENTER=center))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -459,6 +512,8 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  setPriors()
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
+#' @param center Grouping covariate to 'center' on in parameterization. By
+#'  default all random effects have mean 0 as with lme4.
 #'
 #' @examples
 #' code <- nimbleCode({
@@ -474,7 +529,7 @@ NULL
 
 priors <- nimble::model_macro_builder(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
-         modMatNames=FALSE, modelInfo, .env){
+         modMatNames=FALSE, center=NULL, modelInfo, .env){
 
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
@@ -482,7 +537,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   
   priorSettings <- eval(priorSettings, envir=.env) 
 
-  rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo) 
+  rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo, center) 
     
   new_form <- form
   if(!is.null(rand_info$formula)){
