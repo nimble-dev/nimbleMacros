@@ -392,3 +392,18 @@ test_that("processAllBars", {
                     sdPrefix=quote(alpha_), modInfo)
   )
 })
+
+test_that("centeredFormulaDropTerms", {
+  expect_equal(centeredFormulaDropTerms(~x + (1|group), quote(group)), "1")
+  expect_equal(centeredFormulaDropTerms(~x + (x|group), quote(group)), c("1", "x"))
+  expect_equal(centeredFormulaDropTerms(~x + (x||group), quote(group)), c("1", "x"))
+  expect_equal(centeredFormulaDropTerms(~x + (1|group) + (x+0|group), quote(group)), c("1","x"))
+  expect_equal(centeredFormulaDropTerms(~x + (x+0|group) + (y+0|group), quote(group)), c("x","y"))
+  expect_equal(centeredFormulaDropTerms(~x + (x+y|group), quote(group)), c("1","x","y"))
+  expect_equal(centeredFormulaDropTerms(~x + (x+y-1|group), quote(group)), c("x","y"))
+  expect_equal(centeredFormulaDropTerms(~x + (x*y|group), quote(group)), c("1","x","y","x:y"))
+  expect_equal(centeredFormulaDropTerms(~x + (x+0|group), quote(group)), c("x"))
+  expect_equal(centeredFormulaDropTerms(~x + (x+0|group), quote(test)), NULL)
+  expect_equal(centeredFormulaDropTerms(~x + (x+0|group), NULL), NULL)
+  expect_equal(centeredFormulaDropTerms(~x + (x|group) + (y|test), quote(test)), c("1","y"))
+})
