@@ -19,7 +19,9 @@ setPriors()}
 \item{modMatNames}{Logical, should parameters be named so they match the
 names you would get from R's model.matrix function?}
 
-\item{center}{Grouping covariate to 'center' on in parameterization. By
+\item{noncenter}{Logical, use noncentered parameterization?}
+
+\item{centerVar}{Grouping covariate to 'center' on in parameterization. By
 default all random effects have mean 0 as with lme4.}
 }
 \description{

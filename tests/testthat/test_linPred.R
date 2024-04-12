@@ -419,7 +419,7 @@ test_that("linPred", {
     linPred$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, centerVar=NULL)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, noncenter=FALSE, centerVar=NULL)
     })
   )
   
@@ -429,7 +429,7 @@ test_that("linPred", {
     linPred$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, centerVar=NULL)
+      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, noncenter=FALSE, centerVar=NULL)
     })
   )
 
@@ -740,7 +740,7 @@ test_that("priors with random effect", {
 
 })
 
-test_that("priors with 'centered' random effect", {
+test_that("priors with 'partially centered' random effect", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
@@ -811,4 +811,48 @@ test_that("priors with 'centered' random effect", {
     })
   )
 
+})
+
+test_that("priors with noncentered random effects", {
+
+  set.seed(123)
+  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3)))
+
+  code <- quote(priors(~x3 + (1|x), noncenter=TRUE))
+ 
+  out <- nimbleMacros::priors$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_Intercept ~ dunif(-100, 100)
+      beta_x3 ~ dnorm(0, sd=100)
+      sd_x ~ dunif(0, 100)
+      beta_x_raw[1:3] ~ forLoop(dnorm(0, sd = 1))
+      beta_x[1:3] <- forLoop(0 + sd_x * beta_x_raw[1:3])
+    })
+  )
+
+  code <- quote(priors(~x3 + (x3||x), noncenter=TRUE, centerVar=x))
+ 
+  out <- nimbleMacros::priors$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_Intercept ~ dunif(-100, 100)
+      beta_x3 ~ dnorm(0, sd = 100)
+      sd_x ~ dunif(0, 100)
+      beta_x_raw[1:3] ~ forLoop(dnorm(0, sd = 1))
+      beta_x[1:3] <- forLoop(beta_Intercept + sd_x * beta_x_raw[1:3])
+      sd_x3_x ~ dunif(0, 100)
+      beta_x3_x_raw[1:3] ~ forLoop(dnorm(0, sd = 1))
+      beta_x3_x[1:3] <- forLoop(beta_x3 + sd_x3_x * beta_x3_x_raw[1:3])
+    })
+  )
+
+  code <- quote(priors(~x3 + (x3|x), noncenter=TRUE, centerVar=x))
+ 
+  # Correlated random effects don't work yet
+  expect_error(nimbleMacros::priors$process(code, modInfo, NULL))
 })
