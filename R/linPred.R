@@ -78,6 +78,19 @@ removeBracketsFromFormula <- function(formula){
   as.formula(out)
 }
 
+# Check if formula contains a function - these are not (yet?) supported
+# E.g. y~x + scale(z) will error
+checkNoFormulaFunctions <- function(form){
+  form <- nimbleMacros:::removeBracketsFromFormula(form)
+  form <- lme4::nobars(form)
+  form <- nimbleMacros:::safeDeparse(form) 
+  has_parens <- grepl("(", form, fixed=TRUE)
+  if(has_parens){
+    stop("Functions in formulas, such as scale() or I(), are not supported", call.=FALSE)
+  }
+  invisible()
+}
+
 removeSquareBrackets <- function(code){
   if(is.name(code)) return(code)
   if(code[[1]] == "["){
@@ -360,6 +373,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
     formula <- as.formula(formula)
+    checkNoFormulaFunctions(formula)    
 
     # Get index on LHS to use if none are found in RHS formula
     LHS_ind <- extractIndices(LHS)
@@ -539,6 +553,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
+  checkNoFormulaFunctions(form)    
   
   priorSettings <- eval(priorSettings, envir=.env) 
 
