@@ -521,6 +521,23 @@ test_that("linPred with factor array covariate", {
   expect_equal(dim(p$modelInfo$constants$x), c(3,4))
 })
 
+test_that("linPred errors when there are functions in the formula", {
+  set.seed(123)
+  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3)))
+
+  code <- quote(y[1:n] <- linPred(~scale(x), priorSettings=NULL))
+  expect_error(linPred$process(code, modelInfo=modInfo, .env=NULL))
+
+  code <- quote(y[1:n] <- linPred(~scale(x) + (1|x2), priorSettings=NULL))
+  expect_error(linPred$process(code, modelInfo=modInfo, .env=NULL))
+
+  code <- quote(y[1:n] <- linPred(~x3 + I(x[1:10]), priorSettings=NULL))
+  expect_error(linPred$process(code, modelInfo=modInfo, .env=NULL))
+
+})
+
 test_that("makeFixedPriorsFromFormula", {
   set.seed(123)
   dat <- data.frame(x=factor(sample(letters[1:3], 10, replace=T)),
@@ -855,4 +872,22 @@ test_that("priors with noncentered random effects", {
  
   # Correlated random effects don't work yet
   expect_error(nimbleMacros::priors$process(code, modInfo, NULL))
+})
+
+test_that("priors errors when there are functions in the formula", {
+
+  set.seed(123)
+  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x3=round(rnorm(10),3)))
+
+  code <- quote(priors(~scale(x3) + (1|x), noncenter=TRUE))
+  expect_error(nimbleMacros::priors$process(code, modInfo, NULL))
+  
+  code <- quote(priors(~scale(x3) + (1|x), noncenter=TRUE)) 
+  expect_error(nimbleMacros::priors$process(code, modInfo, NULL))
+
+  code <- quote(priors(~I(x3[1:10]), noncenter=TRUE))
+  expect_error(nimbleMacros::priors$process(code, modInfo, NULL))
+
 })
