@@ -388,7 +388,7 @@ test_that("linPred", {
   out <- linPred$process(code, modelInfo=modInfo, .env=NULL)
   expect_equal(
     out$code,
-    quote(y[1:n] <- forLoop(beta_Intercept))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_Intercept))
   )
   expect_equal(
     out$modelInfo,
@@ -398,19 +398,19 @@ test_that("linPred", {
   code <- quote(y[1:n] ~ linPred(~x + x3, priorSettings=NULL))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
-    quote(y[1:n] <- forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n]))
   )
 
   code <- quote(y[1:n] ~ linPred(~x, priorSettings=NULL, coefPrefix=alpha_))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
-    quote(y[1:n] <- forLoop(alpha_Intercept + alpha_x[x[1:n]]))
+    quote(y[1:n] <- nimbleMacros::forLoop(alpha_Intercept + alpha_x[x[1:n]]))
   )
 
   code <- quote(y[1:n] <- linPred(~x, link=log, priorSettings=NULL))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
-    quote(log(y[1:n]) <- forLoop(beta_Intercept + beta_x[x[1:n]]))
+    quote(log(y[1:n]) <- nimbleMacros::forLoop(beta_Intercept + beta_x[x[1:n]]))
   )
 
 
@@ -418,8 +418,8 @@ test_that("linPred", {
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
     quote({
-      y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, noncenter=FALSE, centerVar=NULL)
+      y[1:n] <- nimbleMacros::forLoop(beta_Intercept)
+      nimbleMacros::priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=TRUE, noncenter=FALSE, centerVar=NULL)
     })
   )
   
@@ -428,15 +428,15 @@ test_that("linPred", {
   expect_equal(
     linPred$process(code, modInfo, environment())$code,
     quote({
-      y[1:n] <- forLoop(beta_Intercept)
-      priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, noncenter=FALSE, centerVar=NULL)
+      y[1:n] <- nimbleMacros::forLoop(beta_Intercept)
+      nimbleMacros::priors(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=TRUE, noncenter=FALSE, centerVar=NULL)
     })
   )
 
   code <- quote(y[1:n] ~ linPred(~x + (x|x2), priorSettings=NULL))
   expect_equal(
     linPred$process(code, modInfo, NULL)$code,
-    quote(y[1:n] <- forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_Intercept + beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
   )
 
 })
@@ -452,7 +452,7 @@ test_that("linPred with random effect", {
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
-    quote(y[1:n] <- forLoop(beta_Intercept + beta_x3 * x3[1:n] + beta_x[x[1:n]]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_Intercept + beta_x3 * x3[1:n] + beta_x[x[1:n]]))
   )
   expect_equal(
     out$modelInfo$constants,
@@ -471,7 +471,7 @@ test_that("linPred with 'centered' random effect", {
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
-    quote(y[1:n] <- forLoop(beta_x3 * x3[1:n] + beta_x[x[1:n]]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_x3 * x3[1:n] + beta_x[x[1:n]]))
   )
   expect_equal(
     out$modelInfo$constants,
@@ -483,7 +483,7 @@ test_that("linPred with 'centered' random effect", {
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
-    quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
   code <- quote(y[1:n] ~ linPred(~x3 + (x3|x) + (1|x2), priorSettings=NULL, centerVar=x))
@@ -491,14 +491,14 @@ test_that("linPred with 'centered' random effect", {
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
-    quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
   code <- quote(y[1:n] ~ linPred(~(x3|x), priorSettings=NULL, centerVar=x))
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
-    quote(y[1:n] <- forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
+    quote(y[1:n] <- nimbleMacros::forLoop(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
 })
@@ -512,7 +512,7 @@ test_that("linPred with factor array covariate", {
   out <- linPred$process(code, modInfo, NULL)
   expect_equal(
     out$code,
-    quote(y[1:M, 1:J] <- forLoop(beta_Intercept + beta_x[x[1:M, 1:J]]))
+    quote(y[1:M, 1:J] <- nimbleMacros::forLoop(beta_Intercept + beta_x[x[1:M, 1:J]]))
   )
   expect_equal(dim(out$modelInfo$constants$x), c(3,4))
 
@@ -732,7 +732,7 @@ test_that("priors with random effect", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
+      beta_x[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = sd_x))
     })
   )
   expect_equal(
@@ -751,7 +751,7 @@ test_that("priors with random effect", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(-10, 10)
-      beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
+      beta_x[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = sd_x))
     })
   )
 
@@ -772,7 +772,7 @@ test_that("priors with 'partially centered' random effect", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ forLoop(dnorm(beta_Intercept, sd = sd_x))
+      beta_x[1:3] ~ nimbleMacros::forLoop(dnorm(beta_Intercept, sd = sd_x))
     })
   )
 
@@ -785,7 +785,7 @@ test_that("priors with 'partially centered' random effect", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ forLoop(dnorm(0, sd = sd_x))
+      beta_x[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = sd_x))
     })
   )
 
@@ -798,9 +798,9 @@ test_that("priors with 'partially centered' random effect", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ forLoop(dnorm(beta_Intercept, sd = sd_x))
+      beta_x[1:3] ~ nimbleMacros::forLoop(dnorm(beta_Intercept, sd = sd_x))
       sd_x3_x ~ dunif(0, 100)
-      beta_x3_x[1:3] ~ forLoop(dnorm(beta_x3, sd = sd_x3_x))
+      beta_x3_x[1:3] ~ nimbleMacros::forLoop(dnorm(beta_x3, sd = sd_x3_x))
     })
   )
 
@@ -846,8 +846,8 @@ test_that("priors with noncentered random effects", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd=100)
       sd_x ~ dunif(0, 100)
-      beta_x_raw[1:3] ~ forLoop(dnorm(0, sd = 1))
-      beta_x[1:3] <- forLoop(0 + sd_x * beta_x_raw[1:3])
+      beta_x_raw[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = 1))
+      beta_x[1:3] <- nimbleMacros::forLoop(0 + sd_x * beta_x_raw[1:3])
     })
   )
 
@@ -860,11 +860,11 @@ test_that("priors with noncentered random effects", {
       beta_Intercept ~ dunif(-100, 100)
       beta_x3 ~ dnorm(0, sd = 100)
       sd_x ~ dunif(0, 100)
-      beta_x_raw[1:3] ~ forLoop(dnorm(0, sd = 1))
-      beta_x[1:3] <- forLoop(beta_Intercept + sd_x * beta_x_raw[1:3])
+      beta_x_raw[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = 1))
+      beta_x[1:3] <- nimbleMacros::forLoop(beta_Intercept + sd_x * beta_x_raw[1:3])
       sd_x3_x ~ dunif(0, 100)
-      beta_x3_x_raw[1:3] ~ forLoop(dnorm(0, sd = 1))
-      beta_x3_x[1:3] <- forLoop(beta_x3 + sd_x3_x * beta_x3_x_raw[1:3])
+      beta_x3_x_raw[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = 1))
+      beta_x3_x[1:3] <- nimbleMacros::forLoop(beta_x3 + sd_x3_x * beta_x3_x_raw[1:3])
     })
   )
 

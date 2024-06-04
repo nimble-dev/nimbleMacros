@@ -187,15 +187,15 @@ test_that("makeUncorrelatedRandomPrior", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)))
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo),
-    quote(beta_group[1:3] ~ forLoop(dnorm(0, sd = sd_group)))
+    quote(beta_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = sd_group)))
   )
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), quote(alpha_), modInfo),
-    quote(beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group)))
+    quote(beta_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = alpha_sd_group)))
   )
   expect_equal(
     makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta_), NULL, modInfo),
-    quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
+    quote(beta_x_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = sd_x_group)))
   )
   # Not an uncorrelated random effect
   expect_error(
@@ -240,7 +240,7 @@ test_that("makeRandomPriorCode", {
   out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, modInfo)
   expect_equal(
     out1,
-    quote(beta_x_group[1:3] ~ forLoop(dnorm(0, sd = sd_x_group)))
+    quote(beta_x_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = sd_x_group)))
   )
 
   out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo)
@@ -362,7 +362,7 @@ test_that("processBar", {
     out$code,
     quote({
       alpha_sd_group ~ dunif(0, 3)
-      beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group))
+      beta_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = alpha_sd_group))
     })
   )
   expect_equal(out$modelInfo$constants, modInfo$constants)
@@ -380,9 +380,9 @@ test_that("processAllBars", {
     out$code,
     quote({
       alpha_sd_group ~ dunif(0, 3)
-      beta_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_group))
+      beta_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = alpha_sd_group))
       alpha_sd_x_group ~ dunif(0, 3)
-      beta_x_group[1:3] ~ forLoop(dnorm(0, sd = alpha_sd_x_group))
+      beta_x_group[1:3] ~ nimbleMacros::forLoop(dnorm(0, sd = alpha_sd_x_group))
     })
   )
   expect_equal(out$modelInfo$constants, modInfo$constants)
