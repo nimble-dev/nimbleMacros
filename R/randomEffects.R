@@ -149,11 +149,11 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
   if(noncenter){
     lhs_raw <- str2lang(paste0(safeDeparse(par_name), "_raw"))
     out <- substitute({
-      LHS_RAW[1:NLEV] ~ forLoop(dnorm(0, sd = 1))
-      LHS[1:NLEV] <- forLoop(MEAN + SD * LHS_RAW[1:NLEV])
+      LHS_RAW[1:NLEV] ~ nimbleMacros::forLoop(dnorm(0, sd = 1))
+      LHS[1:NLEV] <- nimbleMacros::forLoop(MEAN + SD * LHS_RAW[1:NLEV])
     }, list(LHS=par_name, LHS_RAW=lhs_raw, NLEV=nlev, SD=sd_name, MEAN=rand_mean))
   } else {
-    out <- substitute(LHS[1:NLEV] ~ forLoop(dnorm(MEAN, sd=SD)),
+    out <- substitute(LHS[1:NLEV] ~ nimbleMacros::forLoop(dnorm(MEAN, sd=SD)),
             list(LHS=par_name, NLEV=nlev, SD=sd_name, MEAN=rand_mean))
   }
   out

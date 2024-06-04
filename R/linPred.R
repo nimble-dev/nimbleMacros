@@ -81,9 +81,9 @@ removeBracketsFromFormula <- function(formula){
 # Check if formula contains a function - these are not (yet?) supported
 # E.g. y~x + scale(z) will error
 checkNoFormulaFunctions <- function(form){
-  form <- nimbleMacros:::removeBracketsFromFormula(form)
+  form <- removeBracketsFromFormula(form)
   form <- lme4::nobars(form)
-  form <- nimbleMacros:::safeDeparse(form) 
+  form <- safeDeparse(form) 
   has_parens <- grepl("(", form, fixed=TRUE)
   if(has_parens){
     stop("Functions in formulas, such as scale() or I(), are not supported", call.=FALSE)
@@ -396,12 +396,12 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Make linear predictor from formula and data
     RHS <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
     # Add forLoop macro to result
-    RHS <- as.call(list(quote(forLoop), RHS))
+    RHS <- as.call(list(quote(nimbleMacros::forLoop), RHS))
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
     if(!is.null(priorSettings)){
-      priorCode <- substitute(priors(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
+      priorCode <- substitute(nimbleMacros::priors(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSettings=PRIORSET, modMatNames=TRUE,
                                      noncenter = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
