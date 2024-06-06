@@ -277,5 +277,30 @@ test_that("forLoop", {
     })
   )
 
+  # Very complex nested brackets
+  expect_equal(
+    # macro
+    nimble:::codeProcessModelMacros(nimbleCode({
+      beta[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]] ~ forLoop(dnorm(alpha[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]], sigma[1:M]))
+    }), modelInfo=list(), env=environment())$code,
+    # reference
+    nimbleCode({
+      for (i_1 in 1:M) {
+          for (i_2 in 1:NS[i_1]) {
+              beta[sind[i_1], IDX[sind[i_1], i_2]] ~ dnorm(alpha[sind[i_1],
+                  IDX[sind[i_1], i_2]], sigma[i_1])
+          }
+      }
+    })
+  )
+
+  # Duplicate index situation currently not handled
+  modelInfo <- list(indexCreator = nimble:::labelFunctionCreator("i"))
+  expect_error(
+    # macro
+    forLoop$process(quote(y[1:M, 1:M] ~ forLoop(dnorm(mu[1:M, 1:M]))),
+      modelInfo=modelInfo, .env=environment())
+  )
+
   nimbleOptions(enableMacroComments=comments_on)
 })

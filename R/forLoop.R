@@ -19,9 +19,14 @@ extractIndices <- function(code){
     stopifnot(hasBracket(code))
     code <- getBracket(code)
     out <- lapply(3:length(code), function(x) code[[x]])
-    if (hasBracket(out[[1]])) {
-        return(extractIndices(out[[1]]))
-    }
+
+    out <- lapply(out, function(x){
+      if(hasBracket(x)) return(extractIndices(x))
+      else(x)
+    })
+    out <- unlist(out) # possibly not safe?
+    out <- unique(out) # possibly not safe?
+
     out
 }
 
@@ -109,7 +114,10 @@ replaceIndex <- function(code, old_idx, new_idx){
   })
   idx <- which(code_list == old_idx)
   # If old index is not found do nothing
-  if(length(idx) != 1) return(as.call(code_list))
+  if(length(idx) == 0) return(as.call(code_list))
+  if(length(idx) > 1) stop("Not sure how to handle duplicated index ",
+                           safeDeparse(old_idx)," in code:\n", safeDeparse(code),
+                           call.=FALSE)
   code_list[[idx]] <- new_idx
   as.call(code_list)
 }
