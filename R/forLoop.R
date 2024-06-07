@@ -115,9 +115,7 @@ replaceIndex <- function(code, old_idx, new_idx){
   idx <- which(code_list == old_idx)
   # If old index is not found do nothing
   if(length(idx) == 0) return(as.call(code_list))
-  if(length(idx) > 1) stop("Not sure how to handle duplicated index ",
-                           safeDeparse(old_idx)," in code:\n", safeDeparse(code),
-                           call.=FALSE)
+  stopifnot(length(idx) < 2) # Can't handle duplicate indices
   code_list[[idx]] <- new_idx
   as.call(code_list)
 }
@@ -171,6 +169,22 @@ replaceRanges <- function(ranges, idx_letters){
   ranges
 }
 
+# Check if any of the index ranges in bracket expression are duplicates: 
+# if they are, we can't handle them because matching them to indices on the RHS
+# could be ambiguous
+# For example y[1:M, 1:M] won't work but y[1:M, sind[1:M]] will
+checkDuplicateBracketComponents <- function(code){
+  stopifnot(hasBracket(code))
+  code <- getBracket(code)
+  out <- lapply(3:length(code), function(x) code[[x]])
+  dups <- duplicated(out)
+  if(any(dups)){
+    stop("Not sure how to expand duplicated index ",
+         safeDeparse(out[dups][[1]])," in code:\n", safeDeparse(code),
+         call.=FALSE)
+  }
+  invisible()
+}
 
 #' Macro to build for loop(s) from code with index ranges in brackets
 #'
@@ -202,6 +216,8 @@ function(code, modelInfo, .env){
   LHS <- getLHS(code)
   # Stop if there are no brackets
   if(!hasBracket(LHS)) return(list(code=code, modelInfo = modelInfo))
+  # Check if there are duplicate index ranges in bracket on LHS
+  checkDuplicateBracketComponents(LHS)
   idx <- extractIndices(LHS)
   has_range <- isIndexRange(idx)
   # Stop if none of the indices are ranges
