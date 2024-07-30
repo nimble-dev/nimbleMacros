@@ -337,14 +337,14 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
 #' Options are available to specify a link function and to also generate
 #' code for priors corresponding to the parameters in the linear predictor.
 #'
-#' @name linPred
+#' @name LINPRED
 #' @author Ken Kellner
 #' 
 #' @param formula An R formula, possibly with the parameters followed by 
 #'  brackets containing indices. If there are no indices, the macro attempts
 #'  to guess the correct indices from the context. The formula must be 
 #'  right-hand side only (e.g. ~x). This must always be the first argument supplied
-#'  to linPred.
+#'  to LINPRED.
 #' @param link A link function (available in BUGS) which will be applied to the 
 #'  left-hand-side (the response) in the final linear predictor. Default is none.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
@@ -358,7 +358,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
 #' 
 #' @examples
 #' code <- nimbleCode({
-#'   mu[1:10] <- linPred(~x + x2)
+#'   mu[1:10] <- LINPRED(~x + x2)
 #' })
 #'
 #' mod <- nimbleModel(code)
@@ -367,7 +367,7 @@ NULL
 
 #' @importFrom lme4 nobars
 #' @export
-linPred <- nimble::model_macro_builder(
+LINPRED <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSettings=setPriors(), 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
@@ -395,13 +395,13 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
     # Make linear predictor from formula and data
     RHS <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
-    # Add forLoop macro to result
-    RHS <- as.call(list(quote(nimbleMacros::forLoop), RHS))
+    # Add FORLOOP macro to result
+    RHS <- as.call(list(quote(nimbleMacros::FORLOOP), RHS))
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
     if(!is.null(priorSettings)){
-      priorCode <- substitute(nimbleMacros::priors(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
+      priorCode <- substitute(nimbleMacros::PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSettings=PRIORSET, modMatNames=TRUE,
                                      noncenter = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
@@ -515,13 +515,13 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'
 #' Generates appropriate priors for a linear predictor derived from an 
 #' R formula. As such it makes the most sense to use this macro together with
-#' the linPred macro which takes similar arguments.
+#' the LINPRED macro which takes similar arguments.
 #'
-#' @name priors
+#' @name PRIORS
 #' @author Ken Kellner
 #'
 #' @param formula An R formula The formula must be right-hand side only (e.g. ~x). 
-#'  This must always be the first argument supplied to priors.
+#'  This must always be the first argument supplied to PRIORS
 #' @param coefPrefix All model coefficient names will begin with this prefix.
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
@@ -536,7 +536,7 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'
 #' @examples
 #' code <- nimbleCode({
-#'   priors(~x + x2)
+#'   PRIORS(~x + x2)
 #' })
 #' 
 #' mod <- nimbleModel(code)
@@ -546,7 +546,7 @@ NULL
 #' @importFrom lme4 nobars
 #' @export
 
-priors <- nimble::model_macro_builder(
+PRIORS <- nimble::model_macro_builder(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
          modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 

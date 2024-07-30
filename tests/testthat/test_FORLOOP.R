@@ -1,4 +1,4 @@
-context("forLoop and related functions")
+context("FORLOOP and related functions")
 
 test_that("extractIndices", {
   expect_equal(
@@ -207,13 +207,13 @@ test_that("replaceRanges", {
 
 })
 
-test_that("forLoop", {
+test_that("FORLOOP", {
   comments_on <- nimbleOptions()$enableMacroComments
   nimbleOptions(enableMacroComments=FALSE)
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:10] ~ forLoop(dnorm(0, sd=10))
+      beta[1:10] ~ FORLOOP(dnorm(0, sd=10))
     }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
@@ -226,7 +226,7 @@ test_that("forLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:2,1:10,1] ~ forLoop(dnorm(0, sd=10))
+      beta[1:2,1:10,1] ~ FORLOOP(dnorm(0, sd=10))
     }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
@@ -241,7 +241,7 @@ test_that("forLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      sigma ~ forLoop(dunif(0,10))
+      sigma ~ FORLOOP(dunif(0,10))
     }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
@@ -252,7 +252,7 @@ test_that("forLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1,2] ~ forLoop(dnorm(0, sd=10))
+      beta[1,2] ~ FORLOOP(dnorm(0, sd=10))
     }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
@@ -263,7 +263,7 @@ test_that("forLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:10,1:k,1:l] ~ forLoop(dnorm(alpha[1:k, 1:10], sigma[1:l]))
+      beta[1:10,1:k,1:l] ~ FORLOOP(dnorm(alpha[1:k, 1:10], sigma[1:l]))
     }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
@@ -281,7 +281,7 @@ test_that("forLoop", {
   expect_equal(
     # macro
     nimble:::codeProcessModelMacros(nimbleCode({
-      beta[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]] ~ forLoop(dnorm(alpha[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]], sigma[1:M]))
+      beta[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]] ~ FORLOOP(dnorm(alpha[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]], sigma[1:M]))
     }), modelInfo=list(), env=environment())$code,
     # reference
     nimbleCode({
@@ -298,7 +298,7 @@ test_that("forLoop", {
   modelInfo <- list(indexCreator = nimble:::labelFunctionCreator("i"))
   expect_error(
     # macro
-    forLoop$process(quote(y[1:M, 1:M] ~ forLoop(dnorm(mu[1:M, 1:M]))),
+    FORLOOP$process(quote(y[1:M, 1:M] ~ FORLOOP(dnorm(mu[1:M, 1:M]))),
       modelInfo=modelInfo, .env=environment())
   )
 

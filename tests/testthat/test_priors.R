@@ -118,7 +118,7 @@ test_that("spaces in factor levels are handled", {
   dat <- list(y=y, x=x, z=z, n=3)
 
   code <- nimbleCode({
-    priors(~x + z, modMatNames=TRUE) 
+    PRIORS(~x + z, modMatNames=TRUE) 
   })
   
   nimbleOptions(enableMacroComments=FALSE)
