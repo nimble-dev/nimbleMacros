@@ -26,6 +26,14 @@ supplied to \code{...} in order and looks for a match in the names of the
 settings list. Once a match is found the function returns the corresponding
 prior value.
 }
+\examples{
+pr <- setPriors(intercept = quote(dunif(-3, 3)), 'alpha' = quote(dunif(0,1)), 
+                'alpha[2]' = "dnorm(0, 3)")
+matchPrior(quote(alpha), priorSettings=pr)
+matchPrior(quote(alpha[2]), priorSettings=pr)
+matchPrior(quote(intercept), priorSettings=pr)
+
+}
 \author{
 Ken Kellner
 }
