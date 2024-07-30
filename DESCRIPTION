@@ -11,8 +11,6 @@ Imports:
     lme4
 Suggests:
     testthat
-Remotes:
-    nimble=github::nimble-dev/nimble/packages/nimble@devel
 Description: A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
 License: GPL-3
 NeedsCompilation: no
