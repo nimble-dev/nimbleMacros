@@ -4,7 +4,7 @@
 #' such as lm(), glm(), and lmer()/glmer(). Currently only normal and Poisson
 #' models are supported.
 #'
-#' @name nimbleLM
+#' @name LM
 #' @author Ken Kellner
 #'
 #' @param formula An R formula, possibly with the parameters followed by 
@@ -27,7 +27,7 @@
 #'                   x2 = factor(sample(letters[1:3], 10, replace=TRUE)))
 #'  
 #' code <- nimbleCode({
-#'    nimbleLM(y ~ x + x2)
+#'    LM(y ~ x + x2)
 #' })
 #' 
 #' mod <- nimbleModel(code, constants=constants)
@@ -35,7 +35,7 @@
 NULL
 
 #' @export
-nimbleLM <- list(process = function(code, modelInfo, .env){
+LM <- list(process = function(code, modelInfo, .env){
   
   if(isAssignment(code)){
     RHS <- getRHS(code)
@@ -72,7 +72,7 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
   
   dataDec <- getDataDistCode(family$family, LHS, idx, sd_res)
   # FIXME: LHS par should not be fixed at mu
-  LP <- substitute(mu_[IDX] <- linPred(FORM, link=LINK, coefPrefix=COEFPREFIX,
+  LP <- substitute(mu_[IDX] <- LINPRED(FORM, link=LINK, coefPrefix=COEFPREFIX,
                                        sdPrefix=SDPREFIX, priorSettings=PRIORS),
                    list(IDX=idx, FORM=form, COEFPREFIX=coefPrefix, SDPREFIX=sdPrefix,
                         PRIORS=priorSettings, LINK=link))
@@ -90,7 +90,7 @@ nimbleLM <- list(process = function(code, modelInfo, .env){
   list(code=removeExtraBrackets(embedLinesInCurlyBrackets(out)),
        modelInfo = modelInfo)
 })
-class(nimbleLM) <- 'model_macro'
+class(LM) <- 'model_macro'
 
 # FIXME: Should eventually support more options
 processFamily <- function(fam){
@@ -112,11 +112,11 @@ processFamily <- function(fam){
 # FIXME: This should be more general
 getDataDistCode <- function(family, response, idx, dispParName){
   if(family == "gaussian"){
-    out <- substitute(DAT ~ forLoop(DIST(mu_[IDX], sd=DISPPAR)),
+    out <- substitute(DAT ~ FORLOOP(DIST(mu_[IDX], sd=DISPPAR)),
                         list(DAT=response, DIST=quote(dnorm), IDX=idx,
                              DISPPAR=dispParName))
   } else if(family == "poisson"){
-    out <- substitute(DAT ~ forLoop(DIST(mu_[IDX])),
+    out <- substitute(DAT ~ FORLOOP(DIST(mu_[IDX])),
                       list(DAT=response, DIST=quote(dpois), IDX=idx))
   }
   out

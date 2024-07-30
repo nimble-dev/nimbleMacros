@@ -193,7 +193,7 @@ checkDuplicateBracketComponents <- function(code){
 #' right-hand sides of a declaration and constructs a corresponding
 #' for loop or series of nested for loops.
 #'
-#' @name forLoop
+#' @name FORLOOP
 #'
 #' @author Ken Kellner
 #'
@@ -201,8 +201,8 @@ checkDuplicateBracketComponents <- function(code){
 #'
 #' @examples
 #' code <- nimbleCode({
-#'    y[1:n, 1:2, 1] ~ forLoop(dnorm(mu[1:n], sigma))
-#'    mu[1:n] <- forLoop(beta[1] + beta[2]*x[1:n])
+#'    y[1:n, 1:2, 1] ~ FORLOOP(dnorm(mu[1:n], sigma))
+#'    mu[1:n] <- FORLOOP(beta[1] + beta[2]*x[1:n])
 #' })
 #'
 #' mod <- nimbleModel(code, constants=list(n=10))
@@ -210,7 +210,7 @@ checkDuplicateBracketComponents <- function(code){
 NULL
 
 #' @export
-forLoop <- nimble::model_macro_builder(
+FORLOOP <- nimble::model_macro_builder(
 function(code, modelInfo, .env){
   code <- removeMacroCall(code)
   LHS <- getLHS(code)
