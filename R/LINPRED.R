@@ -78,19 +78,6 @@ removeBracketsFromFormula <- function(formula){
   as.formula(out)
 }
 
-# Check if formula contains a function - these are not (yet?) supported
-# E.g. y~x + scale(z) will error
-checkNoFormulaFunctions <- function(form){
-  form <- removeBracketsFromFormula(form)
-  form <- lme4::nobars(form)
-  form <- safeDeparse(form) 
-  has_parens <- grepl("(", form, fixed=TRUE)
-  if(has_parens){
-    stop("Functions in formulas, such as scale() or I(), are not supported", call.=FALSE)
-  }
-  invisible()
-}
-
 removeSquareBrackets <- function(code){
   if(is.name(code)) return(code)
   if(code[[1]] == "["){
@@ -108,17 +95,31 @@ removeSquareBrackets <- function(code){
   out
 }
 
+# Check if formula contains a function - these are not (yet?) supported
+# E.g. y~x + scale(z) will error
+checkNoFormulaFunctions <- function(form){
+  form <- removeBracketsFromFormula(form)
+  form <- lme4::nobars(form)
+  form <- safeDeparse(form) 
+  has_parens <- grepl("(", form, fixed=TRUE)
+  if(has_parens){
+    stop("Functions in formulas, such as scale() or I(), are not supported", call.=FALSE)
+  }
+  invisible()
+}
+
 # Extract entire bracket structure
 # "formula" is actually a formula component, e.g. quote(x[1:n])
 extractBracket <- function(formula){
   stopifnot(hasBracket(formula))
-  #out <- regmatches(deparse(formula), regexpr("\\[.*?\\]", deparse(formula)))
   #extract out to the last bracket in case of nested brackets
   out <- regmatches(safeDeparse(formula), regexpr("\\[.*\\]", safeDeparse(formula)))
   names(out) <- as.character(formula[[2]])
   out
 }
 
+# Extract all brackets from a formula
+# by calling extractBracket recursively for all components of formula
 extractAllBrackets <- function(formula){
   if(hasBracket(formula, recursive=FALSE)){
     out <- extractBracket(formula)
@@ -216,6 +217,9 @@ getParametersForLP <- function(components, prefix="beta_"){
   #paste0("beta[",1:length(components),"]")
 }
 
+# Create linear predictor from a formula, a list of data, the 
+# range index for the LHS of the code line (e.g. the 1:3 in y[1:3] ~ x) and the 
+# desired prefix for the created intercept/slope parameters in the linear predictor
 makeLPFromFormula <- function(formula, data, LHSidx, prefix){
   formula_nobrack <- removeBracketsFromFormula(formula)
   #pars <- all.vars(formula_nobrack)
@@ -243,6 +247,7 @@ makeLPFromFormula <- function(formula, data, LHSidx, prefix){
 # Add numeric version of factors to constants, e.g. x2 becomes x2_NEW
 # This should not always be necessary to do, but at the moment
 # nimble doesn't handle factors smoothly
+# NO LONGER USED
 #addNumericFactorsToConstants <- function(constants){
 #  for (i in 1:length(constants)){
 #    if(is.factor(constants[[i]])){
@@ -301,6 +306,11 @@ centeredFormulaDropTerms <- function(formula, centerVar){
 }
 
 # Combine fixed and random terms into final formula
+# formula is just the fixed-effects part
+# rand_formula is the random effects formula after converting it from
+# lme4 structure to more standard structure
+# for example (1|group) becomes just group
+# Then this function combines them into a "final" formula and centers if needed
 makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   # If there are no random effects just return the original formula
   if(is.null(rand_formula)) return(formula)
@@ -372,23 +382,34 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSettings=setPriors(), 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
+    # Make sure formula is a formula
     formula <- as.formula(formula)
+    # Check there aren't any functions in the formulas, error if there are
     checkNoFormulaFunctions(formula)    
 
-    # Get index on LHS to use if none are found in RHS formula
+    # Get index range on LHS to use if the RHS formulas do not specify them
     LHS_ind <- extractIndices(LHS)
+    # Get link function if it exists and wrap the LHS in the link
+    # e.g. psi <- ... becomes logit(psi) <- ...
     if(!is.null(link)){
       LHS <- as.call(list(link, LHS))
     }
     
     # FIXME: clunky
+    # Make a copy of the model info to use, but we don't want to iterate
+    # the for loop index creator right now, so we get rid of it
     modelInfo_temp <- modelInfo
     modelInfo_temp$indexCreator <- NULL # don't want to iterate the index creator here
+    # Get prior settings from setPriors() function
     eval_priors <- eval(priorSettings, envir=.env)
+    # Process bars e.g. (1|group) in the formula
     rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp, 
                                 noncenter, centerVar)
+    # Make adjustments to constants if needed (e.g. for nested random effects)
     modelInfo$constants <- rand_info$modelInfo$constants
     
+    # Create new combined formula without random effects notation
+    # e.g. ~x + (x||group) will become ~x + group + x:group
     new_form <- makeAdjustedFormula(formula, rand_info$formula, centerVar)
     
     # Make a dummy data frame to inform model.matrix with variable types
@@ -400,6 +421,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
+    # Add code for priors to output if needed
     if(!is.null(priorSettings)){
       priorCode <- substitute(nimbleMacros::PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSettings=PRIORSET, modMatNames=TRUE,
@@ -550,6 +572,7 @@ PRIORS <- nimble::model_macro_builder(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
          modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
+  # Make sure formula is in correct format
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
   form <- removeBracketsFromFormula(form)
@@ -557,9 +580,12 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   
   priorSettings <- eval(priorSettings, envir=.env) 
 
+  # Get random effects info (if any) from bar components for formula
   rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo, 
                               noncenter, centerVar) 
-    
+  
+  # Create new formula combining fixed effects and random effects
+  # e.g. ~x + (x||group) becomes x + group + x:group
   new_form <- form
   if(!is.null(rand_info$formula)){
     new_form <- addFormulaTerms(list(lme4::nobars(form), rand_info$formula))

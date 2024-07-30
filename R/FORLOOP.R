@@ -1,3 +1,4 @@
+# Check if code chunk has bracket
 hasBracket <- function(code, recursive=TRUE){
   if (length(code) < 2) return(FALSE)
   if (code[[1]] == "[") return(TRUE)
@@ -7,13 +8,14 @@ hasBracket <- function(code, recursive=TRUE){
     FALSE
 }
 
+# Extract bracket and contents
 getBracket <- function(code){
   stopifnot(hasBracket(code))
   if(code[[1]] == "[") return(code)
   if(is.name(code[[1]])) return(getBracket(code[[2]]))
 }
 
-t# Get index values from bracket
+# Get index values from bracket
 # For example alpha[1,1:10,k] returns list(1, 1:10, k)
 extractIndices <- function(code){
     stopifnot(hasBracket(code))
@@ -35,7 +37,7 @@ isIndexRange <- function(code){
   sapply(code, function(x) any(grepl(":",x)))
 }
 
-
+# Check if any code component is an index range (kind of trivial function)
 anyIndexRange <- function(code){
   any(isIndexRange(code))
 }
@@ -69,6 +71,8 @@ extractAllIndices <- function(code){
   return(out)
 }
 
+# Remove index offsets/adjustments
+# For example if idx = quote(1:3 - 1), function returns quote(1:3)
 removeIndexAdjustments <- function(idx){
   if(length(idx) == 1) return(idx) 
   if(idx[[1]] == ":") return(idx)
@@ -93,6 +97,8 @@ hasMatchingIndexRanges <- function (LHS, RHS){
     all(idx_RHS %in% idx_LHS)
 }
 
+# Check if code has index adjustment (only looks for - and + currently)
+# So hasAdjustment(quote(1:3)) is FALSE but hasAdjustment(quote(1:3 - 1)) is TRUE
 hasAdjustment <- function(code){
   if(is.name(code)) return(FALSE)
   if(length(code) < 3) return(FALSE)
@@ -212,24 +218,38 @@ NULL
 #' @export
 FORLOOP <- nimble::model_macro_builder(
 function(code, modelInfo, .env){
+  # Remove FORLOOP from the code line
   code <- removeMacroCall(code)
   LHS <- getLHS(code)
-  # Stop if there are no brackets
+  # Stop if there are no brackets, we can't do a for loop in that case
   if(!hasBracket(LHS)) return(list(code=code, modelInfo = modelInfo))
   # Check if there are duplicate index ranges in bracket on LHS
+  # If there are give an error
   checkDuplicateBracketComponents(LHS)
+  # Extract indices from brackets
   idx <- extractIndices(LHS)
+  # Check if they are index ranges
   has_range <- isIndexRange(idx)
   # Stop if none of the indices are ranges
   if(all(!has_range)) return(list(code=code, modelInfo = modelInfo))
 
+  # Subset only indexes with ranges
   idx_sub <- idx[has_range]
+  # Create new index letters to represent those ranges in the for loops
   idx_letters <- lapply(1:length(idx_sub), function(i) modelInfo$indexCreator())
   idx_letters <- lapply(idx_letters, as.name)
+  # Replace the ranges with the new corresponding letters
   code <- replaceDeclarationIndexRanges(code, idx_letters)
-
+  # Then insert the ranges into the for loop structure
   idx_sub <- replaceRanges(idx_sub, idx_letters)
+  # So e.g.
+  # FORLOOP(quote(x[1:10] <- y[1:10])) would be
+  # for (i_1 in 1:10){ # <- index range inserted here
+  #   x[i_1] <- y[i_1] # <- index range replaced with index letter
+  # }
 
+  # Create for loop structure of arbitrary nestedness
+  # substituting in info from above
   for(i in length(idx_sub):1) {
     newForLoop <-
       substitute(

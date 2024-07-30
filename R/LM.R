@@ -1,8 +1,8 @@
 #' Macro for fitting linear models, GLMs, and GLMMs
 #'
-#' This macro supports formula notation and arguments similar to R functions
-#' such as lm(), glm(), and lmer()/glmer(). Currently only normal and Poisson
-#' models are supported.
+#' This macro generates code for LMs, GLMs, and GLMMs using formula notation 
+#' and arguments similar to R functions such as lm(), glm(), and lmer()/glmer(). 
+#' Currently only normal and Poisson models (family=poisson) are supported.
 #'
 #' @name LM
 #' @author Ken Kellner
@@ -36,12 +36,14 @@ NULL
 
 #' @export
 LM <- list(process = function(code, modelInfo, .env){
-  
+  # This function doesn't (can't?) use the nimble macro creator
+  # because it may not be an assignment
+  # Break code into LHS and RHS
   if(isAssignment(code)){
     RHS <- getRHS(code)
     LHS <- getLHS(code)
   } else {
-    LHS <- code[[2]][[2]]
+    LHS <- code[[2]][[2]] # LHS is the response variable in the formula
     code[[2]][[2]] <- NULL
     #code[[1]] <- NULL
     RHS <- code
@@ -55,7 +57,10 @@ LM <- list(process = function(code, modelInfo, .env){
     LHS <- substitute(LHS[IDX], list(LHS=LHS, IDX=idx))
   }
 
+  # RHS formula
   form <- RHS[[2]]
+  
+  # Get family
   family <- if(is.null(RHS$family)) quote(gaussian) else RHS$family
   family <- processFamily(family)
   link <- if(family$link == "identity") NULL else as.name(family$link)
@@ -63,7 +68,6 @@ LM <- list(process = function(code, modelInfo, .env){
   priorSettings <- if(is.null(RHS$priorSettings)) quote(setPriors()) else RHS$priorSettings
   coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta_) else RHS$coefPrefix
   sdPrefix <- RHS$sdPrefix
-
   if(is.null(sdPrefix)){
     sd_res <- quote(sd_residual)
   } else {
