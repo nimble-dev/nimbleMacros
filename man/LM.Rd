@@ -23,9 +23,9 @@ default is no prefix.}
 setPriors()}
 }
 \description{
-This macro supports formula notation and arguments similar to R functions
-such as lm(), glm(), and lmer()/glmer(). Currently only normal and Poisson
-models are supported.
+This macro generates code for LMs, GLMs, and GLMMs using formula notation 
+and arguments similar to R functions such as lm(), glm(), and lmer()/glmer(). 
+Currently only normal and Poisson models (family=poisson) are supported.
 }
 \examples{
 constants <- list(y = rnorm(10),

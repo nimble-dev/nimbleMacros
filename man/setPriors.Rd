@@ -41,6 +41,17 @@ as a list of prior components. For example, to specify the prior
 \code{dnorm(0, sd = 10)} you could specify \code{quote(dnorm(0, sd = 10))},
 or \code{"dnorm(0, sd = 10)"}, or \code{list("dnorm", 0, sd = 10)}.
 }
+\examples{
+# Set a prior for intercept terms using quoted code
+setPriors(intercept = quote(dunif(-5,5)))
+# Instead using a character string
+setPriors(intercept = "dunif(-5,5)")
+# Set prior for slopes associated with factor covariates
+setPriors(factor = quote(dnorm(0, sd = 2.5)))
+# Set prior for a specific coefficient
+setPriors('alpha[1]' = "dnorm(0, 3)")
+
+}
 \author{
 Ken Kellner
 }

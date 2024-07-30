@@ -46,6 +46,11 @@ test_that("setPriors",{
          sd=quote(dnorm(0, sd = 3)))
   )
 
+  # Prior not quoted should error
+  expect_error(expect_warning(
+    setPriors(intercept = dunif(0, 1))
+  ))
+
 })
 
 test_that("convertListToPrior", {
