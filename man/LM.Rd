@@ -25,7 +25,7 @@ setPriors()}
 \description{
 This macro generates code for LMs, GLMs, and GLMMs using formula notation 
 and arguments similar to R functions such as lm(), glm(), and lmer()/glmer(). 
-Currently only normal and Poisson models (family=poisson) are supported.
+Currently only normal, Poisson, and binomial models are supported.
 }
 \examples{
 constants <- list(y = rnorm(10),
