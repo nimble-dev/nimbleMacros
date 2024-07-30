@@ -2,7 +2,7 @@
 #'
 #' This macro generates code for LMs, GLMs, and GLMMs using formula notation 
 #' and arguments similar to R functions such as lm(), glm(), and lmer()/glmer(). 
-#' Currently only normal and Poisson models (family=poisson) are supported.
+#' Currently only normal, Poisson, and binomial models are supported.
 #'
 #' @name LM
 #' @author Ken Kellner
@@ -49,6 +49,22 @@ LM <- list(process = function(code, modelInfo, .env){
     RHS <- code
   }
   
+  # Get family
+  family <- if(is.null(RHS$family)) quote(gaussian) else RHS$family
+  family <- processFamily(family)
+  link <- if(family$link == "identity") NULL else as.name(family$link)
+
+  # Create binomial sample size
+  bin_agg <- FALSE
+  if(family$family == "binomial"){
+    if(!is.name(LHS) && LHS[[1]] == quote(cbind)){
+      bin_agg <- TRUE
+      modelInfo$constants$binSize <- eval(as.call(list(as.name("+"), LHS[[2]], LHS[[3]])), 
+                                       envir=modelInfo$constants)
+      LHS <- LHS[[2]]
+    }
+  }
+  
   # Guess LHS bracket index if it's missing
   if(hasBracket(LHS)){
     idx <- extractIndices(LHS)[[1]]
@@ -56,25 +72,27 @@ LM <- list(process = function(code, modelInfo, .env){
     idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[safeDeparse(LHS)]]))))
     LHS <- substitute(LHS[IDX], list(LHS=LHS, IDX=idx))
   }
+  
+  par2 <- 1
+  if(bin_agg){
+    par2 <- substitute(binSize[IDX], list(IDX=idx))
+  }
 
   # RHS formula
   form <- RHS[[2]]
-  
-  # Get family
-  family <- if(is.null(RHS$family)) quote(gaussian) else RHS$family
-  family <- processFamily(family)
-  link <- if(family$link == "identity") NULL else as.name(family$link)
-  
+
   priorSettings <- if(is.null(RHS$priorSettings)) quote(setPriors()) else RHS$priorSettings
   coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta_) else RHS$coefPrefix
   sdPrefix <- RHS$sdPrefix
-  if(is.null(sdPrefix)){
-    sd_res <- quote(sd_residual)
-  } else {
-    sd_res <- str2lang(paste0(safeDeparse(sdPrefix),"sd_residual"))
+  if(family$family == "gaussian"){
+    if(is.null(sdPrefix)){
+      par2 <- quote(sd_residual)
+    } else {
+      par2 <- str2lang(paste0(safeDeparse(sdPrefix),"sd_residual"))
+    }
   }
   
-  dataDec <- getDataDistCode(family$family, LHS, idx, sd_res)
+  dataDec <- getDataDistCode(family$family, LHS, idx, par2)
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- LINPRED(FORM, link=LINK, coefPrefix=COEFPREFIX,
                                        sdPrefix=SDPREFIX, priorSettings=PRIORS),
@@ -85,9 +103,9 @@ LM <- list(process = function(code, modelInfo, .env){
 
   if (family$family == "gaussian"){
     priorSettings <- eval(priorSettings, envir=.env)
-    sdPrior <- matchPrior(sd_res, "sd", priorSettings = priorSettings) 
-    sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=sd_res))
-    pars_added <- c(pars_added, list(sd_res))
+    sdPrior <- matchPrior(par2, "sd", priorSettings = priorSettings) 
+    sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=par2))
+    pars_added <- c(pars_added, list(par2))
     out <- c(out, list(sigprior))
   }
 
@@ -109,7 +127,7 @@ processFamily <- function(fam){
   if(is.null(fam$family)){
     stop("'family' not recognized")
   }
-  stopifnot(fam$link %in% c("log", "identity"))
+  stopifnot(fam$link %in% c("log", "identity","logit","probit","cloglog"))
   fam
 }
 
@@ -122,6 +140,10 @@ getDataDistCode <- function(family, response, idx, dispParName){
   } else if(family == "poisson"){
     out <- substitute(DAT ~ FORLOOP(DIST(mu_[IDX])),
                       list(DAT=response, DIST=quote(dpois), IDX=idx))
+  } else if(family == "binomial"){
+    # support other sizes
+    out <- substitute(DAT ~ FORLOOP(DIST(mu_[IDX], size=N)),
+                      list(DAT=response, DIST=quote(dbinom), N=dispParName, IDX=idx))
   }
   out
 }

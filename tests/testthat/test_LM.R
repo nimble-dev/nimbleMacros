@@ -34,9 +34,37 @@ test_that("LM", {
 
   expect_equal(out$modelInfo$constants, dat)
   
-  # binomial not supported yet
-  code3 <- quote(LM(y ~ x + x2, family=binomial))
-  expect_error(LM$process(code3, dat))
+  # Binomial example (aggregated)
+  constants <- list(y=c(1,2,3), ny = c(0,1,3), x=rnorm(3))
+  modelInfo <- list(constants=constants)
+  code3 <- quote(LM(cbind(y, ny) ~ x, family=binomial))
+  out3 <- LM$process(code3, modelInfo)
+  expect_equal(
+    out3$code,
+    quote({
+      y[1:3] ~ FORLOOP(dbinom(mu_[1:3], size = binSize[1:3]))
+      mu_[1:3] <- LINPRED(~x, link = logit, coefPrefix = beta_,
+          sdPrefix = NULL, priorSettings = setPriors())
+    })
+  )
+  
+  # Make sure sample size was calculated and added
+  expect_equal(out3$modelInfo$constants$binSize,
+               out3$modelInfo$constants$y + out3$modelInfo$constants$ny)
+
+  # Binomial example (binary)
+  modelInfo$constants <- list(y=c(0,1,0), x=rnorm(3))
+  code4 <- quote(LM(y ~ x, family=binomial))
+  out4 <- LM$process(code4, modelInfo)
+  expect_equal(
+    out4$code,
+    quote({
+      y[1:3] ~ FORLOOP(dbinom(mu_[1:3], size = 1))
+      mu_[1:3] <- LINPRED(~x, link = logit, coefPrefix = beta_,
+          sdPrefix = NULL, priorSettings = setPriors())
+    })
+  )
+  expect_true(is.null(out4$modelInfo$constants$binSize))
 })
 
 test_that("processFamily", {
@@ -56,7 +84,6 @@ test_that("processFamily", {
     processFamily(quote(gaussian))$link,
     "identity"
   )
-  expect_error(processFamily(quote(binomial)))
 })
 
 test_that("getDataDistCode", {
