@@ -1,0 +1,212 @@
+---
+title: Overview of nimbleMacros
+author: Ken Kellner
+output:
+  markdown::html_format
+vignette: >
+  %\VignetteIndexEntry{Overview of nimbleMacros}
+  %\VignetteEngine{knitr::knitr}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+suppressMessages(library(nimbleMacros))
+```
+
+```{r, eval=FALSE}
+library(nimbleMacros)
+```
+
+```{r, eval = FALSE}
+nimbleOptions(enableModelMacros = TRUE)
+```
+
+# `FORLOOP`
+
+```{r}
+constants <- list(x = rnorm(5), N = 5)
+
+code <- nimbleCode({
+  mu[1:N] <- FORLOOP(alpha + beta * x[1:N])
+})
+```
+
+```{r}
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+```{r}
+constants <- list(x = matrix(rnorm(10), 5, 2), N = 5, J = 2)
+
+code <- nimbleCode({
+  mu[1:N, 1:J] <- FORLOOP(alpha + beta * x[1:N, 1:J])
+})
+
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+# `LINPRED`
+
+```{r}
+head(ChickWeight)
+```
+
+## Generate a linear predictor from a formula
+
+```{r}
+constants <- c(ChickWeight, N=nrow(ChickWeight))
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time, priorSettings=NULL)
+})
+```
+
+```{r}
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+## Suppress the macro comments
+
+```{r}
+nimbleOptions(enableMacroComments = FALSE)
+```
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time, priorSettings = NULL)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+## Add a link function
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time, priorSettings = NULL, link = log)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+## Get default priors
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+# `PRIORS`
+
+```{r}
+code <- nimbleCode({
+ PRIORS(~Time)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+```{r}
+pr <- setPriors(intercept = quote(dnorm(-5, 5)),
+                coefficient = quote(dnorm(0, sd = 5)))
+
+code <- nimbleCode({
+ PRIORS(~Time, priorSettings = pr)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+# Random effects
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + (1|Chick))
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + (Time|Chick))
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + (Time||Chick))
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+# Include macros in a complete model
+
+A complete linear regression modeling chick weight as a function of time:
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time)
+
+  weight[1:N] ~ FORLOOP(dnorm(mu[1:N], sd = sigma))
+  sigma ~ dunif(0, 100)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+# `LM`: A macro for complete linear models
+
+## Example logistic regression with `mtcars`
+
+```{r}
+rmod <- glm(am ~ scale(mpg), data = mtcars, family=binomial)
+summary(rmod)
+```
+
+```{r}
+pr <- setPriors(intercept=quote(dunif(-10,10)), 
+                coefficient = quote(dnorm(0, 0.1)))
+
+code <- nimbleCode({
+  LM(am ~ mpg, family = binomial, priorSettings=pr)
+})
+const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
+
+mod <- nimbleMCMC(code, constants=const, nchain=3, niter=3000, nburnin=2000)
+post <- do.call(rbind, mod)
+(nimble_est <- apply(do.call(rbind, mod), 2, median))
+coef(rmod)
+```
+
+## Example linear mixed model using `ChickWeights`
+
+```{r}
+library(lme4)
+rmod <- lmer(weight ~ Time + (1|Chick), data=ChickWeight)
+summary(rmod)
+```
+
+```{r}
+code <- nimbleCode({
+  LM(weight ~ Time + (1|Chick))
+})
+
+mod <- nimbleMCMC(code, constants=ChickWeight, nchain=3, niter=3000, nburnin=2000)
+
+(nimble_est <- apply(do.call(rbind, mod), 2, median))
+```
+
+```{r}
+fixef(rmod)
+sigma(rmod)
+```
