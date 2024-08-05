@@ -14,28 +14,132 @@ knitr::opts_chunk$set(message = FALSE)
 suppressMessages(library(nimbleMacros))
 ```
 
+# Introduction
+
+The `nimbleMacros` package has two goals:
+
+1. Demonstrate the use of macros in [NIMBLE]() models; and
+2. Provide a set of macros for linear modeling that may be used by both end users and R package developers.
+
+We intend the macros in this package to be widely useful, but also just a starting point and example for NIMBLE users to write their own macros.
+To begin, load the `nimbleMacros` package, which will also load the `nimble` package:
+
 ```{r, eval=FALSE}
 library(nimbleMacros)
 ```
+
+Currently, macro functionality is disabled by default in `nimble`.
+Loading `nimbleMacros` will activate it automatically, but to do so yourself, you can also set the option manually:
 
 ```{r, eval = FALSE}
 nimbleOptions(enableModelMacros = TRUE)
 ```
 
-# `FORLOOP`
+# Basic Macro Functionality
+
+A macro is a (typically concise) piece of code in a model, usually a function, which NIMBLE expands into a larger amount of proper BUGS code.
+Here's a small example.
+Suppose you wanted to create a macro called `MYDIST`, which creates a normal distribution with mean 0 and provided standard deviation.
+So the original macro would look like this in the model code:
+
+```{r, eval=FALSE}
+y ~ MYDIST(2)
+```
+
+and we want the output to look like:
+
+```{r, eval=FALSE}
+y ~ dnorm(0, sd = 2)
+```
+
+To create the macro `MYDIST`, we can use the `nimble::model_macro_builder` function.
+Note that by convention, we define the macro name in all capital letters.
+All the provided macros in `nimbleMacros` will follow this convention.
 
 ```{r}
-constants <- list(x = rnorm(5), N = 5)
+MYDIST <- nimble::model_macro_builder(
+  function(stoch, LHS, sdev, modelInfo, .env){
 
+    code <- substitute(LHS ~ dnorm(0, sd = SDEV),
+                       list(LHS = LHS, STOCH = stoch, SDEV = sdev))
+
+    list(code = code, modelInfo = modelInfo)
+  },
+  use3pieces = TRUE, unpackArgs = TRUE
+)
+```
+
+The first argument of `model_macro_builder` is itself a function, which processes information in the line of code containing the macro to generate the output code.
+The `model_macro_builder` function expects this function to have certain arguments, to which it will pass certain information.
+
+1. `stoch`, logical, indicating if the declaration is stochastic (`~`) or deterministic (`<-`).
+2. `LHS`, an argument which will contain the left-hand side of the declaration
+3. Any arguments used by the macro; in this case we only have one, the standard deviation, which we call `sdev`.
+4. `modelInfo`, a list containing the constants and dimensions. This can be modified by the macro e.g. to add a new required constant.
+5. `.env`, the environment in which to run the macro.
+
+The output of the function should be a list with two elements:
+
+1. `code`, which contains the new, processed code. This code may contain macros itself, as macro processing happens recursively.
+2. `modelInfo`, the list of constants and dimensions, which may be modified by the macro.
+
+For more information on how to use `model_macro_builder` and other options, see `?nimble::model_macro_builder` and the NIMBLE manual.
+The result is an object of class `model_macro`:
+
+```{r}
+class(MYDIST)
+```
+
+We can now insert the macro into our NIMBLE code.
+
+```{r}
+code <- nimbleCode({
+  y ~ MYDIST(2)
+})
+```
+
+When we run `nimbleModel`, the macro is expanded according to the function we created earlier to generate the final valid BUGS code.
+
+```{r}
+mod <- nimbleModel(code = code, data = list(y = 1))
+mod$getCode()
+```
+
+Notice by default, we get some comments in the output code telling us which macro generated the code chunk.
+In the following sections, we describe the individual macros available in `nimbleMacros`.
+
+# `FORLOOP`
+
+The `FORLOOP` macro is a shorthand way of creating `for` loops (possibly nested) from a single line of code.
+For example, suppose you want to calculate a linear predictor `mu` from `N` values of a covariate `x`.
+The BUGS code would be:
+
+```{r, eval=FALSE}
+nimbleCode({
+  for (i in 1:N){
+    mu[i] <- alpha + beta * x[i]
+  }
+})
+```
+
+The `FORLOOP` macro condenses this information into a single line using index information inside parameter brackets:
+
+```{r}
 code <- nimbleCode({
   mu[1:N] <- FORLOOP(alpha + beta * x[1:N])
 })
 ```
 
+Here's the result after expansion, after creating some example values for the constants.
+
 ```{r}
+constants <- list(x = rnorm(5), N = 5)
 mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
+
+It may seem a bit trivial to make a macro for such a simple chunk of code.
+However it can be nice to use this when you have nested for loops, which are a bit more complicated.
 
 ```{r}
 constants <- list(x = matrix(rnorm(10), 5, 2), N = 5, J = 2)
@@ -44,6 +148,31 @@ code <- nimbleCode({
   mu[1:N, 1:J] <- FORLOOP(alpha + beta * x[1:N, 1:J])
 })
 
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+Note that one place you can't use this macro directly are situations when you use the same index in multiple nested loops.
+For example, suppose the parameter `mu` shown above was a square matrix.
+
+```{r, error = TRUE}
+constants <- list(x = matrix(rnorm(25), 5, 5), N = 5)
+
+code <- nimbleCode({
+  mu[1:N, 1:N] <- FORLOOP(alpha + beta * x[1:N, 1:N])
+})
+mod <- nimbleModel(code, constants)
+```
+
+The structure of this `for` loop with duplicated indices could be ambiguous in more complex situations, so `FORLOOP` errors.
+The solution in this case would simply be to provide different variables for each dimension, even if they are the same value.
+
+```{r}
+constants <- list(x = matrix(rnorm(25), 5, 5), N = 5, K = 5)
+
+code <- nimbleCode({
+  mu[1:N, 1:K] <- FORLOOP(alpha + beta * x[1:N, 1:K])
+})
 mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
