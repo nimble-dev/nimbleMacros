@@ -1,6 +1,6 @@
 Package: nimbleMacros
-Version: 0.0.8
-Date: 2024-07-30
+Version: 0.0.9
+Date: 2024-08-06
 Title: Macros for 'nimble' Code
 Authors@R: person("Ken", "Kellner", email="contact@kenkellner.com", 
                   role=c("cre","aut"))
