@@ -179,11 +179,30 @@ mod$getCode()
 
 # `LINPRED`
 
+As the name suggests, the `LINPRED` macro generates a linear predictor from a provided R formula.
+In this way it acts something like the `model.matrix` function in R, although instead of creating a matrix, it creates the BUGS code for the linear predictor.
+The macro supports random effects using the same syntax as the `lme4` package.
+
+To demonstrate the macro, we'll use the built-in `ChickWeight` dataset.
+In this dataset there are repeated weight measurements (`weight`) of chicks (`Chick`) over time (`Time`).
+
 ```{r}
 head(ChickWeight)
 ```
 
 ## Generate a linear predictor from a formula
+
+To create a linear predictor with time as a covariate in R, we would specify the formula as `~Time`.
+
+```{r}
+head(model.matrix(~Time, ChickWeight))
+```
+
+Based on the model matrix, the formula implies two parameters: the intercept and the coefficient/slope for time.
+
+In NIMBLE, we combine the `ChickWeight` dataset with the sample size to create a list of constants.
+In the code, we specify the parameter name for the linear predictor (`mu`) and calculate it with the `LINPRED` macro and the same formula.
+Here we also set an argument `priorSettings = NULL`; we'll come back to this later.
 
 ```{r}
 constants <- c(ChickWeight, N=nrow(ChickWeight))
@@ -192,26 +211,47 @@ code <- nimbleCode({
 })
 ```
 
+Next create the model object and view the code.
+
 ```{r}
 mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
 
-## Suppress the macro comments
+NIMBLE expands the `LINPRED` macro into a `for` loop calculating a value of `mu` for each sample in the dataset,
+where `mu` is a function of time.
+Notice two parameters were created: `beta_Intercept` (the intercept) and `beta_Time`, the coefficient associated with time.
+
+## Factor/categorical covariates
+
+The `LINPRED` macro can automatically handle categorical covariates (what R calls factors).
+For example, suppose we included a covariate for diet type (`Diet`) in the model. 
+The `Diet` covariate is already coded as an R factor:
 
 ```{r}
-nimbleOptions(enableMacroComments = FALSE)
+class(ChickWeight$Diet)
+levels(ChickWeight$Diet)
 ```
 
 ```{r}
+constants <- c(ChickWeight, N=nrow(ChickWeight))
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSettings = NULL)
+  mu[1:N] <- LINPRED(~Time + Diet, priorSettings=NULL)
 })
 mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
 
+A new vector parameter `beta_Diet` is created with four elements, one per level of `Diet`.
+The actual parameter `Diet` is then converted to numeric and used as the index for this vector parameter.
+It isn't obvious from this code, but the first element of `beta_Diet` will be fixed at 0 (serving as the reference level).
+We'll show this below.
+
+
 ## Add a link function
+
+We could also add a link function to the left-hand-side of the linear predictor calculation.
+Suppose we wanted to force `mu` to be positive; we could use a log link function, specifying this with the `link` argument.
 
 ```{r}
 code <- nimbleCode({
@@ -223,6 +263,27 @@ mod$getCode()
 
 ## Get default priors
 
+If we do not manually set the `priorSettings` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
+Internally, `LINPRED` is calling the `PRIORS` macro (described below).
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + Diet)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+The code for handling the `Diet` categorical covariate is a little complicated, because by default `LINPRED` is translating between the default NIMBLE approach of a parameter vector with the approach of `model.matrix` in R where multiple named dummy covariates are created instead.
+
+## Suppress the macro comments
+
+We can also suppress the added macro comments to make things a little more concise.
+
+```{r}
+nimbleOptions(enableMacroComments = FALSE)
+```
+
 ```{r}
 code <- nimbleCode({
   mu[1:N] <- LINPRED(~Time)
@@ -233,6 +294,9 @@ mod$getCode()
 
 # `PRIORS`
 
+This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
+The formula `~Time` implies two parameters as we described above, and `PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
+
 ```{r}
 code <- nimbleCode({
  PRIORS(~Time)
@@ -240,6 +304,9 @@ code <- nimbleCode({
 mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
+
+We can also manually set the values for different types of priors such as intercepts and coefficients (slopes).
+See `?setPriors` for more details.
 
 ```{r}
 pr <- setPriors(intercept = quote(dnorm(-5, 5)),
@@ -254,6 +321,9 @@ mod$getCode()
 
 # Random effects
 
+The `LINPRED` macro supports random effects using `lme4` syntax.
+For example, a random intercept by `Chick`:
+
 ```{r}
 code <- nimbleCode({
   mu[1:N] <- LINPRED(~Time + (1|Chick))
@@ -262,6 +332,9 @@ mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
 
+Note that by default, all random effects are mean 0, the same approach used by `lme4`.
+We can also get both random intercepts and (time) slopes by `Chick`; by default these are correlated.
+
 ```{r}
 code <- nimbleCode({
   mu[1:N] <- LINPRED(~Time + (Time|Chick))
@@ -269,6 +342,8 @@ code <- nimbleCode({
 mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
+
+As with `lme4` we can also specify uncorrelated random slopes and intercepts using `||` instead of `|`.
 
 ```{r}
 code <- nimbleCode({
@@ -280,7 +355,8 @@ mod$getCode()
 
 # Include macros in a complete model
 
-A complete linear regression modeling chick weight as a function of time:
+Up to this point we've generated just the code needed to calculate the linear predictor.
+Here's a complete linear regression model of chick weight as a function of time making use of `LINPRED`:
 
 ```{r}
 code <- nimbleCode({
@@ -295,12 +371,19 @@ mod$getCode()
 
 # `LM`: A macro for complete linear models
 
+Instead of doing the above, we could also use the `LM` macro which can generate complete BUGS code for a variety of linear, generalized linear, and generalized linear mixed models.
+It uses very similar syntax to R functions like `lm`, `glm`, `lme4::lmer`, and `lme4::glmer`.
+
 ## Example logistic regression with `mtcars`
+
+Here's a logistic regression in R using the `mtcars` dataset:
 
 ```{r}
 rmod <- glm(am ~ scale(mpg), data = mtcars, family=binomial)
 summary(rmod)
 ```
+
+And the equivalent code using the `LM` macro:
 
 ```{r}
 pr <- setPriors(intercept=quote(dunif(-10,10)), 
@@ -309,15 +392,20 @@ pr <- setPriors(intercept=quote(dunif(-10,10)),
 code <- nimbleCode({
   LM(am ~ mpg, family = binomial, priorSettings=pr)
 })
-const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
+```
 
+In this case we'll actually fit the model.
+
+```{r}
+const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
 mod <- nimbleMCMC(code, constants=const, nchain=3, niter=3000, nburnin=2000)
 post <- do.call(rbind, mod)
 (nimble_est <- apply(do.call(rbind, mod), 2, median))
-coef(rmod)
 ```
 
 ## Example linear mixed model using `ChickWeights`
+
+Here's another example fitting the linear mixed model of chick weights described above, first in R and then with `LM` and NIMBLE.
 
 ```{r}
 library(lme4)
@@ -331,11 +419,5 @@ code <- nimbleCode({
 })
 
 mod <- nimbleMCMC(code, constants=ChickWeight, nchain=3, niter=3000, nburnin=2000)
-
 (nimble_est <- apply(do.call(rbind, mod), 2, median))
-```
-
-```{r}
-fixef(rmod)
-sigma(rmod)
 ```
