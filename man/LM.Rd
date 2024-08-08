@@ -11,7 +11,8 @@ random effects via lme4-style notation (e.g. ~ x + (1|group))}
 
 \item{family}{A description of the error distribution and link function to
 be used in the model. This can be a character string naming a family function, 
-a family function or the result of a call to a family function. See ?family}
+a family function or the result of a call to a family function. See ?family.
+Supported families are gaussian (default), binomial, and poisson.}
 
 \item{coefPrefix}{All model coefficient names will begin with this prefix.
 default is beta_ (so x becomes beta_x, etc.)}

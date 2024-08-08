@@ -13,7 +13,8 @@
 #'  random effects via lme4-style notation (e.g. ~ x + (1|group))
 #' @param family A description of the error distribution and link function to
 #'  be used in the model. This can be a character string naming a family function, 
-#'  a family function or the result of a call to a family function. See ?family 
+#'  a family function or the result of a call to a family function. See ?family.
+#'  Supported families are gaussian (default), binomial, and poisson.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
@@ -144,6 +145,8 @@ getDataDistCode <- function(family, response, idx, dispParName){
     # support other sizes
     out <- substitute(DAT ~ FORLOOP(DIST(mu_[IDX], size=N)),
                       list(DAT=response, DIST=quote(dbinom), N=dispParName, IDX=idx))
+  } else {
+    stop("Family not supported", call.=FALSE)
   }
   out
 }

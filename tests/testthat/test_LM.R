@@ -98,4 +98,8 @@ test_that("getDataDistCode", {
     quote(y ~ FORLOOP(dpois(mu_[1:n])))
   )
 
+  expect_error(
+    getDataDistCode("Gamma", quote(y), quote(1:n))
+  )
+
 })
