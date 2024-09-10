@@ -424,7 +424,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Add code for priors to output if needed
     if(!is.null(priorSettings)){
       priorCode <- substitute(nimbleMacros::PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSettings=PRIORSET, modMatNames=TRUE,
+                                     priorSettings=PRIORSET, modMatNames=FALSE,
                                      noncenter = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
                                    PRIORSET=priorSettings, UNCENTER = noncenter, CENTERVAR=centerVar))
