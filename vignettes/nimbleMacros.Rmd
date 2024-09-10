@@ -18,99 +18,337 @@ suppressMessages(library(nimbleMacros))
 
 The `nimbleMacros` package has two goals:
 
-1. Demonstrate the use of macros in [NIMBLE]() models; and
-2. Provide a set of macros for linear modeling that may be used by both end users and R package developers.
+1. Provide a set of macros for linear modeling that may be used by both end users and R package developers.
+2. Demonstrate the use of macros in [NIMBLE](https://r-nimble.org/) models; and
 
 We intend the macros in this package to be widely useful, but also just a starting point and example for NIMBLE users to write their own macros.
-To begin, load the `nimbleMacros` package, which will also load the `nimble` package:
+To begin, load the `nimbleMacros` package, which will also load the `NIMBLE` package:
 
 ```{r, eval=FALSE}
 library(nimbleMacros)
 ```
 
-Currently, macro functionality is disabled by default in `nimble`.
+Currently, macro functionality is disabled by default in `NIMBLE`.
 Loading `nimbleMacros` will activate it automatically, but to do so yourself, you can also set the option manually:
 
 ```{r, eval = FALSE}
 nimbleOptions(enableModelMacros = TRUE)
 ```
 
-# Basic Macro Functionality
+We'll begin by showing off the macros available in the package, and then discuss building your own macros at the end.
 
-A macro is a (typically concise) piece of code in a model, usually a function, which NIMBLE expands into a larger amount of proper BUGS code.
-Here's a small example.
-Suppose you wanted to create a macro called `MYDIST`, which creates a normal distribution with mean 0 and provided standard deviation.
-So the original macro would look like this in the model code:
+# `LM`: A macro for complete linear models
 
-```{r, eval=FALSE}
-y ~ MYDIST(2)
-```
+The `LM` macro generates complete BUGS code for a variety of linear, generalized linear, and generalized linear mixed models.
+It uses very similar syntax to R functions like `lm`, `glm`, `lme4::lmer`, and `lme4::glmer`.
 
-and we want the output to look like:
+## Example logistic regression with `mtcars`
 
-```{r, eval=FALSE}
-y ~ dnorm(0, sd = 2)
-```
-
-To create the macro `MYDIST`, we can use the `nimble::model_macro_builder` function.
-Note that by convention, we define the macro name in all capital letters.
-All the provided macros in `nimbleMacros` will follow this convention.
+Here's a logistic regression in R using the built-in `mtcars` dataset.
+We'll model transmission type (`am`, where `am = 1` is manual transmission) as a function of standardized miles per gallon.
 
 ```{r}
-MYDIST <- nimble::model_macro_builder(
-  function(stoch, LHS, sdev, modelInfo, .env){
-
-    code <- substitute(LHS ~ dnorm(0, sd = SDEV),
-                       list(LHS = LHS, STOCH = stoch, SDEV = sdev))
-
-    list(code = code, modelInfo = modelInfo)
-  },
-  use3pieces = TRUE, unpackArgs = TRUE
-)
+rmod <- glm(am ~ scale(mpg), data = mtcars, family=binomial)
+summary(rmod)
 ```
 
-The first argument of `model_macro_builder` is itself a function, which processes information in the line of code containing the macro to generate the output code.
-The `model_macro_builder` function expects this function to have certain arguments, to which it will pass certain information.
-
-1. `stoch`, logical, indicating if the declaration is stochastic (`~`) or deterministic (`<-`).
-2. `LHS`, an argument which will contain the left-hand side of the declaration
-3. Any arguments used by the macro; in this case we only have one, the standard deviation, which we call `sdev`.
-4. `modelInfo`, a list containing the constants and dimensions. This can be modified by the macro e.g. to add a new required constant.
-5. `.env`, the environment in which to run the macro.
-
-The output of the function should be a list with two elements:
-
-1. `code`, which contains the new, processed code. This code may contain macros itself, as macro processing happens recursively.
-2. `modelInfo`, the list of constants and dimensions, which may be modified by the macro.
-
-For more information on how to use `model_macro_builder` and other options, see `?nimble::model_macro_builder` and the NIMBLE manual.
-The result is an object of class `model_macro`:
+To fit this model with the `LM` macro, we'll start by organizing the data and constants into a list.
 
 ```{r}
-class(MYDIST)
+const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
 ```
 
-We can now insert the macro into our NIMBLE code.
+Next we'll specify the prior distributions we want to use for the intercept and the slope coefficient(s).
+This is done using the `setPriors` function.
+We'll specify a uniform(-10, 10) distribution for the intercept and a normal distribution with mean 0 and precision 0.1 for the slope coefficient.
+Note that these distribution definitions are wrapped in `quote`; you can also supply them as strings.
+
+```{r}
+pr <- setPriors(intercept=quote(dunif(-10,10)), 
+                coefficient = quote(dnorm(0, 0.1)))
+```
+
+Finally, we specify the NIMBLE code, which is a single call to the `LM` macro that should look familiar to our call to `glm` above.
+Note that we don't include a call to `scale` in the formula (`LM` does not support this).
+Instead we standardized the `mpg` values when we put them into our list `const`.
 
 ```{r}
 code <- nimbleCode({
-  y ~ MYDIST(2)
+  LM(am ~ mpg, family = binomial, priorSettings=pr)
 })
 ```
 
-When we run `nimbleModel`, the macro is expanded according to the function we created earlier to generate the final valid BUGS code.
+Finally, we'll fit the model which yields similar results to `glm`.
 
 ```{r}
-mod <- nimbleModel(code = code, data = list(y = 1))
+
+mod <- nimbleMCMC(code, constants=const, nchain=3, niter=3000, nburnin=2000)
+post <- do.call(rbind, mod)
+(nimble_est <- apply(do.call(rbind, mod), 2, median))
+```
+
+## Example linear mixed model using `ChickWeights`
+
+The `LM` macro can also generate code for random effects models.
+To illustrate this we will use the built-in `ChickWeight` dataset which contains repeated measurements of chick weights over time.
+First, fit the model in R using the `lme4` package:
+
+```{r}
+library(lme4)
+rmod <- lmer(weight ~ Time + (1|Chick), data=ChickWeight)
+summary(rmod)
+```
+
+To fit this model with `LM`, we'll first organize the `ChickWeight` data into a list of constants and data for NIMBLE.
+
+```{r}
+chick_const <- list(weight = ChickWeight$weight, Time = ChickWeight$Time, Chick = ChickWeight$Chick)
+```
+
+We can fit this model with `LM` using the same formula notation as `lme4` with the `(1|Chick)` part of the formula indicating random intercepts by chick.
+
+```{r}
+code <- nimbleCode({
+  LM(weight ~ Time + (1|Chick))
+})
+```
+
+Fit the model:
+
+```{r}
+mod <- nimbleMCMC(code, constants=chick_const, nchain=3, niter=3000, nburnin=2000)
+(nimble_est <- apply(do.call(rbind, mod), 2, median))
+```
+
+# `LINPRED`
+
+As the name suggests, the `LINPRED` macro generates a linear predictor from a provided R formula.
+It is used internally by the `LM` macro and can be used separately as well.
+The macro acts something like the `model.matrix` function in R, although instead of creating a model matrix, it creates the BUGS code for the linear predictor.
+The macro supports random effects using the same syntax as the `lme4` package.
+
+To demonstrate the macro, we'll use the built-in `ChickWeight` dataset again.
+In this dataset there are repeated weight measurements (`weight`) of chicks (`Chick`) over time (`Time`).
+
+```{r}
+head(ChickWeight)
+```
+
+## Generate a linear predictor from a formula
+
+To create a linear predictor with time as a covariate in R, we would specify the formula as `~Time`.
+
+```{r}
+head(model.matrix(~Time, ChickWeight))
+```
+
+Based on the model matrix, the formula implies two parameters: the intercept and the coefficient/slope for time.
+
+To generate the linear predictor BUGS code, we start by setting up the constants/data list.
+We'll use the `chick_const` list we used with `LM`, and add the sample size `N`.
+
+```{r}
+chick_const$N <- nrow(ChickWeight)
+```
+
+In the model code, we specify the parameter name for the linear predictor (`mu`) and calculate it with the `LINPRED` macro and the same formula as above.
+Here we also set an argument `priorSettings = NULL`; we'll come back to this later.
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time, priorSettings=NULL)
+})
+```
+
+Next create the model object and view the code.
+
+```{r}
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
-Notice by default, we get some comments in the output code telling us which macro generated the code chunk.
-In the following sections, we describe the individual macros available in `nimbleMacros`.
+NIMBLE expands the `LINPRED` macro into a `for` loop calculating a value of `mu` for each sample in the dataset,
+where `mu` is a function of time.
+Notice two parameters were created: `beta_Intercept` (the intercept) and `beta_Time`, the coefficient associated with time.
+
+We can get a list of the parameters created by macros in the model using the `getMacroParameters()` function:
+
+```{r}
+mod$getMacroParameters()
+```
+
+## Factor/categorical covariates
+
+The `LINPRED` macro can automatically handle categorical covariates (what R calls factors).
+For example, suppose we included a covariate for diet type (`Diet`) in the model. 
+The `Diet` covariate is already coded as an R factor:
+
+```{r}
+class(ChickWeight$Diet)
+levels(ChickWeight$Diet)
+```
+
+```{r}
+constants <- c(ChickWeight, N=nrow(ChickWeight))
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + Diet, priorSettings=NULL)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+A new vector parameter `beta_Diet` is created with four elements, one per level of `Diet`.
+The actual parameter `Diet` is then converted to numeric and used as the index for this vector parameter.
+It isn't obvious from this code, but the first element of `beta_Diet` will be fixed at 0 (serving as the reference level).
+We'll show this below.
+
+
+## Add a link function
+
+We could also add a link function to the left-hand-side of the linear predictor calculation.
+Suppose we wanted to force `mu` to be positive; we could use a log link function, specifying this with the `link` argument.
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time, priorSettings = NULL, link = log)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+## Get default priors
+
+If we do not manually set the `priorSettings` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
+Internally, `LINPRED` is calling the `PRIORS` macro (described below).
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + Diet)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+We now have priors for each parameter.
+Note that as mentioned previously, the first value of the `beta_Diet` vector is fixed at 0, serving as the reference level.
+
+## Suppress the macro comments
+
+We can also suppress the added macro comments to make things a little more concise.
+
+```{r}
+nimbleOptions(enableMacroComments = FALSE)
+```
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+## Random effects
+
+The `LINPRED` macro supports random effects using `lme4` syntax.
+For example, a random intercept by `Chick`:
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + (1|Chick))
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+Note that by default, all random effects are mean 0, the same approach used by `lme4`.
+We can also get both random intercepts and (time) slopes by `Chick`; by default these are correlated.
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + (Time|Chick))
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+The correlated random effects model here uses an LKJ distribution prior; read more about this prior [here](https://r-nimble.org/html_manual/cha-writing-models.html#lkj-distribution-for-correlation-matrices).
+
+As with `lme4` we can also specify uncorrelated random slopes and intercepts using `||` instead of `|`.
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time + (Time||Chick))
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+## Include `LINPRED` in a complete model
+
+Up to this point we've generated just the code needed to calculate the linear predictor.
+Here's a complete linear regression model of chick weight as a function of time making use of `LINPRED` (similar to the code generated by `LM`):
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time)
+
+  weight[1:N] ~ FORLOOP(dnorm(mu[1:N], sd = sigma))
+  sigma ~ dunif(0, 100)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+# `PRIORS`
+
+This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
+The formula `~Time` implies two parameters as we described above, and `PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
+
+```{r}
+code <- nimbleCode({
+ PRIORS(~Time)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+We can also manually set the values for different types of priors such as intercepts and coefficients (slopes).
+See `?setPriors` for more details.
+
+```{r}
+pr <- setPriors(intercept = quote(dnorm(-5, 5)),
+                coefficient = quote(dnorm(0, sd = 5)))
+
+code <- nimbleCode({
+ PRIORS(~Time + Diet, priorSettings = pr)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+Treating `beta_Diet` as a vector parameter makes sense in BUGS, but it does not match the way categorical parameters are handled by `model.matrix`; i.e., dummy variables:
+
+```{r}
+colnames(model.matrix(~Time + Diet, ChickWeight))
+```
+
+Here `model.matrix` has created several separate parameters `Diet2`, `Diet3`, and `Diet4` rather than a vector.
+We can replicate this structure in BUGS code by setting the `PRIORS` option `modMatNames = TRUE`.
+
+```{r}
+code <- nimbleCode({
+ PRIORS(~Time + Diet, priorSettings = pr, modMatNames = TRUE)
+})
+mod <- nimbleModel(code, constants)
+mod$getCode()
+```
+
+With this option set a few extra lines of BUGS code are added to yield parameter names that match `model.matrix`.
 
 # `FORLOOP`
 
-The `FORLOOP` macro is a shorthand way of creating `for` loops (possibly nested) from a single line of code.
+The `FORLOOP` macro is used by `LM`, `LINPRED`, and `PRIORS` and is a shorthand way of creating `for` loops (possibly nested) from a single line of code.
 For example, suppose you want to calculate a linear predictor `mu` from `N` values of a covariate `x`.
 The BUGS code would be:
 
@@ -177,247 +415,72 @@ mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
 
-# `LINPRED`
+# Writing Your Own Macros
 
-As the name suggests, the `LINPRED` macro generates a linear predictor from a provided R formula.
-In this way it acts something like the `model.matrix` function in R, although instead of creating a matrix, it creates the BUGS code for the linear predictor.
-The macro supports random effects using the same syntax as the `lme4` package.
+A macro is a (typically concise) piece of code in a model, usually a function, which NIMBLE expands into a larger amount of proper BUGS code.
+Here's a small example.
+Suppose you wanted to create a macro called `MYDIST`, which creates a normal distribution with mean 0 and provided standard deviation.
+So the original macro would look like this in the model code:
 
-To demonstrate the macro, we'll use the built-in `ChickWeight` dataset.
-In this dataset there are repeated weight measurements (`weight`) of chicks (`Chick`) over time (`Time`).
-
-```{r}
-head(ChickWeight)
+```{r, eval=FALSE}
+y ~ MYDIST(sdev = 2)
 ```
 
-## Generate a linear predictor from a formula
+and we want the output to look like:
 
-To create a linear predictor with time as a covariate in R, we would specify the formula as `~Time`.
-
-```{r}
-head(model.matrix(~Time, ChickWeight))
+```{r, eval=FALSE}
+y ~ dnorm(0, sd = 2)
 ```
 
-Based on the model matrix, the formula implies two parameters: the intercept and the coefficient/slope for time.
-
-In NIMBLE, we combine the `ChickWeight` dataset with the sample size to create a list of constants.
-In the code, we specify the parameter name for the linear predictor (`mu`) and calculate it with the `LINPRED` macro and the same formula.
-Here we also set an argument `priorSettings = NULL`; we'll come back to this later.
+To create the macro `MYDIST`, we can use the `nimble::model_macro_builder` function.
+Note that by convention, we define the macro name in all capital letters.
+All the provided macros in `nimbleMacros` follow this convention.
 
 ```{r}
-constants <- c(ChickWeight, N=nrow(ChickWeight))
+MYDIST <- nimble::model_macro_builder(
+  function(stoch, LHS, sdev, modelInfo, .env){
+
+    code <- substitute(LHS ~ dnorm(0, sd = SDEV),
+                       list(LHS = LHS, STOCH = stoch, SDEV = sdev))
+
+    list(code = code, modelInfo = modelInfo)
+  },
+  use3pieces = TRUE, unpackArgs = TRUE
+)
+```
+
+The first argument of `model_macro_builder` is itself a function, which processes information in the line of code containing the macro to generate the output code.
+The `model_macro_builder` function expects this function to have certain arguments, to which it will pass certain information.
+
+1. `stoch`, logical, indicating if the declaration is stochastic (`~`) or deterministic (`<-`).
+2. `LHS`, an argument which will contain the left-hand side of the declaration
+3. Any arguments used by the macro; in this case we only have one, the standard deviation, which we call `sdev`.
+4. `modelInfo`, a list containing the constants and dimensions. This can be modified by the macro e.g. to add a new required constant.
+5. `.env`, the environment in which to run the macro.
+
+The output of the function should be a list with two elements:
+
+1. `code`, which contains the new, processed code. This code may contain macros itself, as macro processing happens recursively.
+2. `modelInfo`, the list of constants and dimensions, which may be modified by the macro.
+
+For more information on how to use `model_macro_builder` and other options, see `?nimble::model_macro_builder` and the NIMBLE manual.
+The result is an object of class `model_macro`:
+
+```{r}
+class(MYDIST)
+```
+
+We can now insert the macro into our NIMBLE code.
+
+```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSettings=NULL)
+  y ~ MYDIST(sdev = 2)
 })
 ```
 
-Next create the model object and view the code.
+When we run `nimbleModel`, the macro is expanded according to the function we created earlier to generate the final valid BUGS code.
 
 ```{r}
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code = code, data = list(y = 1))
 mod$getCode()
-```
-
-NIMBLE expands the `LINPRED` macro into a `for` loop calculating a value of `mu` for each sample in the dataset,
-where `mu` is a function of time.
-Notice two parameters were created: `beta_Intercept` (the intercept) and `beta_Time`, the coefficient associated with time.
-
-## Factor/categorical covariates
-
-The `LINPRED` macro can automatically handle categorical covariates (what R calls factors).
-For example, suppose we included a covariate for diet type (`Diet`) in the model. 
-The `Diet` covariate is already coded as an R factor:
-
-```{r}
-class(ChickWeight$Diet)
-levels(ChickWeight$Diet)
-```
-
-```{r}
-constants <- c(ChickWeight, N=nrow(ChickWeight))
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + Diet, priorSettings=NULL)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-A new vector parameter `beta_Diet` is created with four elements, one per level of `Diet`.
-The actual parameter `Diet` is then converted to numeric and used as the index for this vector parameter.
-It isn't obvious from this code, but the first element of `beta_Diet` will be fixed at 0 (serving as the reference level).
-We'll show this below.
-
-
-## Add a link function
-
-We could also add a link function to the left-hand-side of the linear predictor calculation.
-Suppose we wanted to force `mu` to be positive; we could use a log link function, specifying this with the `link` argument.
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSettings = NULL, link = log)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-## Get default priors
-
-If we do not manually set the `priorSettings` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
-Internally, `LINPRED` is calling the `PRIORS` macro (described below).
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + Diet)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-The code for handling the `Diet` categorical covariate is a little complicated, because by default `LINPRED` is translating between the default NIMBLE approach of a parameter vector with the approach of `model.matrix` in R where multiple named dummy covariates are created instead.
-
-## Suppress the macro comments
-
-We can also suppress the added macro comments to make things a little more concise.
-
-```{r}
-nimbleOptions(enableMacroComments = FALSE)
-```
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-# `PRIORS`
-
-This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
-The formula `~Time` implies two parameters as we described above, and `PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
-
-```{r}
-code <- nimbleCode({
- PRIORS(~Time)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-We can also manually set the values for different types of priors such as intercepts and coefficients (slopes).
-See `?setPriors` for more details.
-
-```{r}
-pr <- setPriors(intercept = quote(dnorm(-5, 5)),
-                coefficient = quote(dnorm(0, sd = 5)))
-
-code <- nimbleCode({
- PRIORS(~Time, priorSettings = pr)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-# Random effects
-
-The `LINPRED` macro supports random effects using `lme4` syntax.
-For example, a random intercept by `Chick`:
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + (1|Chick))
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-Note that by default, all random effects are mean 0, the same approach used by `lme4`.
-We can also get both random intercepts and (time) slopes by `Chick`; by default these are correlated.
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + (Time|Chick))
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-As with `lme4` we can also specify uncorrelated random slopes and intercepts using `||` instead of `|`.
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + (Time||Chick))
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-# Include macros in a complete model
-
-Up to this point we've generated just the code needed to calculate the linear predictor.
-Here's a complete linear regression model of chick weight as a function of time making use of `LINPRED`:
-
-```{r}
-code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time)
-
-  weight[1:N] ~ FORLOOP(dnorm(mu[1:N], sd = sigma))
-  sigma ~ dunif(0, 100)
-})
-mod <- nimbleModel(code, constants)
-mod$getCode()
-```
-
-# `LM`: A macro for complete linear models
-
-Instead of doing the above, we could also use the `LM` macro which can generate complete BUGS code for a variety of linear, generalized linear, and generalized linear mixed models.
-It uses very similar syntax to R functions like `lm`, `glm`, `lme4::lmer`, and `lme4::glmer`.
-
-## Example logistic regression with `mtcars`
-
-Here's a logistic regression in R using the `mtcars` dataset:
-
-```{r}
-rmod <- glm(am ~ scale(mpg), data = mtcars, family=binomial)
-summary(rmod)
-```
-
-And the equivalent code using the `LM` macro:
-
-```{r}
-pr <- setPriors(intercept=quote(dunif(-10,10)), 
-                coefficient = quote(dnorm(0, 0.1)))
-
-code <- nimbleCode({
-  LM(am ~ mpg, family = binomial, priorSettings=pr)
-})
-```
-
-In this case we'll actually fit the model.
-
-```{r}
-const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
-mod <- nimbleMCMC(code, constants=const, nchain=3, niter=3000, nburnin=2000)
-post <- do.call(rbind, mod)
-(nimble_est <- apply(do.call(rbind, mod), 2, median))
-```
-
-## Example linear mixed model using `ChickWeights`
-
-Here's another example fitting the linear mixed model of chick weights described above, first in R and then with `LM` and NIMBLE.
-
-```{r}
-library(lme4)
-rmod <- lmer(weight ~ Time + (1|Chick), data=ChickWeight)
-summary(rmod)
-```
-
-```{r}
-code <- nimbleCode({
-  LM(weight ~ Time + (1|Chick))
-})
-
-mod <- nimbleMCMC(code, constants=ChickWeight, nchain=3, niter=3000, nburnin=2000)
-(nimble_est <- apply(do.call(rbind, mod), 2, median))
 ```
