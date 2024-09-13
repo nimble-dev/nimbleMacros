@@ -10,6 +10,7 @@ setPriors(
   sd = quote(dunif(0, 100)),
   factor = NULL,
   continuous = NULL,
+  eta = 1.3,
   ...
 )
 }
@@ -25,6 +26,9 @@ to factor data}
 
 \item{continuous}{Prior specifications for slope coefficients corresponding
 to continuous data}
+
+\item{eta}{Value of shape parameter for LKJ distribution prior, used for
+correlation matrix in correlated random slope and intercept models}
 
 \item{...}{Specific parameters, optionally with brackets/indices}
 }
@@ -51,6 +55,9 @@ setPriors(factor = quote(dnorm(0, sd = 2.5)))
 # Set prior for a specific coefficient
 setPriors('alpha[1]' = "dnorm(0, 3)")
 
+}
+\seealso{
+[nimble::dlkj_corr_cholesky] for more on the LKJ distribution
 }
 \author{
 Ken Kellner

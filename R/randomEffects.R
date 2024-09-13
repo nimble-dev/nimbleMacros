@@ -182,7 +182,7 @@ getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, cente
 }
 
 # Make correlated random effects priors from a particular bar expression
-makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL){
+makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL, priorInfo){
 
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)  
@@ -203,10 +203,13 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, c
   # BUGS code for Ustar and U
   Ustar_name <- as.name(paste0("Ustar_",safeDeparse(rfact)))
   U_name <- as.name(paste0("U_",safeDeparse(rfact)))
+  # LKJ distribution shape parameter
+  eta <- priorInfo$eta
+  if(is.null(eta)) eta <- 1.3
   u <- substitute({
-    USTAR[1:NP, 1:NP] ~ dlkj_corr_cholesky(1.3, NP)
+    USTAR[1:NP, 1:NP] ~ dlkj_corr_cholesky(ETA, NP)
     U[1:NP, 1:NP] <- uppertri_mult_diag(USTAR[1:NP, 1:NP], SDS[1:NP])
-    }, list(USTAR=Ustar_name, U=U_name, NP=np, SDS=sd_vec)
+    }, list(USTAR=Ustar_name, U=U_name, NP=np, SDS=sd_vec, ETA=eta)
   )
 
   # Generate name of random effects mean vector
@@ -311,9 +314,9 @@ uppertri_mult_diag <- nimbleFunction(
 # instead of: alpha + beta * x + re[group], where re[group] ~ dnorm(0, sd_group)
 # we have: beta * x + re[group], where re[group] ~ dnorm(alpha, sd_group)
 # If NULL, re mean will be 0, or if the grouping factor provided to
-# 'centerVar' does not match the one in the bar expression, then re mean will be 0. 
+# 'centerVar' does not match the one in the bar expression, then re mean will be 0.
 makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, 
-                                noncenter = FALSE, centerVar = NULL){
+                                noncenter = FALSE, centerVar = NULL, priorInfo){
   stopifnot(isBar(barExp))
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
@@ -321,7 +324,7 @@ makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo,
                                        noncenter, centerVar))
   }
   if(noncenter) stop("Uncentered not supported for correlated random effects yet", call.=FALSE)
-  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, centerVar)
+  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, centerVar, priorInfo)
 }
 
 # Remove extra brackets in BUGS code
@@ -412,7 +415,7 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo,
   # BUGS Hyperprior code
   hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, priorInfo)
   # BUGS random effect prior code, also updates constants if needed
-  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo, noncenter, centerVar)
+  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo, noncenter, centerVar, priorInfo)
   # Combine all code
   code <- embedLinesInCurlyBrackets(list(hyperpriors, priors))
   # Return formula component, prior code, and (possibly) updated model info

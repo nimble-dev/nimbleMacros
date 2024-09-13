@@ -206,7 +206,7 @@ test_that("makeUncorrelatedRandomPrior", {
 test_that("makeCorrelatedRandomPrior", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo)
+  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
   expect_equal(
     out,
     quote({
@@ -229,21 +229,49 @@ test_that("makeCorrelatedRandomPrior", {
     })
   )
 
+  # Test changing eta
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+                  indexCreator=nimble:::labelFunctionCreator("i"))
+  pr <- setPriors()
+  pr$eta <- 2
+  out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo, priorInfo=pr)
+  expect_equal(
+    out,
+    quote({
+    {
+        re_sds_group[1] <- sd_group
+        re_sds_group[2] <- sd_x_group
+    }
+    {
+        Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(2, 2)
+        U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 1:2], re_sds_group[1:2])
+    }
+    re_means_group[1:2] <- rep(0, 2)
+    for (i_1 in 1:3) {
+        B_group[i_1, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 1:2], prec_param = 0)
+        beta_group[i_1] <- B_group[i_1, 1]
+        beta_x_group[i_1] <- B_group[i_1, 2]
+    }
+
+
+    })
+  )
+
   expect_error(
-    makeCorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo)
+    makeCorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo, priorInfo=NULL)
   )
 })
 
 test_that("makeRandomPriorCode", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, modInfo)
+  out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
   expect_equal(
     out1,
     quote(beta_x_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_group)))
   )
 
-  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo)
+  out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
   expect_equal(
     out2,
     quote({
@@ -270,7 +298,7 @@ test_that("makeRandomPriorCode", {
 test_that("removeExtraBrackets", {       
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo)
+  inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
   
   expect_equal(
     removeExtraBrackets(inp),
