@@ -103,3 +103,10 @@ test_that("getDataDistCode", {
   )
 
 })
+
+test_that("Missing data error trap", {
+  modelInfo <- list(constants=  list(x = rnorm(3), x2 = factor(c("a","b","c"))))
+
+  code <- quote(LM(y ~ x + x2))
+  expect_error(LM$process(code, modelInfo, environment()), "dimensions for")
+})

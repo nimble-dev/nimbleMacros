@@ -70,7 +70,13 @@ LM <- list(process = function(code, modelInfo, .env){
   if(hasBracket(LHS)){
     idx <- extractIndices(LHS)[[1]]
   } else {
-    idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[safeDeparse(LHS)]]))))
+    # Check that LHS is in the constants, otherwise this won't work
+    LHS_name <- safeDeparse(LHS)
+    if(! LHS_name %in% names(modelInfo$constants)){
+      stop(paste0("If you don't provide dimensions for the data ", LHS_name, 
+                  ", you must include ", LHS_name, " in the constants instead."), call.=FALSE)
+    }
+    idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[LHS_name]]))))
     LHS <- substitute(LHS[IDX], list(LHS=LHS, IDX=idx))
   }
   
