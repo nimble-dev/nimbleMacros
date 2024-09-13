@@ -8,7 +8,7 @@ Depends:
     R (>= 3.4.0),
     nimble
 Imports:
-    lme4
+    reformulas
 Suggests:
     knitr,
     markdown,

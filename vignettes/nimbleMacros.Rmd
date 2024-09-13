@@ -93,10 +93,37 @@ The `LM` macro can also generate code for random effects models.
 To illustrate this we will use the built-in `ChickWeight` dataset which contains repeated measurements of chick weights over time.
 First, fit the model in R using the `lme4` package:
 
-```{r}
+```r
 library(lme4)
 rmod <- lmer(weight ~ Time + (1|Chick), data=ChickWeight)
 summary(rmod)
+```
+
+```
+## Linear mixed model fit by REML ['lmerMod']
+## Formula: weight ~ Time + (1 | Chick)
+##    Data: ChickWeight
+## 
+## REML criterion at convergence: 5619.4
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -3.0086 -0.5528 -0.0888  0.4975  3.4588 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  Chick    (Intercept) 717.9    26.79   
+##  Residual             799.4    28.27   
+## Number of obs: 578, groups:  Chick, 50
+## 
+## Fixed effects:
+##             Estimate Std. Error t value
+## (Intercept)  27.8451     4.3877   6.346
+## Time          8.7261     0.1755  49.716
+## 
+## Correlation of Fixed Effects:
+##      (Intr)
+## Time -0.422
 ```
 
 To fit this model with `LM`, we'll first organize the `ChickWeight` data into a list of constants and data for NIMBLE.

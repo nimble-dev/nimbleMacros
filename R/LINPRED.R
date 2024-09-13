@@ -99,7 +99,7 @@ removeSquareBrackets <- function(code){
 # E.g. y~x + scale(z) will error
 checkNoFormulaFunctions <- function(form){
   form <- removeBracketsFromFormula(form)
-  form <- lme4::nobars(form)
+  form <- reformulas::nobars(form)
   form <- safeDeparse(form) 
   has_parens <- grepl("(", form, fixed=TRUE)
   if(has_parens){
@@ -287,7 +287,7 @@ makeDummyDataFrame <- function(formula, constants){
 # Returns a character vector of terms (e.g. c("1", "x"))
 centeredFormulaDropTerms <- function(formula, centerVar){
   if(is.null(centerVar)) return(NULL)
-  bars <- lme4::findbars(formula)
+  bars <- reformulas::findbars(formula)
   rfacts <- lapply(bars, getRandomFactorName)
   bars_keep <- bars[sapply(rfacts, function(x) x == centerVar)]
   if(length(bars_keep) == 0) return(NULL)
@@ -317,7 +317,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   # Find fixed terms to remove if centered
   adj <- centeredFormulaDropTerms(formula, centerVar)
   # Find fixed terms
-  fixed_form <- lme4::nobars(formula)
+  fixed_form <- reformulas::nobars(formula)
   trms <- stats::terms(fixed_form)
   has_int <- attr(trms, "intercept")
   fixed_trms <- attr(trms, "term.labels")
@@ -375,7 +375,6 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
 #' mod$getCode()
 NULL
 
-#' @importFrom lme4 nobars
 #' @export
 LINPRED <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
@@ -565,7 +564,6 @@ makeParameterStructureModMatNames <- function(formula, data){
 #' mod$getCode()
 NULL
 
-#' @importFrom lme4 nobars
 #' @export
 
 PRIORS <- nimble::model_macro_builder(
@@ -588,13 +586,13 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   # e.g. ~x + (x||group) becomes x + group + x:group
   new_form <- form
   if(!is.null(rand_info$formula)){
-    new_form <- addFormulaTerms(list(lme4::nobars(form), rand_info$formula))
+    new_form <- addFormulaTerms(list(reformulas::nobars(form), rand_info$formula))
     new_form <- as.formula(new_form)
   }
 
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
-  fixed <- makeFixedPriorsFromFormula(lme4::nobars(form), dat, priorSettings, 
+  fixed <- makeFixedPriorsFromFormula(reformulas::nobars(form), dat, priorSettings,
                                prefix=as.character(safeDeparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- list(fixed$code)

@@ -422,12 +422,11 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo,
 
 # Function to handle all bar expressions in a formula, combining results
 
-#' @importFrom lme4 findbars
 processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo, 
                            noncenter = FALSE, centerVar=NULL){
   # Generate separate bars from formula
   #formula <- removeBracketsFromFormula(formula) 
-  bars <- lme4::findbars(formula)
+  bars <- reformulas::findbars(formula)
 
   # Return NULL if there are no bars
   if(is.null(bars)) return(list(formula=NULL, code=NULL, modelInfo=modelInfo))
