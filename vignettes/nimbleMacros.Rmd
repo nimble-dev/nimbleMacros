@@ -82,9 +82,9 @@ Finally, we'll fit the model which yields similar results to `glm`.
 
 ```{r}
 
-mod <- nimbleMCMC(code, constants=const, nchain=3, niter=3000, nburnin=2000)
-post <- do.call(rbind, mod)
-(nimble_est <- apply(do.call(rbind, mod), 2, median))
+samples <- nimbleMCMC(code, constants=const, nchain=1, niter=3000, nburnin=2000,
+                      samplesAsCodaMCMC = TRUE)
+summary(samples)
 ```
 
 ## Example linear mixed model using `ChickWeights`
@@ -116,8 +116,9 @@ code <- nimbleCode({
 Fit the model:
 
 ```{r}
-mod <- nimbleMCMC(code, constants=chick_const, nchain=3, niter=3000, nburnin=2000)
-(nimble_est <- apply(do.call(rbind, mod), 2, median))
+samples <- nimbleMCMC(code, constants=chick_const, nchain=1, niter=3000, nburnin=2000,
+                      samplesAsCodaMCMC = TRUE)
+summary(samples)
 ```
 
 # `LINPRED`
