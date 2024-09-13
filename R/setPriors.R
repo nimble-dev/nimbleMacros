@@ -35,8 +35,8 @@
 #' setPriors('alpha[1]' = "dnorm(0, 3)")
 #'
 #' @export
-setPriors <- function(intercept = quote(dunif(-100, 100)),
-                      coefficient = quote(dnorm(0, sd = 100)),
+setPriors <- function(intercept = quote(dnorm(0, sd = 1000)),
+                      coefficient = quote(dnorm(0, sd = 1000)),
                       sd = quote(dunif(0, 100)),
                       factor = NULL,
                       continuous = NULL,

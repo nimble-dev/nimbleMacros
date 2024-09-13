@@ -4,45 +4,45 @@ test_that("setPriors",{
 
   # Defaults
   expect_equal(setPriors(),
-               list(intercept=quote(dunif(-100,100)),
-                    coefficient=quote(dnorm(0, sd = 100)),
+                list(intercept=quote(dnorm(0, sd = 1000)),
+                    coefficient=quote(dnorm(0, sd = 1000)),
                     sd=quote(dunif(0, 100)))
                )
 
   expect_equal(
     setPriors(factor = quote(dnorm(0, 1))),
-    list(intercept=quote(dunif(-100,100)),
-         coefficient=quote(dnorm(0, sd = 100)),
+    list(intercept=quote(dnorm(0, sd = 1000)),
+         coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
          factor=quote(dnorm(0, 1)))
   )
 
   expect_equal(
     setPriors(continuous = quote(dnorm(0, 1))),
-    list(intercept=quote(dunif(-100,100)),
-         coefficient=quote(dnorm(0, sd = 100)),
+    list(intercept=quote(dnorm(0, sd = 1000)),
+         coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
          continuous=quote(dnorm(0, 1)))
   )
 
   expect_equal(
     setPriors("alpha[1]" = quote(dnorm(0, 1))),
-    list(intercept=quote(dunif(-100,100)),
-         coefficient=quote(dnorm(0, sd = 100)),
+    list(intercept=quote(dnorm(0, sd = 1000)),
+         coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
          "alpha[1]"=quote(dnorm(0, 1)))
   )
   expect_equal(
     setPriors("alpha[1]" = "dnorm(0, 1)"),
-    list(intercept=quote(dunif(-100,100)),
-         coefficient=quote(dnorm(0, sd = 100)),
+    list(intercept=quote(dnorm(0, sd = 1000)),
+         coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
          "alpha[1]"=quote(dnorm(0, 1)))
   )
   expect_equal(
     setPriors(sd = list("dnorm", 0, sd = 3)),
-    list(intercept=quote(dunif(-100,100)),
-         coefficient=quote(dnorm(0, sd = 100)),
+    list(intercept=quote(dnorm(0, sd = 1000)),
+         coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dnorm(0, sd = 3)))
   )
 

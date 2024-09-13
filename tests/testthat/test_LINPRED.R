@@ -679,7 +679,7 @@ test_that("priors macro", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
     })
   )
 
@@ -700,19 +700,19 @@ test_that("priors macro", {
   expect_equal(
     nimbleMacros::PRIORS$process(quote(PRIORS(~x3, coefPrefix = alpha_)), modInfo, NULL)$code,
     quote({
-      alpha_Intercept ~ dunif(-100, 100)
-      alpha_x3 ~ dnorm(0, sd=100)
+      alpha_Intercept ~ dnorm(0, sd = 1000)
+      alpha_x3 ~ dnorm(0, sd=1000)
     })
   )
   expect_equal(
     nimbleMacros::PRIORS$process(quote(PRIORS(~x, modMatNames=TRUE)), modInfo, NULL)$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
       beta_x[1] <- 0
       beta_x[2] <- beta_xb
-      beta_xb ~ dnorm(0, sd=100)
+      beta_xb ~ dnorm(0, sd=1000)
       beta_x[3] <- beta_xc
-      beta_xc ~ dnorm(0, sd=100)
+      beta_xc ~ dnorm(0, sd=1000)
     })
   )
 })
@@ -729,8 +729,8 @@ test_that("priors with random effect", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd=100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
     })
@@ -748,8 +748,8 @@ test_that("priors with random effect", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd=100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(-10, 10)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
     })
@@ -769,8 +769,8 @@ test_that("priors with 'partially centered' random effect", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd=100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_Intercept, sd = sd_x))
     })
@@ -782,8 +782,8 @@ test_that("priors with 'partially centered' random effect", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd=100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
     })
@@ -795,8 +795,8 @@ test_that("priors with 'partially centered' random effect", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd=100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_Intercept, sd = sd_x))
       sd_x3_x ~ dunif(0, 100)
@@ -810,8 +810,8 @@ test_that("priors with 'partially centered' random effect", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd = 100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd = 1000)
       sd_x ~ dunif(0, 100)
       sd_x3_x ~ dunif(0, 100)
       re_sds_x[1] <- sd_x
@@ -843,8 +843,8 @@ test_that("priors with noncentered random effects", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd=100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
       beta_x[1:3] <- nimbleMacros::FORLOOP(0 + sd_x * beta_x_raw[1:3])
@@ -857,8 +857,8 @@ test_that("priors with noncentered random effects", {
   expect_equal(
     out$code,
     quote({
-      beta_Intercept ~ dunif(-100, 100)
-      beta_x3 ~ dnorm(0, sd = 100)
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      beta_x3 ~ dnorm(0, sd = 1000)
       sd_x ~ dunif(0, 100)
       beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
       beta_x[1:3] <- nimbleMacros::FORLOOP(beta_Intercept + sd_x * beta_x_raw[1:3])
