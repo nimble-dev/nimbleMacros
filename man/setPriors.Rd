@@ -5,8 +5,8 @@
 \title{Set up prior values for different categories of nodes}
 \usage{
 setPriors(
-  intercept = quote(dunif(-100, 100)),
-  coefficient = quote(dnorm(0, sd = 100)),
+  intercept = quote(dnorm(0, sd = 1000)),
+  coefficient = quote(dnorm(0, sd = 1000)),
   sd = quote(dunif(0, 100)),
   factor = NULL,
   continuous = NULL,
