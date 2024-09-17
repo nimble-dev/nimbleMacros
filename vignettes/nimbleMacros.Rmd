@@ -39,7 +39,7 @@ We'll begin by showing off the macros available in the package, and then discuss
 
 # `LM`: A macro for complete linear models
 
-The `LM` macro generates complete BUGS code for a variety of linear, generalized linear, and generalized linear mixed models.
+The `LM` macro generates complete NIMBLE model code for a variety of linear, generalized linear, and generalized linear mixed models.
 It uses very similar syntax to R functions like `lm`, `glm`, `lme4::lmer`, and `lme4::glmer`.
 
 ## Example logistic regression with `mtcars`
@@ -152,7 +152,7 @@ summary(samples)
 
 As the name suggests, the `LINPRED` macro generates a linear predictor from a provided R formula.
 It is used internally by the `LM` macro and can be used separately as well.
-The macro acts something like the `model.matrix` function in R, although instead of creating a model matrix, it creates the BUGS code for the linear predictor.
+The macro acts something like the `model.matrix` function in R, although instead of creating a model matrix, it creates the NIMBLE model code for the linear predictor.
 The macro supports random effects using the same syntax as the `lme4` package.
 
 To demonstrate the macro, we'll use the built-in `ChickWeight` dataset again.
@@ -172,7 +172,7 @@ head(model.matrix(~Time, ChickWeight))
 
 Based on the model matrix, the formula implies two parameters: the intercept and the coefficient/slope for time.
 
-To generate the linear predictor BUGS code, we start by setting up the constants/data list.
+To generate the linear predictor NIMBLE model code, we start by setting up the constants/data list.
 We'll use the `chick_const` list we used with `LM`, and add the sample size `N`.
 
 ```{r}
@@ -355,14 +355,14 @@ mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
 
-Treating `beta_Diet` as a vector parameter makes sense in BUGS, but it does not match the way categorical parameters are handled by `model.matrix`; i.e., dummy variables:
+Treating `beta_Diet` as a vector parameter makes sense in the NIMBLE model code, but it does not match the way categorical parameters are handled by `model.matrix`; i.e., dummy variables:
 
 ```{r}
 colnames(model.matrix(~Time + Diet, ChickWeight))
 ```
 
 Here `model.matrix` has created several separate parameters `Diet2`, `Diet3`, and `Diet4` rather than a vector.
-We can replicate this structure in BUGS code by setting the `PRIORS` option `modMatNames = TRUE`.
+We can replicate this structure in NIMBLE model code by setting the `PRIORS` option `modMatNames = TRUE`.
 
 ```{r}
 code <- nimbleCode({
@@ -372,13 +372,13 @@ mod <- nimbleModel(code, constants)
 mod$getCode()
 ```
 
-With this option set a few extra lines of BUGS code are added to yield parameter names that match `model.matrix`.
+With this option set a few extra lines of NIMBLE model code are added to yield parameter names that match `model.matrix`.
 
 # `FORLOOP`
 
 The `FORLOOP` macro is used by `LM`, `LINPRED`, and `PRIORS` and is a shorthand way of creating `for` loops (possibly nested) from a single line of code.
 For example, suppose you want to calculate a linear predictor `mu` from `N` values of a covariate `x`.
-The BUGS code would be:
+The NIMBLE model code would be:
 
 ```{r, eval=FALSE}
 nimbleCode({
@@ -445,7 +445,7 @@ mod$getCode()
 
 # Writing Your Own Macros
 
-A macro is a (typically concise) piece of code in a model, usually a function, which NIMBLE expands into a larger amount of proper BUGS code.
+A macro is a (typically concise) piece of code in a model, usually a function, which NIMBLE expands into a larger amount of proper NIMBLE model code.
 Here's a small example.
 Suppose you wanted to create a macro called `MYDIST`, which creates a normal distribution with mean 0 and provided standard deviation.
 So the original macro would look like this in the model code:
@@ -506,7 +506,7 @@ code <- nimbleCode({
 })
 ```
 
-When we run `nimbleModel`, the macro is expanded according to the function we created earlier to generate the final valid BUGS code.
+When we run `nimbleModel`, the macro is expanded according to the function we created earlier to generate the final valid NIMBLE model code.
 
 ```{r}
 mod <- nimbleModel(code = code, data = list(y = 1))

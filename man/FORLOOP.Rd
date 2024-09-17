@@ -7,7 +7,7 @@
 \item{code}{The right-hand side of a parameter declaration}
 }
 \description{
-This macro takes a line of BUGS code with index ranges inside brackets
+This macro takes a line of NIMBLE model code with index ranges inside brackets
 on either the left-hand side of a declaration or both the left- and
 right-hand sides of a declaration and constructs a corresponding
 for loop or series of nested for loops.

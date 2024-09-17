@@ -343,7 +343,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
 
 #' Macro to build code for linear predictor from R formula
 #'
-#' Converts an R formula into corresponding code for a linear predictor in BUGS.
+#' Converts an R formula into corresponding code for a linear predictor in NIMBLE model code.
 #' Options are available to specify a link function and to also generate
 #' code for priors corresponding to the parameters in the linear predictor.
 #'
@@ -355,7 +355,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
 #'  to guess the correct indices from the context. The formula must be 
 #'  right-hand side only (e.g. ~x). This must always be the first argument supplied
 #'  to LINPRED.
-#' @param link A link function (available in BUGS) which will be applied to the 
+#' @param link A link function which will be applied to the 
 #'  left-hand-side (the response) in the final linear predictor. Default is none.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
 #'  default is beta_ (so x becomes beta_x, etc.)

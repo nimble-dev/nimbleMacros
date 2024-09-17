@@ -10,7 +10,7 @@ to guess the correct indices from the context. The formula must be
 right-hand side only (e.g. ~x). This must always be the first argument supplied
 to LINPRED.}
 
-\item{link}{A link function (available in BUGS) which will be applied to the 
+\item{link}{A link function which will be applied to the 
 left-hand-side (the response) in the final linear predictor. Default is none.}
 
 \item{coefPrefix}{All model coefficient names will begin with this prefix.
@@ -27,7 +27,7 @@ default is no prefix.}
 default all random effects have mean 0 as with lme4.}
 }
 \description{
-Converts an R formula into corresponding code for a linear predictor in BUGS.
+Converts an R formula into corresponding code for a linear predictor in NIMBLE model code.
 Options are available to specify a link function and to also generate
 code for priors corresponding to the parameters in the linear predictor.
 }
