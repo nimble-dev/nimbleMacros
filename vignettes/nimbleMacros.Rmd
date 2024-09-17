@@ -69,8 +69,9 @@ pr <- setPriors(intercept=quote(dunif(-10,10)),
 ```
 
 Finally, we specify the NIMBLE code, which is a single call to the `LM` macro that should look familiar to our call to `glm` above.
-Note that we don't include a call to `scale` in the formula (`LM` does not support this).
-Instead we standardized the `mpg` values when we put them into our list `const`.
+Two things to note:
+1. We don't include a call to `scale` in the formula (`LM` does not support this). Instead we standardized the `mpg` values when we put them into our list `const`.
+2. You don't need to specify dimensions of the variables with `LM`, as this is handled automatically, as `LM` assumes all data and constants are vectors of the same length. In more complex situations you can use the `LINPRED` macro; see the next section.
 
 ```{r}
 code <- nimbleCode({
@@ -173,7 +174,7 @@ head(model.matrix(~Time, ChickWeight))
 Based on the model matrix, the formula implies two parameters: the intercept and the coefficient/slope for time.
 
 To generate the linear predictor NIMBLE model code, we start by setting up the constants/data list.
-We'll use the `chick_const` list we used with `LM`, and add the sample size `N`.
+We'll use the `chick_const` list we used with `LM`, and add the sample size `N` so we can use it to define dimensions.
 
 ```{r}
 chick_const$N <- nrow(ChickWeight)
@@ -181,10 +182,11 @@ chick_const$N <- nrow(ChickWeight)
 
 In the model code, we specify the parameter name for the linear predictor (`mu`) and calculate it with the `LINPRED` macro and the same formula as above.
 Here we also set an argument `priorSettings = NULL`; we'll come back to this later.
+Notice that unlike with `LM`, we explicitly define the dimensions of `mu` and `Time`.
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSettings=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N], priorSettings=NULL)
 })
 ```
 
@@ -205,6 +207,35 @@ We can get a list of the parameters created by macros in the model using the `ge
 mod$getMacroParameters()
 ```
 
+When all the data and constants used by `LINPRED` have the same dimensions, you can specify the dimensions for the left-hand-side only:
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time, priorSettings=NULL)
+})
+mod <- nimbleModel(code, chick_const)
+mod$getCode()
+```
+
+In more complicated situations you may have different dimensions for different data/constants.
+For example, we'll convert `Time` into a one-column matrix, but keep `mu` as a vector.
+
+```{r}
+chick_const2 <- chick_const
+chick_const2$Time <- matrix(chick_const2$Time, ncol=1)
+str(chick_const2)
+```
+
+To handle this we just need to specify different dimensions for each in the call to `LINPRED`.
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~Time[1:N,1], priorSettings=NULL)
+})
+mod <- nimbleModel(code, chick_const2)
+mod$getCode()
+```
+
 ## Factor/categorical covariates
 
 The `LINPRED` macro can automatically handle categorical covariates (what R calls factors).
@@ -214,14 +245,14 @@ The `Diet` covariate is already coded as an R factor:
 ```{r}
 class(ChickWeight$Diet)
 levels(ChickWeight$Diet)
+chick_const$Diet <- ChickWeight$Diet
 ```
 
 ```{r}
-constants <- c(ChickWeight, N=nrow(ChickWeight))
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + Diet, priorSettings=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSettings=NULL)
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -238,9 +269,9 @@ Suppose we wanted to force `mu` to be positive; we could use a log link function
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSettings = NULL, link = log)
+  mu[1:N] <- LINPRED(~Time[1:N], priorSettings = NULL, link = log)
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -251,9 +282,9 @@ Internally, `LINPRED` is calling the `PRIORS` macro (described below).
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + Diet)
+  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N])
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -270,9 +301,9 @@ nimbleOptions(enableMacroComments = FALSE)
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time)
+  mu[1:N] <- LINPRED(~Time[1:N])
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -283,9 +314,9 @@ For example, a random intercept by `Chick`:
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + (1|Chick))
+  mu[1:N] <- LINPRED(~Time[1:N] + (1|Chick[1:N]))
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -294,9 +325,9 @@ We can also get both random intercepts and (time) slopes by `Chick`; by default 
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + (Time|Chick))
+  mu[1:N] <- LINPRED(~Time[1:N] + (Time[1:N]|Chick[1:N]))
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -306,9 +337,9 @@ As with `lme4` we can also specify uncorrelated random slopes and intercepts usi
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time + (Time||Chick))
+  mu[1:N] <- LINPRED(~Time[1:N] + (Time[1:N]||Chick[1:N]))
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -319,12 +350,12 @@ Here's a complete linear regression model of chick weight as a function of time 
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time)
+  mu[1:N] <- LINPRED(~Time[1:N])
 
   weight[1:N] ~ FORLOOP(dnorm(mu[1:N], sd = sigma))
   sigma ~ dunif(0, 100)
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -332,12 +363,13 @@ mod$getCode()
 
 This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
 The formula `~Time` implies two parameters as we described above, and `PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
+It is not necessary to specify the dimensions in the formula when using `PRIORS` directly.
 
 ```{r}
 code <- nimbleCode({
- PRIORS(~Time)
+  PRIORS(~Time)
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -351,7 +383,7 @@ pr <- setPriors(intercept = quote(dnorm(-5, 5)),
 code <- nimbleCode({
  PRIORS(~Time + Diet, priorSettings = pr)
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
@@ -368,7 +400,7 @@ We can replicate this structure in NIMBLE model code by setting the `PRIORS` opt
 code <- nimbleCode({
  PRIORS(~Time + Diet, priorSettings = pr, modMatNames = TRUE)
 })
-mod <- nimbleModel(code, constants)
+mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
