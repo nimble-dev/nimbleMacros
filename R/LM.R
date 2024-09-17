@@ -134,7 +134,9 @@ processFamily <- function(fam){
   if(is.null(fam$family)){
     stop("'family' not recognized")
   }
-  stopifnot(fam$link %in% c("log", "identity","logit","probit","cloglog"))
+  if(!fam$link %in% c("log", "identity","logit","probit","cloglog")){
+    stop("Unsupported link function", call.=FALSE)
+  }
   fam
 }
 

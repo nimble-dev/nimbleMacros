@@ -6,28 +6,30 @@ isAssignment <- function(code){
 
 # If "assignment" get LHS
 getLHS <- function(code){
-  stopifnot(isAssignment(code))
+  if(!isAssignment(code)) stop("Code should have assignment")
   code[[2]]
 }
 
 # If "assignment" get RHS
 getRHS <- function(code){
-  stopifnot(isAssignment(code))
+  if(!isAssignment(code)) stop("Code should have assignment")
   code[[3]]
 }
 
 # Replace LHS of assignment code chunk
 `LHS<-` <- function(code, value){
-  stopifnot(isAssignment(code))
-  stopifnot(is.call(value)|is.name(value))
+  if(!isAssignment(code)) stop("Code should have assignment")
+  if(!(is.call(value)|is.name(value))) stop("Value should be call or name")
   code[[2]] <- value
   code
 }
 
 # Replace RHS of assignment code chunk
 `RHS<-` <- function(code, value){
-  stopifnot(isAssignment(code))
-  stopifnot(is.call(value)|is.name(value)|is.numeric(value))
+  if(!isAssignment(code)) stop("Code should have assignment")
+  if(!(is.call(value)|is.name(value)|is.numeric(value))){
+    stop("Value should be call, name, or numeric")
+  }
   code[[3]] <- value
   code
 }

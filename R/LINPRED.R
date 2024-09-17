@@ -111,7 +111,7 @@ checkNoFormulaFunctions <- function(form){
 # Extract entire bracket structure
 # "formula" is actually a formula component, e.g. quote(x[1:n])
 extractBracket <- function(formula){
-  stopifnot(hasBracket(formula))
+  if(!hasBracket(formula)) stop("Formula should have bracket")
   #extract out to the last bracket in case of nested brackets
   out <- regmatches(safeDeparse(formula), regexpr("\\[.*\\]", safeDeparse(formula)))
   names(out) <- as.character(formula[[2]])
@@ -154,7 +154,7 @@ getFormulaBrackets <- function(formula, LHSidx){
 removeDuplicateIndices <- function(inds){
   for (i in names(inds)){
     subinds <- inds[names(inds)==i]
-    stopifnot(all(subinds == subinds[[1]]))
+    if(!all(subinds == subinds[[1]])) stop("Indices should be identical")
     inds <- inds[unique(names(inds))]
   }
   inds

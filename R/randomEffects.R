@@ -11,7 +11,7 @@ isBar <- function(code){
 # Also first expand LHS if needed (e.g. from x*y to x+y+x:y)
 #' @importFrom stats as.formula terms
 barToTerms <- function(barExp, keep_idx = FALSE){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
 
   # Get random factor
   rfact <- getRandomFactorName(barExp, keep_idx)
@@ -56,7 +56,7 @@ getRandomFactorName <- function(barExp, keep_idx = FALSE){
 # Convert bar expression into a complete formula component
 # with interactions between terms on LHS of bar and random factor
 getCombinedFormulaFromBar <- function(barExp){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp, keep_idx = TRUE)
   addFormulaTerms(trms)
 }
@@ -83,7 +83,7 @@ addFormulaTerms <- function(trms){
 # Get list of names for hyperpriors (SDs) from combined terms
 # e.g. term x.group --> sd.x.group
 getHyperpriorNames <- function(barExp, prefix){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)
   if(is.call(trms)){
     trms <- safeDeparse(trms)
@@ -101,7 +101,7 @@ getHyperpriorNames <- function(barExp, prefix){
 # Make hyperprior BUGS code chunk from a bar expression
 # (1|group) + dunif(0, 100) --> sd.group ~ dunif(0, 100) 
 makeHyperpriorCode <- function(barExp, sdPrefix, priorSettings){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   sd_names <- getHyperpriorNames(barExp, sdPrefix)
 
   hyperpriors <- lapply(sd_names, function(x){
@@ -120,7 +120,7 @@ makeHyperpriorCode <- function(barExp, sdPrefix, priorSettings){
 # Generate names for random terms from bar expression and prefix
 # (x||group) + beta_ --> beta_group, beta_x_group
 makeRandomParNames <- function(barExp, prefix){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)
   par_names <- paste0(safeDeparse(prefix), sapply(trms, safeDeparse))
   #par_names <- gsub(":", "_", par_names) # for BUGS compatibility
@@ -132,7 +132,7 @@ makeRandomParNames <- function(barExp, prefix){
 numRandomFactorLevels <- function(barExp, constants){
   rfact <- getRandomFactorName(barExp)
   facdata <- constants[[safeDeparse(rfact)]]
-  stopifnot(is.factor(facdata)|is.character(facdata))
+  if(!(is.factor(facdata)|is.character(facdata))) stop("Grouping cov is not a factor")
   if(is.character(facdata)) facdata <- as.factor(facdata)
   as.numeric(length(levels(facdata)))
 }
@@ -141,7 +141,7 @@ numRandomFactorLevels <- function(barExp, constants){
 makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, noncenter=FALSE, centerVar=NULL){
   nlev <- numRandomFactorLevels(barExp, modelInfo$constants)
   sd_name <- getHyperpriorNames(barExp, sdPrefix)
-  stopifnot(length(sd_name) == 1)
+  if(length(sd_name) != 1) stop("Should be a single SD name")
   sd_name <- sd_name[[1]]
   par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
   rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, modelInfo, centerVar)
@@ -184,10 +184,10 @@ getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, cente
 # Make correlated random effects priors from a particular bar expression
 makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL, priorInfo){
 
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)  
   np <- as.numeric(length(trms))
-  stopifnot(np > 1) # make sure we have at least 2 terms
+  if(np < 2) stop("Need at least 2 terms")
 
   # BUGS code to assign hyperprior SDs into vector
   rfact <- getRandomFactorName(barExp)
@@ -317,7 +317,7 @@ uppertri_mult_diag <- nimbleFunction(
 # 'centerVar' does not match the one in the bar expression, then re mean will be 0.
 makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, 
                                 noncenter = FALSE, centerVar = NULL, priorInfo){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
     return(makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, 
@@ -353,7 +353,7 @@ removeExtraBracketsInternal <- function(code){
 # 2. Actually creates new factor group_group2 in constants, which is a combination
 #    of levels of group and group2 (following lme4)
 processNestedRandomEffects <- function(barExp, constants){
-  stopifnot(isBar(barExp))
+  if(!isBar(barExp)) stop("Input is not bar expression")
   RHS <- barExp[[3]]
   is_nested <- is.call(RHS) && RHS[[1]] == ":"
   # If no nesting return inputs
@@ -369,18 +369,20 @@ processNestedRandomEffects <- function(barExp, constants){
   if(! comb_name %in% names(constants)){
     fac_dat <- constants[fac_names]
     fac_len <- sapply(fac_dat, length)
-    stopifnot(all(fac_len == fac_len[1]))
+    if(!all(fac_len == fac_len[1])) stop("All factors should be same length")
 
     are_facs <- all(sapply(fac_dat, is.factor))
     are_chars <- all(sapply(fac_dat, is.character))
-    stopifnot(are_facs | are_chars)
+    if(!(are_facs | are_chars)) stop("At least one grouping cov is not factor")
 
     if(are_facs){
       new_fac <- apply(as.data.frame(fac_dat), 1, paste, collapse=":")
       new_fac <- factor(new_fac)
     } else if(are_chars){
       match_dim <- dim(fac_dat[[1]])
-      stopifnot(all(sapply(lapply(fac_dat, dim), function(x) identical(x, match_dim))))
+      if(!(all(sapply(lapply(fac_dat, dim), function(x) identical(x, match_dim))))){
+        stop("All factor covs should have same dimensions")
+      }
       if(is.null(match_dim)){
         new_fac <- apply(as.data.frame(fac_dat), 1, paste, collapse=":")
       } else {

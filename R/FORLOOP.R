@@ -10,7 +10,7 @@ hasBracket <- function(code, recursive=TRUE){
 
 # Extract bracket and contents
 getBracket <- function(code){
-  stopifnot(hasBracket(code))
+  if(!hasBracket(code)) stop("Code should have bracket")
   if(code[[1]] == "[") return(code)
   if(is.name(code[[1]])) return(getBracket(code[[2]]))
 }
@@ -18,7 +18,7 @@ getBracket <- function(code){
 # Get index values from bracket
 # For example alpha[1,1:10,k] returns list(1, 1:10, k)
 extractIndices <- function(code){
-    stopifnot(hasBracket(code))
+    if(!hasBracket(code)) stop("Code should have bracket")
     code <- getBracket(code)
     out <- lapply(3:length(code), function(x) code[[x]])
 
@@ -46,7 +46,7 @@ anyIndexRange <- function(code){
 # Only works for assignments where macro is on RHS
 # Not sure if need to make this more general in the future
 removeMacroCall <- function(code){
-  stopifnot(isAssignment(code))
+  if(!isAssignment(code)) stop("Code should have assignment")
   ind <- 2:length(getRHS(code))
   repl <- getRHS(code)[ind]
   if(length(repl) == 1) repl <- repl[[1]]
@@ -107,7 +107,6 @@ hasAdjustment <- function(code){
 
 # Replace a provided index in some code with a new value
 replaceIndex <- function(code, old_idx, new_idx){
-  #stopifnot(hasBracket(code))
   code_list <- as.list(code)
   code_list <- lapply(code_list, function(x){
     if(hasBracket(x)){
@@ -121,7 +120,7 @@ replaceIndex <- function(code, old_idx, new_idx){
   idx <- which(code_list == old_idx)
   # If old index is not found do nothing
   if(length(idx) == 0) return(as.call(code_list))
-  stopifnot(length(idx) < 2) # Can't handle duplicate indices
+  if(length(idx) > 1) stop("Can't handle duplicate indices")
   code_list[[idx]] <- new_idx
   as.call(code_list)
 }
@@ -147,7 +146,7 @@ replaceDeclarationIndexRanges <- function(code, new_idx_list){
   LHS <- getLHS(code)
   RHS <- getRHS(code)
   op <- code[[1]]
-  stopifnot(hasMatchingIndexRanges(LHS, RHS))
+  if(!hasMatchingIndexRanges(LHS, RHS)) stop("Index ranges must match")
   idx <- extractAllIndices(LHS)
   idx <- idx[isIndexRange(idx)]
   if(length(idx) == 0) return(code)
@@ -180,7 +179,7 @@ replaceRanges <- function(ranges, idx_letters){
 # could be ambiguous
 # For example y[1:M, 1:M] won't work but y[1:M, sind[1:M]] will
 checkDuplicateBracketComponents <- function(code){
-  stopifnot(hasBracket(code))
+  if(!hasBracket(code)) stop("Code should have bracket")
   code <- getBracket(code)
   out <- lapply(3:length(code), function(x) code[[x]])
   dups <- duplicated(out)
