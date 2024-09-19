@@ -477,70 +477,175 @@ mod$getCode()
 
 # Writing Your Own Macros
 
-A macro is a (typically concise) piece of code in a model, usually a function, which NIMBLE expands into a larger amount of proper NIMBLE model code.
-Here's a small example.
 Suppose you wanted to create a macro called `MYDIST`, which creates a normal distribution with mean 0 and provided standard deviation.
-So the original macro would look like this in the model code:
+The macro would look like this in the NIMBLE model code:
 
 ```{r, eval=FALSE}
 y ~ MYDIST(sdev = 2)
 ```
 
-and we want the output to look like:
+Note that by convention, we define the macro name in all capital letters.
+All the provided macros in `nimbleMacros` follow this convention.
+We want the final, processed output to look like:
 
 ```{r, eval=FALSE}
 y ~ dnorm(0, sd = 2)
 ```
 
-To create the macro `MYDIST`, we can use the `nimble::model_macro_builder` function.
-Note that by convention, we define the macro name in all capital letters.
-All the provided macros in `nimbleMacros` follow this convention.
+## Manually creating the macro
+
+A macro is, fundamentally, a specially-formatted R function that converts one line of code to another.
+For example:
 
 ```{r}
-MYDIST <- nimble::model_macro_builder(
-  function(stoch, LHS, sdev, modelInfo, .env){
-
-    code <- substitute(LHS ~ dnorm(0, sd = SDEV),
-                       list(LHS = LHS, STOCH = stoch, SDEV = sdev))
-
-    list(code = code, modelInfo = modelInfo)
-  },
-  use3pieces = TRUE, unpackArgs = TRUE
-)
+fun <- function(input){
+  LHS <- input[[2]]
+  sdev <- input[[3]]$sdev
+  output <- substitute(LHS ~ dnorm(0, sd = SDEV),
+                       list(LHS = LHS, SDEV = sdev))
+  output
+}
 ```
 
-The first argument of `model_macro_builder` is itself a function, which processes information in the line of code containing the macro to generate the output code.
-The `model_macro_builder` function expects this function to have certain arguments, to which it will pass certain information.
-
-1. `stoch`, logical, indicating if the declaration is stochastic (`~`) or deterministic (`<-`).
-2. `LHS`, an argument which will contain the left-hand side of the declaration
-3. Any arguments used by the macro; in this case we only have one, the standard deviation, which we call `sdev`.
-4. `modelInfo`, a list containing the constants and dimensions. This can be modified by the macro e.g. to add a new required constant.
-5. `.env`, the environment in which to run the macro.
-
-The output of the function should be a list with two elements:
-
-1. `code`, which contains the new, processed code. This code may contain macros itself, as macro processing happens recursively.
-2. `modelInfo`, the list of constants and dimensions, which may be modified by the macro.
-
-For more information on how to use `model_macro_builder` and other options, see `?nimble::model_macro_builder` and the NIMBLE manual.
-The result is an object of class `model_macro`:
+Note that we have to do a bit of clunky code-processing to extract the left-hand-side of the assignment and the argument value.
 
 ```{r}
-class(MYDIST)
+input <- quote(y ~ MYDIST(sdev = 2))
+fun(input)
 ```
 
-We can now insert the macro into our NIMBLE code.
+In practice, `nimble` expects this function to have two additional arguments: `modelInfo` and `.env`.
+When processing a macro, `nimble` will provide a named list to the `modelInfo` argument which contains some additional model information.
+Most importantly, this list includes `constants`, which can be used and/or changed by the macro.
+As you can probably guess, `nimble` provides the R environment in which `nimbleModel` was called to the `.env` argument, to help with scoping issues.
+
+In addition to these two arguments, the function also needs a bit more structure in the output.
+The output should be a named list with two elements: `code`, which contains the output code (as in the original function above), and `modelInfo` which is the list of model information, which we could modify or leave as-is.
+
+```{r}
+fun <- function(input_code, modelInfo, .env){
+  LHS <- input_code[[2]]
+  sdev <- input_code[[3]]$sdev
+  output_code <- substitute(LHS ~ dnorm(0, sd = SDEV),
+                       list(LHS = LHS, SDEV = sdev))
+
+  # Modify the constants
+  modelInfo$constants$new <- 1
+    
+  list(code = output_code, modelInfo = modelInfo)
+}
+```
+
+```{r}
+input <- quote(y ~ MYDIST(sdev = 2))
+fun(input, modelInfo = list(constants=NULL), .env = environment())
+```
+
+Finally, `nimble` needs a way to know that this function is intended to be a macro, and that it is called `MYDIST`.
+The final step then is to create a wrapper `list` with our function inserted as an element called `process`, and assign the class `"model_macro"`.
+
+```{r}
+MYDIST <- list(process = fun)
+class(MYDIST) <- "model_macro"
+```
+
+Now, we can test the macro in a NIMBLE model:
 
 ```{r}
 code <- nimbleCode({
   y ~ MYDIST(sdev = 2)
 })
-```
-
-When we run `nimbleModel`, the macro is expanded according to the function we created earlier to generate the final valid NIMBLE model code.
-
-```{r}
 mod <- nimbleModel(code = code, data = list(y = 1))
 mod$getCode()
 ```
+
+## Using `model_macro_builder` to create the macro
+
+Manually creating the macro is fine, but gets complicated if we want to extract a lot of separate pieces of information from the code line, e.g. if our macro has many arguments.
+As an alternative, we can use the `model_macro_builder` function included with `nimble` which handles some of this code processing for us.
+The first argument to `model_macro_builder`, is a function structured like the one we wrote above `fun`.
+The other two arguments `use3pieces` and `unpackArgs` determine how the arguments of `fun` should be structured.
+
+First, suppose both `use3pieces` and `unpackArgs` are set to `FALSE`.
+In this case, the first argument to `fun` is the entire original line of code containing the macro, i.e., `y ~ MYDIST(sdev = 2)`.
+This is identical to how we wrote the function above.
+In this case, all `model_macro_builder` will do is create the required macro list structure and assign the class for us.
+
+```{r}
+MYDIST2 <- model_macro_builder(fun, use3pieces=FALSE, unpackArgs = FALSE)
+```
+
+```{r}
+code <- nimbleCode({
+  y ~ MYDIST2(sdev = 2)
+})
+mod <- nimbleModel(code = code, data = list(y = 1))
+mod$getCode()
+```
+
+Now we will set `use3pieces = TRUE`.
+In this case, `model_macro_builder` will automatically do some initial processing on the code line for us.
+Specifically, it will identify if the assignment is stochastic (`stoch`, `TRUE` if `~` and `FALSE` if `<-`), and separate and return the left-hand-side (`LHS`) and right-hand-side (`RHS`) of the assignment.
+With these settings, our function's first three arguments need to be `stoch`, `LHS`, and `RHS`, in that order (plus we keep the always-required `modelInfo` and `.env`).
+
+```{r}
+fun3 <- function(stoch, LHS, RHS, modelInfo, .env){
+  sdev <- RHS$sdev
+  output_code <- substitute(LHS ~ dnorm(0, sd = SDEV),
+                       list(LHS = LHS, SDEV = sdev))
+
+  # Modify the constants
+  modelInfo$constants$new <- 1
+    
+  list(code = output_code, modelInfo = modelInfo)
+}
+```
+
+We do a little less code processing this time since `model_macro_builder` has already separated LHS and RHS for us.
+Note that in this simple example we aren't using `stoch` because we want our output code to always be stochastic.
+
+```{r}
+MYDIST3 <- model_macro_builder(fun3, use3pieces=TRUE, unpackArgs = FALSE)
+```
+
+```{r}
+code <- nimbleCode({
+  y ~ MYDIST3(sdev = 2)
+})
+mod <- nimbleModel(code = code, data = list(y = 1))
+mod$getCode()
+```
+
+Finally, consider the case where we also set `unpackArgs = TRUE`.
+Now, `model_macro_builder` will dig into the right-hand-side of the macro and extract the argument values for us (in this case just `sdev`).
+Thus, we need to include all these arguments explicitly as arguments in our function.
+
+```{r}
+fun4 <- function(stoch, LHS, sdev, modelInfo, .env){
+  output_code <- substitute(LHS ~ dnorm(0, sd = SDEV),
+                       list(LHS = LHS, SDEV = sdev))
+
+  # Modify the constants
+  modelInfo$constants$new <- 1
+    
+  list(code = output_code, modelInfo = modelInfo)
+}
+```
+
+Even less code processing is required in this case, since `model_macro_builder` will split out the `sdev` argument for us.
+
+```{r}
+MYDIST4 <- model_macro_builder(fun4, use3pieces=TRUE, unpackArgs = TRUE)
+```
+
+```{r}
+code <- nimbleCode({
+  y ~ MYDIST4(sdev = 2)
+})
+mod <- nimbleModel(code = code, data = list(y = 1))
+mod$getCode()
+```
+
+The choice of arguments will depend on the macro: sometimes the short-cuts enabled by `model_macro_builder` will be useful, other times you may need more manual control over how the input code line is processed.
+See `?model_macro_builder` for additional detailed documentation and examples, including an example when `use3pieces = FALSE` and `unpackArgs = TRUE`.
+You may also find the source code for the macros included in `nimbleMacros`, found [here](https://github.com/nimble-dev/nimbleMacros/tree/master/R), a useful resource for writing your own.
