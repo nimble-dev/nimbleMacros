@@ -145,7 +145,9 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
   sd_name <- sd_name[[1]]
   par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
   rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, modelInfo, centerVar)
-  
+ 
+  checkCovNotFactor(barExp, modelInfo$constants)
+
   if(noncenter){
     lhs_raw <- str2lang(paste0(safeDeparse(par_name), "_raw"))
     out <- substitute({
@@ -181,6 +183,17 @@ getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, cente
   out
 }
 
+checkCovNotFactor <- function(barExp, data){
+  if(!isBar(barExp)) stop("Input is not bar expression")
+  lhs <- barExp[[2]]
+  form <- as.formula(as.call(list(as.name("~"), lhs)))
+  vars <- all.vars(form)
+  types <- sapply(vars, function(x) class(data[[x]]))
+  if(any(types == "factor")){
+    stop("Random slopes for factors not yet supported. Try converting to dummy variables instead.", call.=FALSE)
+  }
+}
+
 # Make correlated random effects priors from a particular bar expression
 makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL, priorInfo){
 
@@ -188,6 +201,8 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, c
   trms <- barToTerms(barExp)  
   np <- as.numeric(length(trms))
   if(np < 2) stop("Need at least 2 terms")
+  
+  checkCovNotFactor(barExp, modelInfo$constants)
 
   # BUGS code to assign hyperprior SDs into vector
   rfact <- getRandomFactorName(barExp)

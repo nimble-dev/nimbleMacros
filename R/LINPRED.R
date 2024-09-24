@@ -6,6 +6,17 @@ getTerms <- function(formula){
   trm
 }
 
+# Expand concise interaction notation and handle some -terms
+# e.g. ~x*x3 - 1 - x becomes ~-1 + x3 + x:x3
+# this avoids some pitfalls when adding in random effects
+expand_formula <- function(x){
+  if(x == ~1) return(~1)
+  trm <- attr(terms(x), "term.labels")
+  has_int <- attr(terms(x), "intercept")
+  if(!has_int) trm <- c("-1", trm)
+  stats::reformulate(trm)
+}
+
 # Generates list of factor levels (=how R would name them) for each variable in formula
 # E.g. variable x2 with levels a and b would return c("x2a", "x2b")
 # Non-factors just return the variable name
@@ -318,6 +329,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   adj <- centeredFormulaDropTerms(formula, centerVar)
   # Find fixed terms
   fixed_form <- reformulas::nobars(formula)
+  fixed_form <- expand_formula(fixed_form)
   trms <- stats::terms(fixed_form)
   has_int <- attr(trms, "intercept")
   fixed_trms <- attr(trms, "term.labels")
@@ -326,7 +338,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   fixed_trms <- fixed_trms[!fixed_trms %in% adj]
   # Combine remaining fixed terms and random terms into a formula
   fixed_terms <- paste(fixed_trms, collapse=" + ")
-  if(fixed_terms == ""){
+  if(fixed_terms == "" | length(fixed_terms)==0){
     out <- list(as.name("~"), rand_formula)
     out <- as.formula(as.call(out))
   } else {
@@ -335,7 +347,9 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
     out <- addFormulaTerms(list(out, rand_formula))
   }
   # Make sure the intercept is explicitly dropped if needed
-  if("1" %in% adj) out <- addFormulaTerms(list(out, quote(-1)))
+  if("1" %in% adj | fixed_terms=="" | length(fixed_trms)==0 | !has_int){
+    out <- addFormulaTerms(list(out, quote(-1)))
+  }
 
   out
 }
@@ -444,7 +458,8 @@ unpackArgs=TRUE
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
 #' @importFrom stats model.matrix
 makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){ 
-
+  
+  if(formula == ~-1) return(list(code=NULL, parameters=character(0)))
   par_struct <- makeParameterStructure(formula, data)
   # Matching structure with the model matrix version of the names
   # Plugged in later if modMatNames = TRUE
@@ -586,17 +601,19 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   # e.g. ~x + (x||group) becomes x + group + x:group
   new_form <- form
   if(!is.null(rand_info$formula)){
-    new_form <- addFormulaTerms(list(reformulas::nobars(form), rand_info$formula))
+    fixed_form <- expand_formula(reformulas::nobars(form))
+    new_form <- addFormulaTerms(list(fixed_form, rand_info$formula))
     new_form <- as.formula(new_form)
   }
 
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
-  fixed <- makeFixedPriorsFromFormula(reformulas::nobars(form), dat, priorSpecs,
+  fixed <- makeFixedPriorsFromFormula(expand_formula(reformulas::nobars(form)), 
+                                      dat, priorSpecs,
                                prefix=as.character(safeDeparse(coefPrefix)),
                                modMatNames = modMatNames)
-  out <- list(fixed$code)
-  if(!is.null(rand_info$code)) out <- c(out, list(rand_info$code))
+  out <- c(list(fixed$code), list(rand_info$code))
+  out <- out[!sapply(out, is.null)]
   out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
   

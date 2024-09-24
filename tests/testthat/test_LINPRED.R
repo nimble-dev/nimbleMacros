@@ -354,6 +354,10 @@ test_that("makeLPFromFormula", {
     makeLPFromFormula(~x*x3, dat, list(quote(1:n)), quote(beta_)),
     quote(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n] + beta_x_x3[x[1:n]] * x3[1:n])
   )
+  expect_equal(
+    makeLPFromFormula(~x*x3 -1 -x, dat, list(quote(1:n)), quote(beta_)),
+    quote(beta_x3 * x3[1:n] + beta_x_x3[x[1:n]] * x3[1:n])
+  )
 
 })
 
@@ -433,10 +437,11 @@ test_that("LINPRED", {
     })
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~x + (x|x2), priorSpecs=NULL))
+  code <- quote(y[1:n] ~ LINPRED(~x + (x3|x2), priorSpecs=NULL))
   expect_equal(
     LINPRED$process(code, modInfo, NULL)$code,
-    quote(y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
+    quote(y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] +
+    beta_x2[x2[1:n]] + beta_x2_x3[x2[1:n]] * x3[1:n]))
   )
 
 })
@@ -445,7 +450,7 @@ test_that("LINPRED with random effect", {
   set.seed(123)
   modInfo <- list(constants= list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3)))
+                    x3=round(rnorm(10),3), n=10))
 
   code <- quote(y[1:n] ~ LINPRED(~x3 + (1|x), priorSpecs=NULL))
  
@@ -458,6 +463,85 @@ test_that("LINPRED with random effect", {
     out$modelInfo$constants,
     modInfo$constants
   )
+
+  # With subtracted intercepts
+  code <- quote(y[1:n] ~ LINPRED(~-1 + x, priorSpecs=NULL))
+  out <- LINPRED$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]]))
+  )
+
+  code2 <- quote(y[1:n] ~ LINPRED(~-1 + (1|x), priorSpecs=NULL))
+  out2 <- LINPRED$process(code2, modInfo, NULL)
+  expect_equal(out2$code, out$code)
+
+  code3 <- quote(y[1:n] ~ LINPRED(~-1 + (-1+x3|x), priorSpecs=NULL))
+  out3 <- LINPRED$process(code3, modInfo, NULL)
+  expect_equal(
+    out3$code,
+    quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x3_x[x[1:n]] * x3[1:n]))
+  )
+
+  code4 <- nimbleCode({
+    mu[1:n] ~ LINPRED(~-1 + (-1+x3|x), priorSpecs=setPriors())
+  })
+  mod <- nimbleModel(code4, constants=modInfo$constants)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    "# LINPRED"
+    "  ## nimbleMacros::FORLOOP"
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_x3_x[x[i_1]] * x3[i_1]
+    }
+    "  ## ----"
+    "  ## nimbleMacros::LINPRED_PRIORS"
+    sd_x3_x ~ dunif(0, 100)
+    "    ### nimbleMacros::FORLOOP"
+    for (i_2 in 1:3) {
+        beta_x3_x[i_2] ~ dnorm(0, sd = sd_x3_x)
+    }
+    "    ### ----"
+    "  ## ----"
+    "# ----"
+  })
+  )
+
+  # Make sure subtracting terms results in same naming pattern
+  # in both LINPRED and LINPRED_PRIORS
+  code5 <- quote(y[1:n] ~ LINPRED(~x*x2 - 1 -x + (1|x), priorSpecs=NULL))
+  out5 <- LINPRED$process(code5, modInfo, NULL)
+  expect_equal(
+    out5$code,
+    quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x2[x2[1:n]] + beta_x[x[1:n]] +
+      beta_x2_x[x2[1:n], x[1:n]]))
+  )
+
+  code6 <- quote(LINPRED_PRIORS(~x*x2 - 1 - x + (1|x) ))
+  out6 <- LINPRED_PRIORS$process(code6, modInfo, NULL)
+  expect_equal(
+    out6$code,
+    quote({
+    beta_x2[1] ~ dnorm(0, sd = 1000)
+    beta_x2[2] ~ dnorm(0, sd = 1000)
+    beta_x2_x[1, 1] <- 0
+    beta_x2_x[2, 1] <- 0
+    beta_x2_x[1, 2] ~ dnorm(0, sd = 1000)
+    beta_x2_x[2, 2] ~ dnorm(0, sd = 1000)
+    beta_x2_x[1, 3] ~ dnorm(0, sd = 1000)
+    beta_x2_x[2, 3] ~ dnorm(0, sd = 1000)
+    sd_x ~ dunif(0, 100)
+    beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
+    })
+  )
+  
+  # Generate error when trying to get random slope for factor
+  code6 <- quote(y[1:n] ~ LINPRED(~ (x2|x), priorSpecs=NULL ))
+  expect_error(LINPRED$process(code6, modInfo, NULL))
+  code6 <- quote(LINPRED_PRIORS(~ (x2|x) ))
+  expect_error(LINPRED_PRIORS$process(code6, modInfo, NULL))
 })
 
 test_that("LINPRED with 'centered' random effect", {
@@ -752,6 +836,38 @@ test_that("priors with random effect", {
       beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(-10, 10)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
+    })
+  )
+
+  # With subtracted intercept
+  code <- quote(LINPRED_PRIORS(~-1 + x))
+  out <- LINPRED_PRIORS$process(code, modInfo, NULL)
+  expect_equal(
+    out$code,
+    quote({
+      beta_x[1] ~ dnorm(0, sd = 1000)
+      beta_x[2] ~ dnorm(0, sd = 1000)
+      beta_x[3] ~ dnorm(0, sd = 1000)
+    })
+  )
+
+  code2 <- quote(LINPRED_PRIORS(~-1 + (1|x)))
+  out2 <- LINPRED_PRIORS$process(code2, modInfo, NULL)
+  expect_equal(
+    out2$code,
+    quote({
+      sd_x ~ dunif(0, 100)
+      beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
+    })
+  )
+
+  code3 <- quote(LINPRED_PRIORS(~-1 + (-1+x3|x)))
+  out3 <- LINPRED_PRIORS$process(code3, modInfo, NULL)
+  expect_equal(
+    out3$code,
+    quote({
+      sd_x3_x ~ dunif(0, 100)
+      beta_x3_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x3_x))
     })
   )
 
