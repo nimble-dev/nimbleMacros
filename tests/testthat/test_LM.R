@@ -4,7 +4,7 @@ test_that("LM", {
 
   dat <- list(x = rnorm(3), x2 = factor(c("a","b","c")), y = rnorm(3))
   modelInfo <- list(constants=dat)
-  code <- quote(LM(y ~ x + x2, priorSettings=setPriors(sd="dunif(0, 5)")))
+  code <- quote(LM(y ~ x + x2, priorSpecs=setPriors(sd="dunif(0, 5)")))
   out <- LM$process(code, modelInfo, environment())
 
   expect_equal(
@@ -12,7 +12,7 @@ test_that("LM", {
     quote({
       y[1:3] ~ FORLOOP(dnorm(mu_[1:3], sd = sd_residual))
       mu_[1:3] <- LINPRED(~x + x2, link = NULL, coefPrefix = beta_, sdPrefix = NULL,
-                    priorSettings=setPriors(sd = "dunif(0, 5)"))
+                    priorSpecs=setPriors(sd = "dunif(0, 5)"))
       sd_residual ~ dunif(0, 5)
     })
   )
@@ -28,7 +28,7 @@ test_that("LM", {
     quote({
       y[1:3] ~ FORLOOP(dpois(mu_[1:3]))
       mu_[1:3] <- LINPRED(~x + x2, link = log, coefPrefix = beta_,
-                    sdPrefix = NULL, priorSettings = setPriors())
+                    sdPrefix = NULL, priorSpecs = setPriors())
     })
   )
 
@@ -44,7 +44,7 @@ test_that("LM", {
     quote({
       y[1:3] ~ FORLOOP(dbinom(mu_[1:3], size = binSize[1:3]))
       mu_[1:3] <- LINPRED(~x, link = logit, coefPrefix = beta_,
-          sdPrefix = NULL, priorSettings = setPriors())
+          sdPrefix = NULL, priorSpecs = setPriors())
     })
   )
   
@@ -61,7 +61,7 @@ test_that("LM", {
     quote({
       y[1:3] ~ FORLOOP(dbinom(mu_[1:3], size = 1))
       mu_[1:3] <- LINPRED(~x, link = logit, coefPrefix = beta_,
-          sdPrefix = NULL, priorSettings = setPriors())
+          sdPrefix = NULL, priorSpecs = setPriors())
     })
   )
   expect_true(is.null(out4$modelInfo$constants$binSize))

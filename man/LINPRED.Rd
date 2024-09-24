@@ -19,7 +19,7 @@ default is beta_ (so x becomes beta_x, etc.)}
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
 default is no prefix.}
 
-\item{priorSettings}{Prior specifications, should be generated with setPrior()}
+\item{priorSpecs}{Prior specifications, should be generated with setPrior()}
 
 \item{noncenter}{Logical; use noncentered parameterization?}
 

@@ -361,7 +361,7 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param priorSettings Prior specifications, should be generated with setPrior()
+#' @param priorSpecs Prior specifications, should be generated with setPrior()
 #' @param noncenter Logical; use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
@@ -378,7 +378,7 @@ NULL
 #' @export
 LINPRED <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSettings=setPriors(), 
+         sdPrefix=NULL, priorSpecs=setPriors(), 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
     # Make sure formula is a formula
@@ -400,7 +400,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     modelInfo_temp <- modelInfo
     modelInfo_temp$indexCreator <- NULL # don't want to iterate the index creator here
     # Get prior settings from setPriors() function
-    eval_priors <- eval(priorSettings, envir=.env)
+    eval_priors <- eval(priorSpecs, envir=.env)
     # Process bars e.g. (1|group) in the formula
     rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp, 
                                 noncenter, centerVar)
@@ -421,12 +421,12 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
     # Add code for priors to output if needed
-    if(!is.null(priorSettings)){
+    if(!is.null(priorSpecs)){
       priorCode <- substitute(nimbleMacros::PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSettings=PRIORSET, modMatNames=FALSE,
+                                     priorSpecs=PRIORSET, modMatNames=FALSE,
                                      noncenter = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSettings, UNCENTER = noncenter, CENTERVAR=centerVar))
+                                   PRIORSET=priorSpecs, UNCENTER = noncenter, CENTERVAR=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -468,7 +468,7 @@ makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatName
     if(nrow(inds) < 2){
       node <- str2lang(par_names[i])
       # Search in order: parameter name exactly, without brackets, data type, parameter type
-      prior <- matchPrior(node, data_types[[i]], par_types[i], priorSettings=priors)
+      prior <- matchPrior(node, data_types[[i]], par_types[i], priorSpecs=priors)
       return(substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior)))
     }
 
@@ -479,13 +479,13 @@ makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatName
       if(val){
         if(modMatNames){
           alt_par <- str2lang(paste0(prefix, par_mm[[i]][t(inds[j,])]))
-          prior <- matchPrior(alt_par, data_types[[i]], par_types[i], priorSettings=priors)
+          prior <- matchPrior(alt_par, data_types[[i]], par_types[i], priorSpecs=priors)
           embedLinesInCurlyBrackets(
             list(substitute(LHS <- ALT, list(LHS=node, ALT=alt_par)),
                  substitute(ALT ~ PRIOR, list(ALT=alt_par, PRIOR=prior)))
           )
         } else {
-          prior <- matchPrior(node, data_types[[i]], par_types[i], priorSettings=priors)
+          prior <- matchPrior(node, data_types[[i]], par_types[i], priorSpecs=priors)
           substitute(LHS ~ PRIOR, list(LHS=node, PRIOR=prior))
         }
       } else {
@@ -547,7 +547,7 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param priorSettings List of prior specifications, should be generated using 
+#' @param priorSpecs List of prior specifications, should be generated using 
 #'  setPriors()
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
@@ -567,7 +567,7 @@ NULL
 #' @export
 
 PRIORS <- nimble::model_macro_builder(
-function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors(), 
+function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
          modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
   # Make sure formula is in correct format
@@ -576,10 +576,10 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
   form <- removeBracketsFromFormula(form)
   checkNoFormulaFunctions(form)    
   
-  priorSettings <- eval(priorSettings, envir=.env) 
+  priorSpecs <- eval(priorSpecs, envir=.env) 
 
   # Get random effects info (if any) from bar components for formula
-  rand_info <- processAllBars(form, priorSettings, coefPrefix, sdPrefix, modelInfo, 
+  rand_info <- processAllBars(form, priorSpecs, coefPrefix, sdPrefix, modelInfo, 
                               noncenter, centerVar) 
   
   # Create new formula combining fixed effects and random effects
@@ -592,7 +592,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSettings=setPriors()
 
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
-  fixed <- makeFixedPriorsFromFormula(reformulas::nobars(form), dat, priorSettings,
+  fixed <- makeFixedPriorsFromFormula(reformulas::nobars(form), dat, priorSpecs,
                                prefix=as.character(safeDeparse(coefPrefix)),
                                modMatNames = modMatNames)
   out <- list(fixed$code)

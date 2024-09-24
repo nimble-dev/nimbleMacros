@@ -19,7 +19,7 @@
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param priorSettings List of prior specifications, should be generated using 
+#' @param priorSpecs List of prior specifications, should be generated using 
 #'  setPriors()
 #'
 #' @examples
@@ -88,7 +88,7 @@ LM <- list(process = function(code, modelInfo, .env){
   # RHS formula
   form <- RHS[[2]]
 
-  priorSettings <- if(is.null(RHS$priorSettings)) quote(setPriors()) else RHS$priorSettings
+  priorSpecs <- if(is.null(RHS$priorSpecs)) quote(setPriors()) else RHS$priorSpecs
   coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta_) else RHS$coefPrefix
   sdPrefix <- RHS$sdPrefix
   if(family$family == "gaussian"){
@@ -102,15 +102,15 @@ LM <- list(process = function(code, modelInfo, .env){
   dataDec <- getDataDistCode(family$family, LHS, idx, par2)
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- LINPRED(FORM, link=LINK, coefPrefix=COEFPREFIX,
-                                       sdPrefix=SDPREFIX, priorSettings=PRIORS),
+                                       sdPrefix=SDPREFIX, priorSpecs=PRIORS),
                    list(IDX=idx, FORM=form, COEFPREFIX=coefPrefix, SDPREFIX=sdPrefix,
-                        PRIORS=priorSettings, LINK=link))
+                        PRIORS=priorSpecs, LINK=link))
   pars_added <- list(quote(mu_))
   out <- list(dataDec, LP)
 
   if (family$family == "gaussian"){
-    priorSettings <- eval(priorSettings, envir=.env)
-    sdPrior <- matchPrior(par2, "sd", priorSettings = priorSettings) 
+    priorSpecs <- eval(priorSpecs, envir=.env)
+    sdPrior <- matchPrior(par2, "sd", priorSpecs = priorSpecs) 
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=par2))
     pars_added <- c(pars_added, list(par2))
     out <- c(out, list(sigprior))

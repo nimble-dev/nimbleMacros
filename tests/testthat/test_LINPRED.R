@@ -383,7 +383,7 @@ test_that("LINPRED", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] <- LINPRED(~1, priorSettings=NULL))
+  code <- quote(y[1:n] <- LINPRED(~1, priorSpecs=NULL))
  
   out <- LINPRED$process(code, modelInfo=modInfo, .env=NULL)
   expect_equal(
@@ -395,45 +395,45 @@ test_that("LINPRED", {
     modInfo
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~x + x3, priorSettings=NULL))
+  code <- quote(y[1:n] ~ LINPRED(~x + x3, priorSpecs=NULL))
   expect_equal(
     LINPRED$process(code, modInfo, NULL)$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~x, priorSettings=NULL, coefPrefix=alpha_))
+  code <- quote(y[1:n] ~ LINPRED(~x, priorSpecs=NULL, coefPrefix=alpha_))
   expect_equal(
     LINPRED$process(code, modInfo, NULL)$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(alpha_Intercept + alpha_x[x[1:n]]))
   )
 
-  code <- quote(y[1:n] <- LINPRED(~x, link=log, priorSettings=NULL))
+  code <- quote(y[1:n] <- LINPRED(~x, link=log, priorSpecs=NULL))
   expect_equal(
     LINPRED$process(code, modInfo, NULL)$code,
     quote(log(y[1:n]) <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]]))
   )
 
 
-  code <- quote(y[1:n] <- LINPRED(~1, priorSettings=setPriors()))
+  code <- quote(y[1:n] <- LINPRED(~1, priorSpecs=setPriors()))
   expect_equal(
     LINPRED$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept)
-      nimbleMacros::PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=setPriors(), modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
+      nimbleMacros::PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=setPriors(), modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
     })
   )
   
   pr <- setPriors(sd=quote(dunif(0, 10)))
-  code <- quote(y[1:n] ~ LINPRED(~1, priorSettings=pr))
+  code <- quote(y[1:n] ~ LINPRED(~1, priorSpecs=pr))
   expect_equal(
     LINPRED$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept)
-      nimbleMacros::PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSettings=pr, modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
+      nimbleMacros::PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=pr, modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
     })
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~x + (x|x2), priorSettings=NULL))
+  code <- quote(y[1:n] ~ LINPRED(~x + (x|x2), priorSpecs=NULL))
   expect_equal(
     LINPRED$process(code, modInfo, NULL)$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
@@ -447,7 +447,7 @@ test_that("LINPRED with random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] ~ LINPRED(~x3 + (1|x), priorSettings=NULL))
+  code <- quote(y[1:n] ~ LINPRED(~x3 + (1|x), priorSpecs=NULL))
  
   out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
@@ -466,7 +466,7 @@ test_that("LINPRED with 'centered' random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] ~ LINPRED(~x3 + (1|x), priorSettings=NULL, centerVar=x))
+  code <- quote(y[1:n] ~ LINPRED(~x3 + (1|x), priorSpecs=NULL, centerVar=x))
  
   out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
@@ -478,7 +478,7 @@ test_that("LINPRED with 'centered' random effect", {
     modInfo$constants
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~x3 + (x3|x), priorSettings=NULL, centerVar=x))
+  code <- quote(y[1:n] ~ LINPRED(~x3 + (x3|x), priorSpecs=NULL, centerVar=x))
  
   out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
@@ -486,7 +486,7 @@ test_that("LINPRED with 'centered' random effect", {
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~x3 + (x3|x) + (1|x2), priorSettings=NULL, centerVar=x))
+  code <- quote(y[1:n] ~ LINPRED(~x3 + (x3|x) + (1|x2), priorSpecs=NULL, centerVar=x))
  
   out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
@@ -494,7 +494,7 @@ test_that("LINPRED with 'centered' random effect", {
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
 
-  code <- quote(y[1:n] ~ LINPRED(~(x3|x), priorSettings=NULL, centerVar=x))
+  code <- quote(y[1:n] ~ LINPRED(~(x3|x), priorSpecs=NULL, centerVar=x))
   out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
     out$code,
@@ -508,7 +508,7 @@ test_that("LINPRED with factor array covariate", {
   modInfo <- list(constants=list(y=matrix(rnorm(12), 3, 4),
                                  x=matrix(sample(letters[1:3], 12, replace=T), 3, 4),
                                  M=3, J=4))
-  code <- quote(y[1:M,1:J] ~ LINPRED(~x[1:M,1:J], priorSettings=NULL))
+  code <- quote(y[1:M,1:J] ~ LINPRED(~x[1:M,1:J], priorSpecs=NULL))
   out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
     out$code,
@@ -527,13 +527,13 @@ test_that("LINPRED errors when there are functions in the formula", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] <- LINPRED(~scale(x), priorSettings=NULL))
+  code <- quote(y[1:n] <- LINPRED(~scale(x), priorSpecs=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL))
 
-  code <- quote(y[1:n] <- LINPRED(~scale(x) + (1|x2), priorSettings=NULL))
+  code <- quote(y[1:n] <- LINPRED(~scale(x) + (1|x2), priorSpecs=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL))
 
-  code <- quote(y[1:n] <- LINPRED(~x3 + I(x[1:10]), priorSettings=NULL))
+  code <- quote(y[1:n] <- LINPRED(~x3 + I(x[1:10]), priorSpecs=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL))
 
 })
@@ -687,7 +687,7 @@ test_that("priors macro", {
                          coefficient=quote(dnorm(0,  sd=3)))
 
   expect_equal(
-    nimbleMacros::PRIORS$process(quote(PRIORS(~x, priorSettings=newpriors)), modInfo, environment())$code,
+    nimbleMacros::PRIORS$process(quote(PRIORS(~x, priorSpecs=newpriors)), modInfo, environment())$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 3)
       beta_x[1] <- 0
@@ -742,7 +742,7 @@ test_that("priors with random effect", {
   
   # set custom prior on SD
   pr <- setPriors(sd=quote(dunif(-10,10)))
-  code <- quote(PRIORS(~x3 + (1|x), priorSettings=pr))
+  code <- quote(PRIORS(~x3 + (1|x), priorSpecs=pr))
  
   out <- nimbleMacros::PRIORS$process(code, modInfo, environment())
   expect_equal(

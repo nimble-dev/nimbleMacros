@@ -100,17 +100,17 @@ getHyperpriorNames <- function(barExp, prefix){
 
 # Make hyperprior BUGS code chunk from a bar expression
 # (1|group) + dunif(0, 100) --> sd.group ~ dunif(0, 100) 
-makeHyperpriorCode <- function(barExp, sdPrefix, priorSettings){
+makeHyperpriorCode <- function(barExp, sdPrefix, priorSpecs){
   if(!isBar(barExp)) stop("Input is not bar expression")
   sd_names <- getHyperpriorNames(barExp, sdPrefix)
 
   hyperpriors <- lapply(sd_names, function(x){
     # If no prior settings were provided the output of this function is probably
     # not going to be used later, so just insert a placeholder
-    if(is.null(priorSettings)){
+    if(is.null(priorSpecs)){
       sdPrior <- quote(PLACEHOLDER)
     } else {
-      sdPrior <- matchPrior(x, "sd", priorSettings=priorSettings)
+      sdPrior <- matchPrior(x, "sd", priorSpecs=priorSpecs)
     }
     substitute(LHS ~ PRIOR, list(LHS=x, PRIOR=sdPrior))
   })

@@ -75,7 +75,7 @@ Two things to note:
 
 ```{r}
 code <- nimbleCode({
-  LM(am ~ mpg, family = binomial, priorSettings=pr)
+  LM(am ~ mpg, family = binomial, priorSpecs=pr)
 })
 ```
 
@@ -181,12 +181,12 @@ chick_const$N <- nrow(ChickWeight)
 ```
 
 In the model code, we specify the parameter name for the linear predictor (`mu`) and calculate it with the `LINPRED` macro and the same formula as above.
-Here we also set an argument `priorSettings = NULL`; we'll come back to this later.
+Here we also set an argument `priorSpecs = NULL`; we'll come back to this later.
 Notice that unlike with `LM`, we explicitly define the dimensions of `mu` and `Time`.
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N], priorSettings=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N], priorSpecs=NULL)
 })
 ```
 
@@ -211,7 +211,7 @@ When all the data and constants used by `LINPRED` have the same dimensions, you 
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSettings=NULL)
+  mu[1:N] <- LINPRED(~Time, priorSpecs=NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -230,7 +230,7 @@ To handle this we just need to specify different dimensions for each in the call
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N,1], priorSettings=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N,1], priorSpecs=NULL)
 })
 mod <- nimbleModel(code, chick_const2)
 mod$getCode()
@@ -250,7 +250,7 @@ chick_const$Diet <- ChickWeight$Diet
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSettings=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSpecs=NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -269,7 +269,7 @@ Suppose we wanted to force `mu` to be positive; we could use a log link function
 
 ```{r}
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N], priorSettings = NULL, link = log)
+  mu[1:N] <- LINPRED(~Time[1:N], priorSpecs = NULL, link = log)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -277,7 +277,7 @@ mod$getCode()
 
 ## Get default priors
 
-If we do not manually set the `priorSettings` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
+If we do not manually set the `priorSpecs` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
 Internally, `LINPRED` is calling the `PRIORS` macro (described below).
 
 ```{r}
@@ -381,7 +381,7 @@ pr <- setPriors(intercept = quote(dnorm(-5, 5)),
                 coefficient = quote(dnorm(0, sd = 5)))
 
 code <- nimbleCode({
- PRIORS(~Time + Diet, priorSettings = pr)
+ PRIORS(~Time + Diet, priorSpecs = pr)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -398,7 +398,7 @@ We can replicate this structure in NIMBLE model code by setting the `PRIORS` opt
 
 ```{r}
 code <- nimbleCode({
- PRIORS(~Time + Diet, priorSettings = pr, modMatNames = TRUE)
+ PRIORS(~Time + Diet, priorSpecs = pr, modMatNames = TRUE)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
