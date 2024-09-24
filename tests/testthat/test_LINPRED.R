@@ -419,7 +419,7 @@ test_that("LINPRED", {
     LINPRED$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept)
-      nimbleMacros::PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=setPriors(), modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
+      nimbleMacros::LINPRED_PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=setPriors(), modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
     })
   )
   
@@ -429,7 +429,7 @@ test_that("LINPRED", {
     LINPRED$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept)
-      nimbleMacros::PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=pr, modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
+      nimbleMacros::LINPRED_PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=pr, modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
     })
   )
 
@@ -674,7 +674,7 @@ test_that("priors macro", {
                     x3=rnorm(10)))
 
 
-  out <- nimbleMacros::PRIORS$process(quote(PRIORS(~1, coefPrefix=beta_)), modInfo, .env=NULL)  
+  out <- nimbleMacros::LINPRED_PRIORS$process(quote(LINPRED_PRIORS(~1, coefPrefix=beta_)), modInfo, .env=NULL)  
   expect_equal(out$modelInfo$constants, modInfo$constants)
   expect_equal(
     out$code,
@@ -687,7 +687,7 @@ test_that("priors macro", {
                          coefficient=quote(dnorm(0,  sd=3)))
 
   expect_equal(
-    nimbleMacros::PRIORS$process(quote(PRIORS(~x, priorSpecs=newpriors)), modInfo, environment())$code,
+    nimbleMacros::LINPRED_PRIORS$process(quote(LINPRED_PRIORS(~x, priorSpecs=newpriors)), modInfo, environment())$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 3)
       beta_x[1] <- 0
@@ -698,14 +698,14 @@ test_that("priors macro", {
 
 
   expect_equal(
-    nimbleMacros::PRIORS$process(quote(PRIORS(~x3, coefPrefix = alpha_)), modInfo, NULL)$code,
+    nimbleMacros::LINPRED_PRIORS$process(quote(LINPRED_PRIORS(~x3, coefPrefix = alpha_)), modInfo, NULL)$code,
     quote({
       alpha_Intercept ~ dnorm(0, sd = 1000)
       alpha_x3 ~ dnorm(0, sd=1000)
     })
   )
   expect_equal(
-    nimbleMacros::PRIORS$process(quote(PRIORS(~x, modMatNames=TRUE)), modInfo, NULL)$code,
+    nimbleMacros::LINPRED_PRIORS$process(quote(LINPRED_PRIORS(~x, modMatNames=TRUE)), modInfo, NULL)$code,
     quote({
       beta_Intercept ~ dnorm(0, sd = 1000)
       beta_x[1] <- 0
@@ -723,9 +723,9 @@ test_that("priors with random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(PRIORS(~x3 + (1|x)))
+  code <- quote(LINPRED_PRIORS(~x3 + (1|x)))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -742,9 +742,9 @@ test_that("priors with random effect", {
   
   # set custom prior on SD
   pr <- setPriors(sd=quote(dunif(-10,10)))
-  code <- quote(PRIORS(~x3 + (1|x), priorSpecs=pr))
+  code <- quote(LINPRED_PRIORS(~x3 + (1|x), priorSpecs=pr))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, environment())
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, environment())
   expect_equal(
     out$code,
     quote({
@@ -763,9 +763,9 @@ test_that("priors with 'partially centered' random effect", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(PRIORS(~x3 + (1|x), centerVar=x))
+  code <- quote(LINPRED_PRIORS(~x3 + (1|x), centerVar=x))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -776,9 +776,9 @@ test_that("priors with 'partially centered' random effect", {
     })
   )
 
-  code <- quote(PRIORS(~x3 + (1|x), centerVar=test))
+  code <- quote(LINPRED_PRIORS(~x3 + (1|x), centerVar=test))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -789,9 +789,9 @@ test_that("priors with 'partially centered' random effect", {
     })
   )
 
-  code <- quote(PRIORS(~x3 + (x3||x), centerVar=x))
+  code <- quote(LINPRED_PRIORS(~x3 + (x3||x), centerVar=x))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -804,9 +804,9 @@ test_that("priors with 'partially centered' random effect", {
     })
   )
 
-  code <- quote(PRIORS(~x3 + (x3|x), centerVar=x))
+  code <- quote(LINPRED_PRIORS(~x3 + (x3|x), centerVar=x))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -837,9 +837,9 @@ test_that("priors with noncentered random effects", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(PRIORS(~x3 + (1|x), noncenter=TRUE))
+  code <- quote(LINPRED_PRIORS(~x3 + (1|x), noncenter=TRUE))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -851,9 +851,9 @@ test_that("priors with noncentered random effects", {
     })
   )
 
-  code <- quote(PRIORS(~x3 + (x3||x), noncenter=TRUE, centerVar=x))
+  code <- quote(LINPRED_PRIORS(~x3 + (x3||x), noncenter=TRUE, centerVar=x))
  
-  out <- nimbleMacros::PRIORS$process(code, modInfo, NULL)
+  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
   expect_equal(
     out$code,
     quote({
@@ -868,10 +868,10 @@ test_that("priors with noncentered random effects", {
     })
   )
 
-  code <- quote(PRIORS(~x3 + (x3|x), noncenter=TRUE, centerVar=x))
+  code <- quote(LINPRED_PRIORS(~x3 + (x3|x), noncenter=TRUE, centerVar=x))
  
   # Correlated random effects don't work yet
-  expect_error(nimbleMacros::PRIORS$process(code, modInfo, NULL))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
 })
 
 test_that("priors errors when there are functions in the formula", {
@@ -881,13 +881,13 @@ test_that("priors errors when there are functions in the formula", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(PRIORS(~scale(x3) + (1|x), noncenter=TRUE))
-  expect_error(nimbleMacros::PRIORS$process(code, modInfo, NULL))
+  code <- quote(LINPRED_PRIORS(~scale(x3) + (1|x), noncenter=TRUE))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
   
-  code <- quote(PRIORS(~scale(x3) + (1|x), noncenter=TRUE)) 
-  expect_error(nimbleMacros::PRIORS$process(code, modInfo, NULL))
+  code <- quote(LINPRED_PRIORS(~scale(x3) + (1|x), noncenter=TRUE)) 
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
 
-  code <- quote(PRIORS(~I(x3[1:10]), noncenter=TRUE))
-  expect_error(nimbleMacros::PRIORS$process(code, modInfo, NULL))
+  code <- quote(LINPRED_PRIORS(~I(x3[1:10]), noncenter=TRUE))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
 
 })

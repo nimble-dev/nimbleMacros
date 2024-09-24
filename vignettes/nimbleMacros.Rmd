@@ -278,7 +278,7 @@ mod$getCode()
 ## Get default priors
 
 If we do not manually set the `priorSpecs` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
-Internally, `LINPRED` is calling the `PRIORS` macro (described below).
+Internally, `LINPRED` is calling the `LINPRED_PRIORS` macro (described below).
 
 ```{r}
 code <- nimbleCode({
@@ -359,15 +359,15 @@ mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
-# `PRIORS`
+# `LINPRED_PRIORS`
 
 This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
-The formula `~Time` implies two parameters as we described above, and `PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
-It is not necessary to specify the dimensions in the formula when using `PRIORS` directly.
+The formula `~Time` implies two parameters as we described above, and `LINPRED_PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
+It is not necessary to specify the dimensions in the formula when using `LINPRED_PRIORS` directly.
 
 ```{r}
 code <- nimbleCode({
-  PRIORS(~Time)
+  LINPRED_PRIORS(~Time)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -381,7 +381,7 @@ pr <- setPriors(intercept = quote(dnorm(-5, 5)),
                 coefficient = quote(dnorm(0, sd = 5)))
 
 code <- nimbleCode({
- PRIORS(~Time + Diet, priorSpecs = pr)
+  LINPRED_PRIORS(~Time + Diet, priorSpecs = pr)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -394,11 +394,11 @@ colnames(model.matrix(~Time + Diet, ChickWeight))
 ```
 
 Here `model.matrix` has created several separate parameters `Diet2`, `Diet3`, and `Diet4` rather than a vector.
-We can replicate this structure in NIMBLE model code by setting the `PRIORS` option `modMatNames = TRUE`.
+We can replicate this structure in NIMBLE model code by setting the `LINPRED_PRIORS` option `modMatNames = TRUE`.
 
 ```{r}
 code <- nimbleCode({
- PRIORS(~Time + Diet, priorSpecs = pr, modMatNames = TRUE)
+  LINPRED_PRIORS(~Time + Diet, priorSpecs = pr, modMatNames = TRUE)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -408,7 +408,7 @@ With this option set a few extra lines of NIMBLE model code are added to yield p
 
 # `FORLOOP`
 
-The `FORLOOP` macro is used by `LM`, `LINPRED`, and `PRIORS` and is a shorthand way of creating `for` loops (possibly nested) from a single line of code.
+The `FORLOOP` macro is used by `LM`, `LINPRED`, and `LINPRED_PRIORS` and is a shorthand way of creating `for` loops (possibly nested) from a single line of code.
 For example, suppose you want to calculate a linear predictor `mu` from `N` values of a covariate `x`.
 The NIMBLE model code would be:
 

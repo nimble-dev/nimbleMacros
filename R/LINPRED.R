@@ -422,7 +422,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
 
     # Add code for priors to output if needed
     if(!is.null(priorSpecs)){
-      priorCode <- substitute(nimbleMacros::PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
+      priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSpecs=PRIORSET, modMatNames=FALSE,
                                      noncenter = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
@@ -538,11 +538,11 @@ makeParameterStructureModMatNames <- function(formula, data){
 #' R formula. As such it makes the most sense to use this macro together with
 #' the LINPRED macro which takes similar arguments.
 #'
-#' @name PRIORS
+#' @name LINPRED_PRIORS
 #' @author Ken Kellner
 #'
 #' @param formula An R formula The formula must be right-hand side only (e.g. ~x). 
-#'  This must always be the first argument supplied to PRIORS
+#'  This must always be the first argument supplied to LINPRED_PRIORS
 #' @param coefPrefix All model coefficient names will begin with this prefix.
 #'  default is beta_ (so x becomes beta_x, etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
@@ -557,7 +557,7 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'
 #' @examples
 #' code <- nimbleCode({
-#'   PRIORS(~x + x2)
+#'   LINPRED_PRIORS(~x + x2)
 #' })
 #' 
 #' mod <- nimbleModel(code)
@@ -566,7 +566,7 @@ NULL
 
 #' @export
 
-PRIORS <- nimble::model_macro_builder(
+LINPRED_PRIORS <- nimble::model_macro_builder(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
          modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
