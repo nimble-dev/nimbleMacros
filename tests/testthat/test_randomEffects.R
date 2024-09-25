@@ -8,39 +8,39 @@ test_that("isBar", {
 test_that("barToTerms", {  
   expect_equal(
     barToTerms(quote(1|group)),
-    list(quote(group))
+    "group"
   )
   expect_equal(
     barToTerms(quote(x|group)),
-    list(quote(group), x=quote(x:group))
+    c("group", "x:group")
   )
   expect_equal(
     barToTerms(quote(x-1|group)),
-    list(x=quote(x:group))
+    "x:group"
   )
   expect_equal(
     barToTerms(quote(x+0|group)),
-    list(x=quote(x:group))
+    "x:group"
   )
   expect_equal(
     barToTerms(quote(x*y|group)),
-    list(quote(group), x=quote(x:group), y=quote(y:group), `x:y`=quote(x:y:group))
+    c("group", "x:group", "y:group", "x:y:group")
   )
   expect_equal(
     barToTerms(quote(1|group[1:n]), keep_idx = TRUE),
-    list(quote(group[1:n]))
+    "group[1:n]"
   )
   expect_equal(
     barToTerms(quote(x|group[1:n]), keep_idx = TRUE),
-    list(quote(group[1:n]), x=quote(x:group[1:n]))
+    c("group[1:n]", "x:group[1:n]")
   )
   expect_equal(
     barToTerms(quote(1|group[1:n]), keep_idx = FALSE),
-    list(quote(group))
+    "group"
   )
   expect_equal(
     barToTerms(quote(x|group[1:n]), keep_idx = FALSE),
-    list(quote(group), x=quote(x:group))
+    c("group", "x:group")
   )
 })
 
@@ -56,40 +56,6 @@ test_that("getRandomFactorName", {
   expect_equal(
     getRandomFactorName(quote(x|group2[1:n])),
     quote(group2)
-  )
-})
-
-test_that("getCombinedFormulaFromBar", {
-  expect_equal(
-    getCombinedFormulaFromBar(quote(1|group)),
-    quote(group)
-  )
-  expect_equal(
-    getCombinedFormulaFromBar(quote(x|group)),
-    quote(group + x:group)
-  )
-  expect_equal(
-    getCombinedFormulaFromBar(quote(x-1|group)),
-    quote(x:group)
-  )
-  expect_equal(
-    getCombinedFormulaFromBar(quote(x*y|group)),
-    quote(group + x:group + y:group + x:y:group)
-  )
-  expect_equal(
-    getCombinedFormulaFromBar(quote(x|group[1:n])),
-    quote(group[1:n] + x:group[1:n])
-  )
-})
-
-test_that("addFormulaTerms", {
-  expect_equal(
-    addFormulaTerms(list(quote(group))),
-    quote(group)
-  )
-  expect_equal(
-    addFormulaTerms(list(quote(group), quote(x:group))),
-    quote(group + x:group)
   )
 })
 
@@ -385,7 +351,7 @@ test_that("processBar", {
   pr <- setPriors(sd = quote(dunif(0, 3)))
   out <- processBar(quote(1|group), priorInfo=pr, coefPrefix=quote(beta_), 
                     sdPrefix=quote(alpha_), modInfo)
-  expect_equal(out$formula, quote(group))
+  expect_equal(out$terms, "group")
   expect_equal(
     out$code,
     quote({
@@ -403,7 +369,7 @@ test_that("processAllBars", {
   pr <- setPriors(sd = quote(dunif(0, 3)))
   out <- processAllBars(~(x||group), priors=pr, coefPrefix=quote(beta_), 
                     sdPrefix=quote(alpha_), modInfo)
-  expect_equal(out$formula, quote(group + x:group))
+  expect_equal(out$terms, c("group", "x:group"))
   expect_equal(
     out$code,
     quote({

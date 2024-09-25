@@ -14,7 +14,7 @@ barToTerms <- function(barExp, keep_idx = FALSE){
   if(!isBar(barExp)) stop("Input is not bar expression")
 
   # Get random factor
-  rfact <- getRandomFactorName(barExp, keep_idx)
+  rfact <- safeDeparse(getRandomFactorName(barExp, keep_idx))
   
   # Expand LHS formula into full set of terms
   LHS <- as.formula(as.call(list(as.name("~"), barExp[[2]])))
@@ -23,20 +23,18 @@ barToTerms <- function(barExp, keep_idx = FALSE){
   int <- as.logical(attr(terms(LHS), "intercept"))
 
   # If only intercept on LHS return just factor
-  if(length(trms)==0 & int) return(list(rfact))
+  if(length(trms)==0 & int) return(rfact)
   
-  all_terms <- list()
+  all_terms <- character(0)
 
   # If intercept, add random factor first
   if(int) all_terms <- c(all_terms, rfact)
   
   # Interact other terms with random factor and add to output list
-  trms <- sapply(trms, str2lang)
-  all_terms <- c(all_terms, lapply(trms, function(x){
-    substitute(PAR:RFACT, list(PAR=x, RFACT=rfact))
+  all_terms <- c(all_terms, sapply(trms, function(x){
+    paste0(x,":",rfact)
   }))
-  #if(!is.list(all_terms)) all_terms <- list(all_terms)
-  all_terms
+  unname(all_terms)
 }
 
 #  Get factor name on RHS of bar
@@ -53,43 +51,11 @@ getRandomFactorName <- function(barExp, keep_idx = FALSE){
   stop("Something went wrong")
 }
 
-# Convert bar expression into a complete formula component
-# with interactions between terms on LHS of bar and random factor
-getCombinedFormulaFromBar <- function(barExp){
-  if(!isBar(barExp)) stop("Input is not bar expression")
-  trms <- barToTerms(barExp, keep_idx = TRUE)
-  addFormulaTerms(trms)
-}
-
-# Takes a list of terms and "adds" them together (by inserting +)
-# Unfortunately converts code --> string --> code
-# Otherwise very hard to get things in correct order without parantheses
-addFormulaTerms <- function(trms){
-
-  # If only one term, return it
-  if(length(trms) == 1) return(trms[[1]])
-
-  # Otherwise add them together
-  form <- str2lang(paste(sapply(trms, safeDeparse), collapse="+"))
-  #form <- substitute(A+B, list(A=trms[[1]], B=trms[[2]]))
-  #if(length(trms) > 2){
-  #  for (i in 3:length(trms)){
-  #    form <- substitute(A+B, list(A=form, B=trms[[i]]))
-  #  }
-  #}
-  form
-}
-
 # Get list of names for hyperpriors (SDs) from combined terms
 # e.g. term x.group --> sd.x.group
 getHyperpriorNames <- function(barExp, prefix){
   if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)
-  if(is.call(trms)){
-    trms <- safeDeparse(trms)
-  } else if(is.list(trms)){
-    trms <- sapply(trms, safeDeparse)
-  }
   trms <- sub("\\[.*?\\]", "", trms)
   trms <- gsub("\\[|\\]", "", trms)
   sdPrefix <- ifelse(is.null(prefix), "", safeDeparse(prefix))
@@ -122,7 +88,7 @@ makeHyperpriorCode <- function(barExp, sdPrefix, priorSpecs){
 makeRandomParNames <- function(barExp, prefix){
   if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)
-  par_names <- paste0(safeDeparse(prefix), sapply(trms, safeDeparse))
+  par_names <- paste0(safeDeparse(prefix), trms)
   #par_names <- gsub(":", "_", par_names) # for BUGS compatibility
   par_names <- gsub(":(?=(((?!\\]).)*\\[)|[^\\[\\]]*$)", "_", par_names, perl=TRUE) # for BUGS compatibility
   sapply(par_names, str2lang)
@@ -426,8 +392,8 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo,
   modelInfo$constants <- nested$constants
   # Get random factor name
   rfact <- getRandomFactorName(barExp)
-  # Get new formula component
-  form <- getCombinedFormulaFromBar(barExp)
+  # Get new formula terms
+  trms <- barToTerms(barExp, keep_idx=TRUE)
    
   # BUGS Hyperprior code
   hyperpriors <- makeHyperpriorCode(barExp, sdPrefix, priorInfo)
@@ -436,7 +402,7 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo,
   # Combine all code
   code <- embedLinesInCurlyBrackets(list(hyperpriors, priors))
   # Return formula component, prior code, and (possibly) updated model info
-  list(formula=form, code = removeExtraBrackets(code), modelInfo=modelInfo)
+  list(terms=trms, code = removeExtraBrackets(code), modelInfo=modelInfo)
 }
 
 
@@ -467,14 +433,12 @@ processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo,
     }
   }
   
-  # Combine formula terms from all bar expressions
-  full_formula <- unlist(lapply(out, function(x) x$formula))
-  dups <- names(full_formula)[duplicated(full_formula)]
+  # Combine terms from all bar expressions
+  full_terms <- unlist(lapply(out, function(x) x$terms), use.names=FALSE)
+  dups <- full_terms[duplicated(full_terms)]
   if(length(dups) > 0){
-    dups <- paste0("(",dups,")")
     stop("Term(s) ", paste(dups, collapse=", "), " are duplicated in formula", call.=FALSE)
   }
-  full_formula <- addFormulaTerms(full_formula)
   
   # Combine all BUGS priors code
   full_priors <- lapply(out, function(x) x$code)
@@ -482,5 +446,5 @@ processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo,
   full_priors <- removeExtraBrackets(full_priors) # clean up
   
   # Return formula, BUGS priors code, and final updated modelInfo
-  list(formula = full_formula, code=full_priors, modelInfo=out[[length(out)]]$modelInfo)
+  list(terms = full_terms, code=full_priors, modelInfo=out[[length(out)]]$modelInfo)
 }

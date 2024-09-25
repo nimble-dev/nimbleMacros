@@ -7,13 +7,13 @@ getTerms <- function(formula){
 }
 
 # Expand concise interaction notation and handle some -terms
-# e.g. ~x*x3 - 1 - x becomes ~-1 + x3 + x:x3
+# e.g. ~x*x3 - 1 - x becomes ~0 + x3 + x:x3
 # this avoids some pitfalls when adding in random effects
 expand_formula <- function(x){
   if(x == ~1) return(~1)
   trm <- attr(terms(x), "term.labels")
   has_int <- attr(terms(x), "intercept")
-  if(!has_int) trm <- c("-1", trm)
+  if(!has_int) trm <- c("0", trm)
   stats::reformulate(trm)
 }
 
@@ -322,9 +322,9 @@ centeredFormulaDropTerms <- function(formula, centerVar){
 # lme4 structure to more standard structure
 # for example (1|group) becomes just group
 # Then this function combines them into a "final" formula and centers if needed
-makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
+makeAdjustedFormula <- function(formula, rand_terms, centerVar=NULL){
   # If there are no random effects just return the original formula
-  if(is.null(rand_formula)) return(formula)
+  if(is.null(rand_terms)) return(formula)
 
   # Find fixed terms
   fixed_form <- reformulas::nobars(formula)
@@ -343,8 +343,6 @@ makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   if(needs_0) fixed_terms <- c("0", fixed_terms)
 
   # Add random effects part of formula
-  rand_formula <- as.formula(as.call(list(as.name("~"), rand_formula)))
-  rand_terms <- attr(stats::terms(rand_formula), "term.labels")
   all_terms <- c(fixed_terms, rand_terms)
 
   # Convert back to formula
@@ -420,7 +418,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     
     # Create new combined formula without random effects notation
     # e.g. ~x + (x||group) will become ~x + group + x:group
-    new_form <- makeAdjustedFormula(formula, rand_info$formula, centerVar)
+    new_form <- makeAdjustedFormula(formula, rand_info$terms, centerVar)
     
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
@@ -455,8 +453,8 @@ unpackArgs=TRUE
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
 #' @importFrom stats model.matrix
 makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){ 
-  
-  if(formula == ~-1) return(list(code=NULL, parameters=character(0)))
+  formula <- expand_formula(formula) 
+  if(formula == ~0) return(list(code=NULL, parameters=character(0)))
   par_struct <- makeParameterStructure(formula, data)
   # Matching structure with the model matrix version of the names
   # Plugged in later if modMatNames = TRUE
@@ -596,16 +594,11 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   
   # Create new formula combining fixed effects and random effects
   # e.g. ~x + (x||group) becomes x + group + x:group
-  new_form <- form
-  if(!is.null(rand_info$formula)){
-    fixed_form <- expand_formula(reformulas::nobars(form))
-    new_form <- addFormulaTerms(list(fixed_form, rand_info$formula))
-    new_form <- as.formula(new_form)
-  }
+  new_form <- makeAdjustedFormula(form, rand_info$terms, centerVar)
 
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
-  fixed <- makeFixedPriorsFromFormula(expand_formula(reformulas::nobars(form)), 
+  fixed <- makeFixedPriorsFromFormula(reformulas::nobars(form), 
                                       dat, priorSpecs,
                                prefix=as.character(safeDeparse(coefPrefix)),
                                modMatNames = modMatNames)
