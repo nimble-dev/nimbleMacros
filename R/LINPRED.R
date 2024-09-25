@@ -325,33 +325,30 @@ centeredFormulaDropTerms <- function(formula, centerVar){
 makeAdjustedFormula <- function(formula, rand_formula, centerVar=NULL){
   # If there are no random effects just return the original formula
   if(is.null(rand_formula)) return(formula)
-  # Find fixed terms to remove if centered
-  adj <- centeredFormulaDropTerms(formula, centerVar)
+
   # Find fixed terms
   fixed_form <- reformulas::nobars(formula)
-  fixed_form <- expand_formula(fixed_form)
   trms <- stats::terms(fixed_form)
   has_int <- attr(trms, "intercept")
-  fixed_trms <- attr(trms, "term.labels")
-  if(has_int) fixed_trms <- c("1", fixed_trms)
-  # Remove the appropriate terms
-  fixed_trms <- fixed_trms[!fixed_trms %in% adj]
-  # Combine remaining fixed terms and random terms into a formula
-  fixed_terms <- paste(fixed_trms, collapse=" + ")
-  if(fixed_terms == "" | length(fixed_terms)==0){
-    out <- list(as.name("~"), rand_formula)
-    out <- as.formula(as.call(out))
-  } else {
-    out <- list(as.name("~"), str2lang(fixed_terms))
-    out <- as.formula(as.call(out))
-    out <- addFormulaTerms(list(out, rand_formula))
-  }
-  # Make sure the intercept is explicitly dropped if needed
-  if("1" %in% adj | fixed_terms=="" | length(fixed_trms)==0 | !has_int){
-    out <- addFormulaTerms(list(out, quote(-1)))
-  }
+  fixed_terms <- attr(trms, "term.labels")
+  int <- ifelse(has_int, "1", "0")
+  fixed_terms <- c(int, fixed_terms)
 
-  out
+  # Find fixed terms to remove if centered
+  drop_terms <- centeredFormulaDropTerms(formula, centerVar)
+  fixed_terms <- fixed_terms[!fixed_terms %in% drop_terms]
+
+  # Make sure intercept is forced to 0 if it's not in list of terms
+  needs_0 <- !any(c("0", "1") %in% fixed_terms)
+  if(needs_0) fixed_terms <- c("0", fixed_terms)
+
+  # Add random effects part of formula
+  rand_formula <- as.formula(as.call(list(as.name("~"), rand_formula)))
+  rand_terms <- attr(stats::terms(rand_formula), "term.labels")
+  all_terms <- c(fixed_terms, rand_terms)
+
+  # Convert back to formula
+  stats::reformulate(all_terms)
 }
 
 
