@@ -60,52 +60,58 @@ test_that("getRandomFactorName", {
 })
 
 test_that("getHyperpriorNames", {
+  
+  modelInfo <- list(constants=list(group=factor(letters[1:3]),
+                                   x = rnorm(3)))
+
   expect_equal(
-    getHyperpriorNames(quote(1|group), quote(beta_)),
-    list(beta_sd_group=quote(beta_sd_group))
+    getHyperpriorNames(quote(1|group), modelInfo, quote(beta_)),
+    list(list(quote(beta_sd_group)))
   )
   expect_equal(
-    getHyperpriorNames(quote(x|group), NULL),
-    list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group))
+    getHyperpriorNames(quote(x|group), modelInfo, NULL),
+    list(list(quote(sd_group)), list(quote(sd_x_group)))
   )
   expect_equal(
-    getHyperpriorNames(quote(x-1|group), NULL),
-    list(sd_x_group=quote(sd_x_group))
+    getHyperpriorNames(quote(x-1|group), modelInfo, NULL),
+    list(list(quote(sd_x_group)))
   )
   expect_equal(
-    getHyperpriorNames(quote(x*y|group), NULL),
-    list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group),
-         sd_y_group=quote(sd_y_group), sd_x_y_group=quote(sd_x_y_group))
+    getHyperpriorNames(quote(x*y|group), modelInfo, NULL),
+    list(list(quote(sd_group)), list(quote(sd_x_group)),
+         list(quote(sd_y_group)), list(quote(sd_x_y_group)))
   )
   expect_equal(
-    getHyperpriorNames(quote(x|group[1:n]), NULL),
-    list(sd_group=quote(sd_group), sd_x_group=quote(sd_x_group))
+    getHyperpriorNames(quote(x|group[1:n]), modelInfo, NULL),
+    list(list(quote(sd_group)), list(quote(sd_x_group)))
   )
 })
 
 test_that("makeHyperpriorCode", {
+  modelInfo <- list(constants=list(group=factor(letters[1:3]),
+                                   x = rnorm(3)))
   pr <- setPriors(sd = quote(dunif(0, 3)))
   expect_equal(
-    makeHyperpriorCode(quote(1|group), quote(alpha_), pr),
+    makeHyperpriorCode(quote(1|group), modelInfo, quote(alpha_), pr),
     quote({
       alpha_sd_group ~ dunif(0, 3)
     })
   )
   expect_equal(
-    makeHyperpriorCode(quote(x|group), NULL, pr),
+    makeHyperpriorCode(quote(x|group), modelInfo, NULL, pr),
     quote({
       sd_group ~ dunif(0, 3)
       sd_x_group ~ dunif(0, 3)
     })
   )
   expect_equal(
-    makeHyperpriorCode(quote(x-1|group), NULL, pr),
+    makeHyperpriorCode(quote(x-1|group), modelInfo, NULL, pr),
     quote({
       sd_x_group ~ dunif(0, 3)
     })
   )
   expect_equal(
-    makeHyperpriorCode(quote(x*y|group), NULL, pr),
+    makeHyperpriorCode(quote(x*y|group), modelInfo, NULL, pr),
     quote({
       sd_group ~ dunif(0, 3)
       sd_x_group ~ dunif(0, 3)
@@ -153,15 +159,15 @@ test_that("makeUncorrelatedRandomPrior", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)))
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo),
-    quote(beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_group)))
+    quote({beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_group))})
   )
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), quote(alpha_), modInfo),
-    quote(beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = alpha_sd_group)))
+    quote({beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = alpha_sd_group))})
   )
   expect_equal(
     makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta_), NULL, modInfo),
-    quote(beta_x_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_group)))
+    quote({beta_x_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_group))})
   )
   # Not an uncorrelated random effect
   expect_error(
@@ -234,7 +240,7 @@ test_that("makeRandomPriorCode", {
   out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
   expect_equal(
     out1,
-    quote(beta_x_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_group)))
+    quote({beta_x_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_group))})
   )
 
   out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
