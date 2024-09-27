@@ -805,7 +805,7 @@ test_that("priors with random effect", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3)))
+                    x3=round(rnorm(10),3), n=10))
 
   code <- quote(LINPRED_PRIORS(~x3 + (1|x)))
  
@@ -868,6 +868,30 @@ test_that("priors with random effect", {
     quote({
       sd_x3_x ~ dunif(0, 100)
       beta_x3_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x3_x))
+    })
+  )
+
+  # Factor slope
+  # TODO: FIXME !!!
+  code4a <- quote(mu[1:n] <- LINPRED(~(x2||x), priorSpecs=NULL))
+  out4a <- LINPRED$process(code4a, modInfo, NULL)
+  expect_equal(
+    out4a$code,
+    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]]))
+  )
+
+  code4b <- quote(LINPRED_PRIORS(~(x2||x)))
+  out4b <- LINPRED_PRIORS$process(code4b, modInfo, NULL)
+  expect_equal(
+    out4b$code,
+    quote({
+      beta_Intercept ~ dnorm(0, sd = 1000)
+      sd_x ~ dunif(0, 100)
+      beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
+      sd_x2d_x ~ dunif(0, 100)
+      sd_x2e_x ~ dunif(0, 100)
+      beta_x2_x[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_x))
+      beta_x2_x[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_x))
     })
   )
 

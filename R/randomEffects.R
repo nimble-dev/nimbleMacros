@@ -207,7 +207,7 @@ checkCovNotFactor <- function(barExp, data){
   vars <- all.vars(form)
   types <- sapply(vars, function(x) class(data[[x]]))
   if(any(types == "factor")){
-    stop("Random slopes for factors not yet supported. Try converting to dummy variables instead.", call.=FALSE)
+    stop("Correlated random slopes for factors not yet supported.\nTry converting to dummy variables instead.", call.=FALSE)
   }
 }
 

@@ -62,7 +62,9 @@ test_that("getRandomFactorName", {
 test_that("getHyperpriorNames", {
   
   modelInfo <- list(constants=list(group=factor(letters[1:3]),
-                                   x = rnorm(3)))
+                                   x = rnorm(3),
+                                   z = factor(letters[4:6]), a = factor(letters[7:8]),
+                                   w = factor(letters[9:10])))
 
   expect_equal(
     getHyperpriorNames(quote(1|group), modelInfo, quote(beta_)),
@@ -84,6 +86,53 @@ test_that("getHyperpriorNames", {
   expect_equal(
     getHyperpriorNames(quote(x|group[1:n]), modelInfo, NULL),
     list(list(quote(sd_group)), list(quote(sd_x_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(x[1:n]|group[1:n]), modelInfo, NULL),
+    list(list(quote(sd_group)), list(quote(sd_x_group)))
+  )
+
+  # Factors
+  expect_equal(
+    getHyperpriorNames(quote(0+z|group), modelInfo, NULL),
+    list(list(quote(sd_zd_group), quote(sd_ze_group), quote(sd_zf_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(z|group), modelInfo, NULL),
+    list(list(quote(sd_group)), list(quote(sd_zd_group), quote(sd_ze_group), quote(sd_zf_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(0+z:x|group), modelInfo, NULL),
+    list(list(quote(sd_zd_x_group), quote(sd_ze_x_group), quote(sd_zf_x_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(0+x:z|group), modelInfo, NULL),
+    list(list(quote(sd_x_zd_group), quote(sd_x_ze_group), quote(sd_x_zf_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(0+a:z|group), modelInfo, NULL),
+    list(list(quote(sd_ag_zd_group), quote(sd_ah_zd_group), quote(sd_ag_ze_group),
+              quote(sd_ah_ze_group), quote(sd_ag_zf_group), quote(sd_ah_zf_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(0+z:a|group), modelInfo, NULL),
+    list(list(quote(sd_zd_ag_group), quote(sd_ze_ag_group), quote(sd_zf_ag_group),
+              quote(sd_zd_ah_group), quote(sd_ze_ah_group), quote(sd_zf_ah_group)))
+  )
+  expect_equal(
+    getHyperpriorNames(quote(0+z:x|group), modelInfo, NULL),
+    list(list(quote(sd_zd_x_group), quote(sd_ze_x_group), quote(sd_zf_x_group)))
+  )
+
+  hp <- getHyperpriorNames(quote(0+a:z:w|group), modelInfo, NULL)
+  hp_string <- sapply(hp[[1]], safeDeparse)
+  expect_equal(
+    hp_string,
+    c("sd_ag_zd_wi_group", "sd_ah_zd_wi_group", "sd_ag_ze_wi_group",
+    "sd_ah_ze_wi_group", "sd_ag_zf_wi_group", "sd_ah_zf_wi_group",
+    "sd_ag_zd_wj_group", "sd_ah_zd_wj_group", "sd_ag_ze_wj_group",
+    "sd_ah_ze_wj_group", "sd_ag_zf_wj_group", "sd_ah_zf_wj_group"
+    )
   )
 })
 
@@ -156,7 +205,8 @@ test_that("numRandomFactorLevels", {
 })
 
 test_that("makeUncorrelatedRandomPrior", {
-  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)))
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3),
+                                 z=factor(letters[4:5]), w=factor(letters[6:8])))
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo),
     quote({beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_group))})
@@ -173,10 +223,48 @@ test_that("makeUncorrelatedRandomPrior", {
   expect_error(
     makeUncorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo)
   )
+
+  # Factors
+  expect_equal(
+    makeUncorrelatedRandomPrior(quote(0+z|group), quote(beta_), NULL, modInfo),
+    quote({
+      beta_z_group[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_zd_group))
+      beta_z_group[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_ze_group))
+    })
+  )
+  expect_equal(
+    makeUncorrelatedRandomPrior(quote(0+z:x|group), quote(beta_), NULL, modInfo),
+    quote({
+      beta_z_x_group[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_zd_x_group))
+      beta_z_x_group[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_ze_x_group))
+    })
+  )
+  expect_equal(
+    makeUncorrelatedRandomPrior(quote(0+z:w|group), quote(beta_), NULL, modInfo),
+    quote({
+      beta_z_w_group[1, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_zd_wf_group))
+      beta_z_w_group[2, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_ze_wf_group))
+      beta_z_w_group[1, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_zd_wg_group))
+      beta_z_w_group[2, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_ze_wg_group))
+      beta_z_w_group[1, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_zd_wh_group))
+      beta_z_w_group[2, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_ze_wh_group))
+    })
+  )
+  expect_equal(
+    makeUncorrelatedRandomPrior(quote(0+w:z|group), quote(beta_), NULL, modInfo),
+    quote({
+      beta_w_z_group[1, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wf_zd_group))
+      beta_w_z_group[2, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wg_zd_group))
+      beta_w_z_group[3, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wh_zd_group))
+      beta_w_z_group[1, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wf_ze_group))
+      beta_w_z_group[2, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wg_ze_group))
+      beta_w_z_group[3, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wh_ze_group))
+    })
+  )
 })
 
 test_that("makeCorrelatedRandomPrior", {
-  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
+  modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3), z=factor(letters[4:6])),
                   indexCreator=nimble:::labelFunctionCreator("i"))
   out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo, priorInfo=setPriors())
   expect_equal(
@@ -231,6 +319,10 @@ test_that("makeCorrelatedRandomPrior", {
 
   expect_error(
     makeCorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo, priorInfo=NULL)
+  )
+
+  expect_error(
+    makeCorrelatedRandomPrior(quote(z|group), quote(beta_), NULL, modInfo, priorInfo=NULL)
   )
 })
 
