@@ -483,6 +483,10 @@ test_that("LINPRED with random effect", {
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x3_x[x[1:n]] * x3[1:n]))
   )
 
+
+  code3 <- quote(LINPRED_PRIORS(~-1 + (-1+x3|x), priorSpecs=setPriors()))
+  out3 <- LINPRED_PRIORS$process(code3, modInfo, NULL)
+
   code4 <- nimbleCode({
     mu[1:n] ~ LINPRED(~-1 + (-1+x3|x), priorSpecs=setPriors())
   })
@@ -872,12 +876,11 @@ test_that("priors with random effect", {
   )
 
   # Factor slope
-  # TODO: FIXME !!!
   code4a <- quote(mu[1:n] <- LINPRED(~(x2||x), priorSpecs=NULL))
   out4a <- LINPRED$process(code4a, modInfo, NULL)
   expect_equal(
     out4a$code,
-    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]]))
+    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
   )
 
   code4b <- quote(LINPRED_PRIORS(~(x2||x)))
@@ -888,10 +891,10 @@ test_that("priors with random effect", {
       beta_Intercept ~ dnorm(0, sd = 1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
-      sd_x2d_x ~ dunif(0, 100)
-      sd_x2e_x ~ dunif(0, 100)
-      beta_x2_x[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_x))
-      beta_x2_x[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_x))
+      sd_x_x2d ~ dunif(0, 100)
+      sd_x_x2e ~ dunif(0, 100)
+      beta_x_x2[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2d))
+      beta_x_x2[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2e))
     })
   )
 
@@ -939,8 +942,8 @@ test_that("priors with 'partially centered' random effect", {
       beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_Intercept, sd = sd_x))
-      sd_x3_x ~ dunif(0, 100)
-      beta_x3_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_x3, sd = sd_x3_x))
+      sd_x_x3 ~ dunif(0, 100)
+      beta_x_x3[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_x3, sd = sd_x_x3))
     })
   )
 
@@ -953,9 +956,9 @@ test_that("priors with 'partially centered' random effect", {
       beta_Intercept ~ dnorm(0, sd = 1000)
       beta_x3 ~ dnorm(0, sd = 1000)
       sd_x ~ dunif(0, 100)
-      sd_x3_x ~ dunif(0, 100)
+      sd_x_x3 ~ dunif(0, 100)
       re_sds_x[1] <- sd_x
-      re_sds_x[2] <- sd_x3_x
+      re_sds_x[2] <- sd_x_x3
       Ustar_x[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
       U_x[1:2, 1:2] <- uppertri_mult_diag(Ustar_x[1:2, 1:2], re_sds_x[1:2])
       re_means_x[1] <- beta_Intercept
@@ -963,7 +966,7 @@ test_that("priors with 'partially centered' random effect", {
       for (i_ in 1:3) {
         B_x[i_, 1:2] ~ dmnorm(re_means_x[1:2], cholesky= U_x[1:2,1:2], prec_param = 0)
         beta_x[i_] <- B_x[i_, 1]
-        beta_x3_x[i_] <- B_x[i_, 2]
+        beta_x_x3[i_] <- B_x[i_, 2]
       }
     })
   )
@@ -1002,9 +1005,9 @@ test_that("priors with noncentered random effects", {
       sd_x ~ dunif(0, 100)
       beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
       beta_x[1:3] <- nimbleMacros::FORLOOP(beta_Intercept + sd_x * beta_x_raw[1:3])
-      sd_x3_x ~ dunif(0, 100)
-      beta_x3_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x3_x[1:3] <- nimbleMacros::FORLOOP(beta_x3 + sd_x3_x * beta_x3_x_raw[1:3])
+      sd_x_x3 ~ dunif(0, 100)
+      beta_x_x3_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+      beta_x_x3[1:3] <- nimbleMacros::FORLOOP(beta_x3 + sd_x_x3 * beta_x_x3_raw[1:3])
     })
   )
 

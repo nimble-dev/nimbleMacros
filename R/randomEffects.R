@@ -10,7 +10,7 @@ isBar <- function(code){
 # the LHS and RHS of bar
 # Also first expand LHS if needed (e.g. from x*y to x+y+x:y)
 #' @importFrom stats as.formula terms
-barToTerms <- function(barExp, keep_idx = FALSE){
+barToTerms <- function(barExp, keep_idx = FALSE, formula_info = NULL){
   if(!isBar(barExp)) stop("Input is not bar expression")
 
   # Get random factor
@@ -34,7 +34,14 @@ barToTerms <- function(barExp, keep_idx = FALSE){
   all_terms <- c(all_terms, sapply(trms, function(x){
     paste0(x,":",rfact)
   }))
-  unname(all_terms)
+  all_terms <- unname(all_terms)
+
+  if(!is.null(formula_info)){
+    # Update order of interactions to match the final, combined formula
+    all_terms <- fixTerms(all_terms, formula_info)
+  }
+
+  all_terms
 }
 
 #  Get factor name on RHS of bar
@@ -53,34 +60,38 @@ getRandomFactorName <- function(barExp, keep_idx = FALSE){
 
 # Get list of names for hyperpriors (SDs) from combined terms
 # e.g. term x.group --> sd.x.group
-getHyperpriorNames <- function(barExp, modelInfo, prefix){
+getHyperpriorNames <- function(barExp, modelInfo, formula_info, prefix){
   if(!isBar(barExp)) stop("Input is not bar expression")  
   sd_prefix <- ifelse(is.null(prefix), "", safeDeparse(prefix))
 
-  trms <- barToTerms(barExp)
+  trms <- barToTerms(barExp, formula_info = formula_info)
 
+  rfact <- safeDeparse(getRandomFactorName(barExp))
+  
   out <- lapply(trms, function(x){
 
     form <- as.formula(str2lang(paste0("~0+", x)))
     par_dim <- makeEmptyParameterStructure(form, modelInfo$constants)[[1]]
-    rfact <- safeDeparse(getRandomFactorName(barExp))
 
     # Check if intercept
     is_int <- length(dim(par_dim)) == 1
 
     # Check if no factors in random slopes
-    no_factor <- length(dim(par_dim)) == 2 & nrow(par_dim) == 1
+    cov_ind <- which(strsplit(x, ":")[[1]] != rfact)
+    no_factor <- length(dim(par_dim)) == 2 && dim(par_dim)[cov_ind] == 1
 
     if(is_int){
       sd_names <- list(str2lang(paste0(sd_prefix, "sd_", rfact)))
     } else if(no_factor){
-      sd_names <- list(str2lang(paste0(sd_prefix, "sd_", rownames(par_dim)[1] ,"_", rfact)))
+      sd_names <- list(str2lang(paste0(sd_prefix, "sd_", gsub(":", "_", x))))
     } else { # at least one component of slope is factor
+      dim_short_names <- strsplit(x, ":")[[1]]
+      rfact_ind <- which(dim_short_names == rfact)
       nms <- attributes(par_dim)$dimnames
-      nms <- nms[-length(nms)]
+      nms[rfact_ind] <- rfact
       nms <- expand.grid(nms)
       nms <- apply(nms, 1, function(x) paste(as.character(x), collapse="_"))
-      sd_names <- paste0(sd_prefix, "sd_", nms, "_", rfact) 
+      sd_names <- paste0(sd_prefix, "sd_", nms) 
       sd_names <- lapply(sd_names, str2lang)
     } 
     #if(length(sd_names) == 1) sd_names <- sd_names[[1]]
@@ -91,9 +102,9 @@ getHyperpriorNames <- function(barExp, modelInfo, prefix){
 
 # Make hyperprior BUGS code chunk from a bar expression
 # (1|group) + dunif(0, 100) --> sd.group ~ dunif(0, 100) 
-makeHyperpriorCode <- function(barExp, modelInfo, sdPrefix, priorSpecs){
+makeHyperpriorCode <- function(barExp, modelInfo, formula_info, sdPrefix, priorSpecs){
   if(!isBar(barExp)) stop("Input is not bar expression")
-  sd_names <- getHyperpriorNames(barExp, modelInfo, sdPrefix)
+  sd_names <- getHyperpriorNames(barExp, modelInfo, formula_info, sdPrefix)
 
   hyperpriors <- lapply(sd_names, function(x){
     lapply(x, function(z){
@@ -112,9 +123,9 @@ makeHyperpriorCode <- function(barExp, modelInfo, sdPrefix, priorSpecs){
 
 # Generate names for random terms from bar expression and prefix
 # (x||group) + beta_ --> beta_group, beta_x_group
-makeRandomParNames <- function(barExp, prefix){
+makeRandomParNames <- function(barExp, prefix, formula_info){
   if(!isBar(barExp)) stop("Input is not bar expression")
-  trms <- barToTerms(barExp)
+  trms <- barToTerms(barExp, formula_info=formula_info)
   par_names <- paste0(safeDeparse(prefix), trms)
   #par_names <- gsub(":", "_", par_names) # for BUGS compatibility
   par_names <- gsub(":(?=(((?!\\]).)*\\[)|[^\\[\\]]*$)", "_", par_names, perl=TRUE) # for BUGS compatibility
@@ -131,28 +142,32 @@ numRandomFactorLevels <- function(barExp, constants){
 }
 
 # Make uncorrelated random effects prior(s) from a particular bar expression
-makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, noncenter=FALSE, centerVar=NULL){
+makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, 
+                                        formula_info, noncenter=FALSE, centerVar=NULL){
   nlev <- numRandomFactorLevels(barExp, modelInfo$constants)
-  sd_names <- getHyperpriorNames(barExp, modelInfo, sdPrefix)
+  sd_names <- getHyperpriorNames(barExp, modelInfo, formula_info, sdPrefix)
   if(length(sd_names) > 1) stop("sd_names should be length 1 here", call.=FALSE)
   sd_names <- sd_names[[1]]
 
-  par_name <- makeRandomParNames(barExp, coefPrefix)[[1]]
+  par_name <- makeRandomParNames(barExp, coefPrefix, formula_info=formula_info)[[1]]
   rand_mean <- getUncorrelatedRandomEffectMean(barExp, coefPrefix, modelInfo, centerVar)
 
   sd_prefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
-  form <- as.formula(str2lang(paste0("~0+", barToTerms(barExp))))
+  trm <- barToTerms(barExp, formula_info=formula_info)
+  form <- as.formula(str2lang(paste0("~0+", trm)))
   par_dim <- makeEmptyParameterStructure(form, modelInfo$constants)[[1]]
   par_dim <- drop(par_dim)
   rfact <- safeDeparse(getRandomFactorName(barExp))
+  rfact_ind <- which(strsplit(trm, ":")[[1]] == rfact)
  
   if(length(dim(par_dim)) > 1){
     pd <- dim(par_dim)
-    pd <- pd[1:(length(pd)-1)]
+    #pd <- pd[1:(length(pd)-1)]
     pd <- lapply(pd, function(x) 1:x)
+    pd[rfact_ind] <- paste0("1:",nlev)
     pd <- expand.grid(pd)
     pd <- apply(pd, 1, function(x) paste(x, collapse=","))
-    idx <- sapply(pd, function(x) paste0("[", x, ",1:",nlev,"]"))
+    idx <- sapply(pd, function(x) paste0("[", x, "]"))
   } else {
     idx <- paste0("[1:",nlev,"]")
   }
@@ -212,7 +227,8 @@ checkCovNotFactor <- function(barExp, data){
 }
 
 # Make correlated random effects priors from a particular bar expression
-makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, centerVar=NULL, priorInfo){
+makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
+                                      formula_info, centerVar=NULL, priorInfo){
 
   if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)  
@@ -223,7 +239,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, c
 
   # BUGS code to assign hyperprior SDs into vector
   rfact <- getRandomFactorName(barExp)
-  sd_names <- getHyperpriorNames(barExp, modelInfo, sdPrefix)
+  sd_names <- getHyperpriorNames(barExp, modelInfo, formula_info, sdPrefix)
   sdPrefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
   sd_vec <- as.name(paste0(sdPrefix, "re_sds_", safeDeparse(rfact)))
 
@@ -266,7 +282,7 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo, c
   B <- substitute(B[IDX, 1:NP] ~ dmnorm(REMEANS[1:NP], cholesky = U[1:NP, 1:NP], prec_param=0),
                   list(B=B_name, IDX=idx, NP=np, REMEANS=re_means, U=U_name))
   # Generate BUGS code to split parts of B out into separate vectors for each parameter
-  par_names <- makeRandomParNames(barExp, coefPrefix)
+  par_names <- makeRandomParNames(barExp, coefPrefix, formula_info = formula_info)
   B_split <- lapply(1:np, function(j){
     substitute(PAR[IDX] <- B[IDX, J], 
                list(PAR=par_names[[j]], IDX=idx, B=B_name, J=as.numeric(j)))
@@ -351,16 +367,17 @@ uppertri_mult_diag <- nimbleFunction(
 # we have: beta * x + re[group], where re[group] ~ dnorm(alpha, sd_group)
 # If NULL, re mean will be 0, or if the grouping factor provided to
 # 'centerVar' does not match the one in the bar expression, then re mean will be 0.
-makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, 
+makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, formula_info, 
                                 noncenter = FALSE, centerVar = NULL, priorInfo){
   if(!isBar(barExp)) stop("Input is not bar expression")
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
     return(makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, 
-                                       noncenter, centerVar))
+                                       formula_info, noncenter, centerVar))
   }
   if(noncenter) stop("Uncentered not supported for correlated random effects yet", call.=FALSE)
-  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, centerVar, priorInfo)
+  makeCorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, 
+                            formula_info, centerVar, priorInfo)
 }
 
 # Remove extra brackets in BUGS code
@@ -440,20 +457,21 @@ processNestedRandomEffects <- function(barExp, constants){
 # SDprior is the desired hyperprior, prefix is the prefix on the parameters,
 # and constants are passed so they can be modified if needed
 processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo, 
-                       noncenter = FALSE, centerVar=NULL){  
+                       formula_info, noncenter = FALSE, centerVar=NULL){  
   # Handle nested random effects
   nested <- processNestedRandomEffects(barExp, modelInfo$constants)
   barExp <- nested$barExp
   modelInfo$constants <- nested$constants
   # Get random factor name
   rfact <- getRandomFactorName(barExp)
-  # Get new formula terms
-  trms <- barToTerms(barExp, keep_idx=TRUE)
+  # Get new formula terms (NOT SURE THIS IS NEEDED!!)
+  trms <- barToTerms(barExp, keep_idx=TRUE, formula_info = formula_info)
    
   # BUGS Hyperprior code
-  hyperpriors <- makeHyperpriorCode(barExp, modelInfo, sdPrefix, priorInfo)
+  hyperpriors <- makeHyperpriorCode(barExp, modelInfo, formula_info, sdPrefix, priorInfo)
   # BUGS random effect prior code, also updates constants if needed
-  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo, noncenter, centerVar, priorInfo)
+  priors <- makeRandomPriorCode(barExp, coefPrefix, sdPrefix, modelInfo,
+                                formula_info, noncenter, centerVar, priorInfo)
   # Combine all code
   code <- embedLinesInCurlyBrackets(list(hyperpriors, priors))
   # Return formula component, prior code, and (possibly) updated model info
@@ -464,7 +482,7 @@ processBar <- function(barExp, priorInfo, coefPrefix, sdPrefix, modelInfo,
 # Function to handle all bar expressions in a formula, combining results
 
 processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo, 
-                           noncenter = FALSE, centerVar=NULL){
+                           formula_info, noncenter = FALSE, centerVar=NULL){
   # Generate separate bars from formula
   #formula <- removeBracketsFromFormula(formula) 
   bars <- reformulas::findbars(formula)
@@ -478,13 +496,13 @@ processAllBars <- function(formula, priors, coefPrefix, sdPrefix, modelInfo,
 
   # Fill in first element of list with first bar expression
   out[[1]] <- processBar(bars[[1]], priors, coefPrefix, sdPrefix, modelInfo, 
-                         noncenter, centerVar)
+                         formula_info, noncenter, centerVar)
   # Work through remaining bar expressions if they exist
   # Make sure to pass updated model info
   if(length(bars) > 1){
     for (i in 2:length(bars)){
       out[[i]] <- processBar(bars[[i]], priors, coefPrefix, sdPrefix, 
-                             out[[i-1]]$modelInfo, noncenter, centerVar)
+                             out[[i-1]]$modelInfo, formula_info, noncenter, centerVar)
     }
   }
   
