@@ -156,9 +156,11 @@ makeUncorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
   trm <- barToTerms(barExp, formula_info=formula_info)
   form <- as.formula(str2lang(paste0("~0+", trm)))
   par_dim <- makeEmptyParameterStructure(form, modelInfo$constants)[[1]]
+  trm_split <- strsplit(trm, ":")[[1]] 
+  trm_split <- trm_split[attributes(par_dim)$dim > 1] 
   par_dim <- drop(par_dim)
   rfact <- safeDeparse(getRandomFactorName(barExp))
-  rfact_ind <- which(strsplit(trm, ":")[[1]] == rfact)
+  rfact_ind <- which(trm_split== rfact)
  
   if(length(dim(par_dim)) > 1){
     pd <- dim(par_dim)
