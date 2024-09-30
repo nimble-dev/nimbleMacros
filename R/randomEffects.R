@@ -217,15 +217,14 @@ getUncorrelatedRandomEffectMean <- function(barExp, coefPrefix, modelInfo, cente
   out
 }
 
-checkCovNotFactor <- function(barExp, data){
+barExpHasFactor <- function(barExp, data){
   if(!isBar(barExp)) stop("Input is not bar expression")
   lhs <- barExp[[2]]
   form <- as.formula(as.call(list(as.name("~"), lhs)))
   vars <- all.vars(form)
   types <- sapply(vars, function(x) class(data[[x]]))
-  if(any(types == "factor")){
-    stop("Correlated random slopes for factors not yet supported.\nTry converting to dummy variables instead.", call.=FALSE)
-  }
+  any(types == "factor")
+
 }
 
 # Make correlated random effects priors from a particular bar expression
@@ -236,8 +235,10 @@ makeCorrelatedRandomPrior <- function(barExp, coefPrefix, sdPrefix, modelInfo,
   trms <- barToTerms(barExp)  
   np <- as.numeric(length(trms))
   if(np < 2) stop("Need at least 2 terms")
-  
-  checkCovNotFactor(barExp, modelInfo$constants)
+
+  if(barExpHasFactor(barExp, modelInfo$constants)){
+    stop("Correlated random slopes for factors not yet supported.\nTry converting to dummy variables instead.", call.=FALSE)
+  }
 
   # BUGS code to assign hyperprior SDs into vector
   rfact <- getRandomFactorName(barExp)
@@ -372,6 +373,13 @@ uppertri_mult_diag <- nimbleFunction(
 makeRandomPriorCode <- function(barExp, coefPrefix, sdPrefix, modelInfo, formula_info, 
                                 noncenter = FALSE, centerVar = NULL, priorInfo){
   if(!isBar(barExp)) stop("Input is not bar expression")
+
+  if(!is.null(centerVar)){
+    if(barExpHasFactor(barExp, modelInfo$constants)){
+      stop("Centered random slopes for factors not yet supported.\nTry converting to dummy variables instead.", call.=FALSE)
+    }
+  }
+
   trms <- barToTerms(barExp)
   if(length(trms) == 1){
     return(makeUncorrelatedRandomPrior(barExp, coefPrefix, sdPrefix, modelInfo, 
