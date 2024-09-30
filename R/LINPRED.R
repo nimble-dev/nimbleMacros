@@ -355,14 +355,14 @@ processFormula <- function(formula, centerVar){
   formula <- as.formula(formula)
 
   # Check there aren't any functions in the formulas, error if there are
-  nimbleMacros:::checkNoFormulaFunctions(formula)    
+  checkNoFormulaFunctions(formula)    
   fixed_form <- reformulas::nobars(formula)
   trms <- stats::terms(fixed_form)
   has_int <- attr(trms, "intercept")
   fixed_terms <- attr(trms, "term.labels")
   int <- ifelse(has_int, "1", "0")
   fixed_terms <- c(int, fixed_terms)
-  drop_terms <- nimbleMacros:::centeredFormulaDropTerms(formula, centerVar)
+  drop_terms <- centeredFormulaDropTerms(formula, centerVar)
   fixed_terms <- fixed_terms[!fixed_terms %in% drop_terms]
   needs_0 <- !any(c("0", "1") %in% fixed_terms)
   if(needs_0) fixed_terms <- c("0", fixed_terms)
@@ -504,7 +504,8 @@ unpackArgs=TRUE
 # corresponding dataset
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
 #' @importFrom stats model.matrix
-makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){ 
+makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){
+  formula <- removeBracketsFromFormula(formula)
   formula <- expand_formula(formula) 
   if(formula == ~0) return(list(code=NULL, parameters=character(0)))
   par_struct <- makeParameterStructure(formula, data)
