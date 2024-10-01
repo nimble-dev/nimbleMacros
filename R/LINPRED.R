@@ -349,6 +349,60 @@ makeAdjustedFormula <- function(formula, rand_terms, centerVar=NULL){
   stats::reformulate(all_terms)
 }
 
+processFormula <- function(formula, centerVar){
+
+  # Make sure formula is a formula
+  formula <- as.formula(formula)
+
+  # Check there aren't any functions in the formulas, error if there are
+  checkNoFormulaFunctions(formula)    
+  fixed_form <- reformulas::nobars(formula)
+  trms <- stats::terms(fixed_form)
+  has_int <- attr(trms, "intercept")
+  fixed_terms <- attr(trms, "term.labels")
+  int <- ifelse(has_int, "1", "0")
+  fixed_terms <- c(int, fixed_terms)
+  drop_terms <- centeredFormulaDropTerms(formula, centerVar)
+  fixed_terms <- fixed_terms[!fixed_terms %in% drop_terms]
+  needs_0 <- !any(c("0", "1") %in% fixed_terms)
+  if(needs_0) fixed_terms <- c("0", fixed_terms)
+
+  bars <- reformulas::findbars(formula)
+
+  rand_terms <- character(0)
+  if(!is.null(bars)){
+    rand_terms <- lapply(bars, barToTerms, keep_idx=TRUE)
+    rand_terms <- unlist(rand_terms)
+  }
+
+  comb_terms <- c(fixed_terms, rand_terms)
+  new_form <- stats::reformulate(comb_terms)
+
+  new_terms <- attr(stats::terms(new_form), "term.labels")
+  has_int <- attr(stats::terms(new_form), "intercept")
+  int <- ifelse(has_int, "1", "0")
+  new_terms <- c(int, new_terms)
+  final_form <- stats::reformulate(new_terms)
+
+  form_nobrack <- removeBracketsFromFormula(new_form)
+  new_terms <- attr(stats::terms(form_nobrack), "term.labels")
+  has_int <- attr(stats::terms(form_nobrack), "intercept")
+  int <- ifelse(has_int, "1", "0")
+  new_terms <- c(int, new_terms)
+  terms_ref <- strsplit(new_terms, ":")
+  names(terms_ref) <- new_terms
+
+  list(formula = final_form, terms = new_terms, terms_ref = terms_ref)
+}
+
+fixTerms <- function(trms, formula_info){
+  check_terms <- strsplit(trms, ":")
+  reorder_terms <- sapply(check_terms, function(x, ref){
+    ind <- which(sapply(ref, function(z) identical(sort(z), sort(x))))
+    formula_info$terms[ind]
+  }, ref=formula_info$terms_ref)
+  reorder_terms
+}
 
 #' Macro to build code for linear predictor from R formula
 #'
@@ -390,10 +444,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSpecs=setPriors(), 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
-    # Make sure formula is a formula
-    formula <- as.formula(formula)
-    # Check there aren't any functions in the formulas, error if there are
-    checkNoFormulaFunctions(formula)    
+    form_info <- processFormula(formula, centerVar)
 
     # Get index range on LHS to use if the RHS formulas do not specify them
     LHS_ind <- extractIndices(LHS)
@@ -412,13 +463,14 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     eval_priors <- eval(priorSpecs, envir=.env)
     # Process bars e.g. (1|group) in the formula
     rand_info <- processAllBars(formula, eval_priors, coefPrefix, sdPrefix, modelInfo_temp, 
-                                noncenter, centerVar)
+                                form_info, noncenter, centerVar)
     # Make adjustments to constants if needed (e.g. for nested random effects)
     modelInfo$constants <- rand_info$modelInfo$constants
     
     # Create new combined formula without random effects notation
     # e.g. ~x + (x||group) will become ~x + group + x:group
-    new_form <- makeAdjustedFormula(formula, rand_info$terms, centerVar)
+    #new_form <- makeAdjustedFormula(formula, rand_info$terms, centerVar)
+    new_form <- form_info$formula
     
     # Make a dummy data frame to inform model.matrix with variable types
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
@@ -452,7 +504,8 @@ unpackArgs=TRUE
 # corresponding dataset
 # Fixes some parameter values at 0 if necessary (i.e., reference levels for factors)
 #' @importFrom stats model.matrix
-makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){ 
+makeFixedPriorsFromFormula <- function(formula, data, priors, prefix, modMatNames=FALSE){
+  formula <- removeBracketsFromFormula(formula)
   formula <- expand_formula(formula) 
   if(formula == ~0) return(list(code=NULL, parameters=character(0)))
   par_struct <- makeParameterStructure(formula, data)
@@ -583,18 +636,20 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   # Make sure formula is in correct format
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
   form <- as.formula(form)
-  form <- removeBracketsFromFormula(form)
-  checkNoFormulaFunctions(form)    
+  #form <- removeBracketsFromFormula(form)
+  #checkNoFormulaFunctions(form)
+  form_info <- processFormula(form, centerVar)
   
   priorSpecs <- eval(priorSpecs, envir=.env) 
 
   # Get random effects info (if any) from bar components for formula
   rand_info <- processAllBars(form, priorSpecs, coefPrefix, sdPrefix, modelInfo, 
-                              noncenter, centerVar) 
+                              form_info, noncenter, centerVar) 
   
   # Create new formula combining fixed effects and random effects
   # e.g. ~x + (x||group) becomes x + group + x:group
-  new_form <- makeAdjustedFormula(form, rand_info$terms, centerVar)
+  #new_form <- makeAdjustedFormula(form_info$formula, rand_info$terms, centerVar)
+  new_form <- removeBracketsFromFormula(form_info$formula)
 
   dat <- makeDummyDataFrame(new_form, modelInfo$constants)
 
