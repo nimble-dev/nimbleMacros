@@ -63,42 +63,44 @@ test_that("getHyperpriorNames", {
   
   modelInfo <- list(constants=list(group=factor(letters[1:3]),
                                    x = rnorm(3),
+                                   y = rnorm(3),
+                                   n = 3,
                                    z = factor(letters[4:6]), a = factor(letters[7:8]),
                                    w = factor(letters[9:10])))
 
-  form_info <- processFormula(~(1|group), NULL)
+  form_info <- processFormula(~(1|group), NULL, modelInfo)
 
   expect_equal(
     getHyperpriorNames(quote(1|group), modelInfo, form_info, quote(beta_)),
     list(list(quote(beta_sd_group)))
   )
 
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(x|group), modelInfo, form_info, NULL),
     list(list(quote(sd_group)), list(quote(sd_group_x)))
   )
 
-  form_info <- processFormula(~(x-1|group), NULL)
+  form_info <- processFormula(~(x-1|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(x-1|group), modelInfo, form_info, NULL),
     list(list(quote(sd_x_group)))
   )
 
-  form_info <- processFormula(~(x*y|group), NULL)
+  form_info <- processFormula(~(x*y|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(x*y|group), modelInfo, form_info, NULL),
     list(list(quote(sd_group)), list(quote(sd_group_x)),
          list(quote(sd_group_y)), list(quote(sd_group_x_y)))
   )
 
-  form_info <- processFormula(~(x|group[1:n]), NULL)
+  form_info <- processFormula(~(x|group[1:n]), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(x|group[1:n]), modelInfo, form_info, NULL),
     list(list(quote(sd_group)), list(quote(sd_group_x)))
   )
 
-  form_info <- processFormula(~(x[1:n]|group[1:n]), NULL)
+  form_info <- processFormula(~(x[1:n]|group[1:n]), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(x[1:n]|group[1:n]), modelInfo, form_info, NULL),
     list(list(quote(sd_group)), list(quote(sd_group_x)))
@@ -106,50 +108,50 @@ test_that("getHyperpriorNames", {
 
   # Factors
 
-  form_info <- processFormula(~(0+z|group), NULL)
+  form_info <- processFormula(~(0+z|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(0+z|group), modelInfo, form_info, NULL),
     list(list(quote(sd_zd_group), quote(sd_ze_group), quote(sd_zf_group)))
   )
-  form_info <- processFormula(~(z|group), NULL)
+  form_info <- processFormula(~(z|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(z|group), modelInfo, form_info, NULL),
     list(list(quote(sd_group)), list(quote(sd_group_zd), quote(sd_group_ze), quote(sd_group_zf)))
   )
 
-  form_info <- processFormula(~(0+z:x|group), NULL)
+  form_info <- processFormula(~(0+z:x|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(0+z:x|group), modelInfo, form_info, NULL),
     list(list(quote(sd_zd_x_group), quote(sd_ze_x_group), quote(sd_zf_x_group)))
   )
 
-  form_info <- processFormula(~(0+x:z|group), NULL)
+  form_info <- processFormula(~(0+x:z|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(0+x:z|group), modelInfo, form_info, NULL),
     list(list(quote(sd_x_zd_group), quote(sd_x_ze_group), quote(sd_x_zf_group)))
   )
 
-  form_info <- processFormula(~(0+a:z|group), NULL)
+  form_info <- processFormula(~(0+a:z|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(0+a:z|group), modelInfo, form_info, NULL),
     list(list(quote(sd_ag_zd_group), quote(sd_ah_zd_group), quote(sd_ag_ze_group),
               quote(sd_ah_ze_group), quote(sd_ag_zf_group), quote(sd_ah_zf_group)))
   )
 
-  form_info <- processFormula(~(0+z:a|group), NULL)
+  form_info <- processFormula(~(0+z:a|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(0+z:a|group), modelInfo, form_info, NULL),
     list(list(quote(sd_zd_ag_group), quote(sd_ze_ag_group), quote(sd_zf_ag_group),
               quote(sd_zd_ah_group), quote(sd_ze_ah_group), quote(sd_zf_ah_group)))
   )
 
-  form_info <- processFormula(~(0+z:x|group), NULL)
+  form_info <- processFormula(~(0+z:x|group), NULL, modelInfo)
   expect_equal(
     getHyperpriorNames(quote(0+z:x|group), modelInfo, form_info, NULL),
     list(list(quote(sd_zd_x_group), quote(sd_ze_x_group), quote(sd_zf_x_group)))
   )
 
-  form_info <- processFormula(~(0+a:z:w|group), NULL)
+  form_info <- processFormula(~(0+a:z:w|group), NULL, modelInfo)
   hp <- getHyperpriorNames(quote(0+a:z:w|group), modelInfo, form_info, NULL)
   hp_string <- sapply(hp[[1]], safeDeparse)
   expect_equal(
@@ -163,10 +165,10 @@ test_that("getHyperpriorNames", {
 })
 
 test_that("makeHyperpriorCode", {
-  modelInfo <- list(constants=list(group=factor(letters[1:3]),
+  modelInfo <- list(constants=list(group=factor(letters[1:3]), y = rnorm(3),
                                    x = rnorm(3)))
   pr <- setPriors(sd = quote(dunif(0, 3)))
-  form_info <- processFormula(~(1|group), NULL)
+  form_info <- processFormula(~(1|group), NULL, modelInfo)
   expect_equal(
     makeHyperpriorCode(quote(1|group), modelInfo, form_info, quote(alpha_), pr),
     quote({
@@ -174,7 +176,7 @@ test_that("makeHyperpriorCode", {
     })
   )
 
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modelInfo)
   expect_equal(
     makeHyperpriorCode(quote(x|group), modelInfo, form_info, NULL, pr),
     quote({
@@ -183,7 +185,7 @@ test_that("makeHyperpriorCode", {
     })
   )
 
-  form_info <- processFormula(~(x-1|group), NULL)
+  form_info <- processFormula(~(x-1|group), NULL, modelInfo)
   expect_equal(
     makeHyperpriorCode(quote(x-1|group), modelInfo, form_info, NULL, pr),
     quote({
@@ -191,7 +193,7 @@ test_that("makeHyperpriorCode", {
     })
   )
 
-  form_info <- processFormula(~(x*y|group), NULL)
+  form_info <- processFormula(~(x*y|group), NULL, modelInfo)
   expect_equal(
     makeHyperpriorCode(quote(x*y|group), modelInfo, form_info, NULL, pr),
     quote({
@@ -204,25 +206,26 @@ test_that("makeHyperpriorCode", {
 })
 
 test_that("makeRandomParNames", {
-  form_info <- processFormula(~(1|group), NULL)
+  modelInfo <- list(constants=list(group="a", x=1, y=1))
+  form_info <- processFormula(~(1|group), NULL, modelInfo)
   expect_equal(
     makeRandomParNames(quote(1|group), quote(beta_), form_info),
     list(beta_group=quote(beta_group))
   )
 
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modelInfo)
   expect_equal(
     makeRandomParNames(quote(x|group), quote(beta_), form_info),
     list(beta_group=quote(beta_group), beta_group_x=quote(beta_group_x))
   )
 
-  form_info <- processFormula(~(x-1|group), NULL)
+  form_info <- processFormula(~(x-1|group), NULL, modelInfo)
   expect_equal(
     makeRandomParNames(quote(x-1|group), quote(beta_), form_info),
     list(beta_x_group=quote(beta_x_group))
   )
 
-  form_info <- processFormula(~(x*y|group), NULL)
+  form_info <- processFormula(~(x*y|group), NULL, modelInfo)
   expect_equal(
     makeRandomParNames(quote(x*y|group), quote(beta_), form_info),
     list(beta_group=quote(beta_group), beta_group_x=quote(beta_group_x),
@@ -248,19 +251,19 @@ test_that("makeUncorrelatedRandomPrior", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3),
                                  z=factor(letters[4:5]), w=factor(letters[6:8])))
 
-  form_info <- processFormula(~(1|group), NULL)
+  form_info <- processFormula(~(1|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), NULL, modInfo, form_info),
     quote({beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_group))})
   )
 
-  form_info <- processFormula(~(1|group), NULL)
+  form_info <- processFormula(~(1|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(1|group), quote(beta_), quote(alpha_), modInfo, form_info),
     quote({beta_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = alpha_sd_group))})
   )
 
-  form_info <- processFormula(~(x-1|group), NULL)
+  form_info <- processFormula(~(x-1|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(x-1|group), quote(beta_), NULL, modInfo, form_info),
     quote({beta_x_group[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_group))})
@@ -271,7 +274,7 @@ test_that("makeUncorrelatedRandomPrior", {
   )
 
   # Factors
-  form_info <- processFormula(~(0+z|group), NULL)
+  form_info <- processFormula(~(0+z|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(0+z|group), quote(beta_), NULL, modInfo, form_info),
     quote({
@@ -280,7 +283,7 @@ test_that("makeUncorrelatedRandomPrior", {
     })
   )
 
-  form_info <- processFormula(~(0+z:x|group), NULL)
+  form_info <- processFormula(~(0+z:x|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(0+z:x|group), quote(beta_), NULL, modInfo, form_info),
     quote({
@@ -289,7 +292,7 @@ test_that("makeUncorrelatedRandomPrior", {
     })
   )
 
-  form_info <- processFormula(~(0+z:w|group), NULL)
+  form_info <- processFormula(~(0+z:w|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(0+z:w|group), quote(beta_), NULL, modInfo, form_info),
     quote({
@@ -302,7 +305,7 @@ test_that("makeUncorrelatedRandomPrior", {
     })
   )
 
-  form_info <- processFormula(~(0+w:z|group), NULL)
+  form_info <- processFormula(~(0+w:z|group), NULL, modInfo)
   expect_equal(
     makeUncorrelatedRandomPrior(quote(0+w:z|group), quote(beta_), NULL, modInfo, form_info),
     quote({
@@ -320,7 +323,7 @@ test_that("makeCorrelatedRandomPrior", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3), z=factor(letters[4:6])),
                   indexCreator=nimble:::labelFunctionCreator("i"))
 
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modInfo)
   out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo, 
                                    form_info, priorInfo=setPriors())
   expect_equal(
@@ -346,7 +349,7 @@ test_that("makeCorrelatedRandomPrior", {
   # Test changing eta
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modInfo)
   pr <- setPriors()
   pr$eta <- 2
   out <- makeCorrelatedRandomPrior(quote(x|group), quote(beta_), NULL, modInfo, 
@@ -385,7 +388,7 @@ test_that("makeCorrelatedRandomPrior", {
 test_that("makeRandomPriorCode", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  form_info <- processFormula(~(x+0|group), NULL)
+  form_info <- processFormula(~(x+0|group), NULL, modInfo)
   out1 <- makeRandomPriorCode(quote(x+0|group), quote(beta_), NULL, modInfo, 
                               form_info, priorInfo=setPriors())
   expect_equal(
@@ -394,7 +397,7 @@ test_that("makeRandomPriorCode", {
   )
 
 
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modInfo)
   out2 <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo, form_info, priorInfo=setPriors())
   expect_equal(
     out2,
@@ -422,7 +425,7 @@ test_that("makeRandomPriorCode", {
 test_that("removeExtraBrackets", {       
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
-  form_info <- processFormula(~(x|group), NULL)
+  form_info <- processFormula(~(x|group), NULL, modInfo)
   inp <- makeRandomPriorCode(quote(x|group), quote(beta_), NULL, modInfo, 
                              form_info, priorInfo=setPriors())
   
@@ -509,7 +512,7 @@ test_that("processBar", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
   pr <- setPriors(sd = quote(dunif(0, 3)))
-  form_info <- processFormula(~(1|group), NULL)
+  form_info <- processFormula(~(1|group), NULL, modInfo)
   out <- processBar(quote(1|group), priorInfo=pr, coefPrefix=quote(beta_), 
                     sdPrefix=quote(alpha_), modInfo, form_info)
   expect_equal(out$terms, "group")
@@ -528,7 +531,7 @@ test_that("processAllBars", {
   modInfo <- list(constants=list(group=factor(c("a","b","c")), x=rnorm(3)),
                   indexCreator=nimble:::labelFunctionCreator("i"))
   pr <- setPriors(sd = quote(dunif(0, 3)))
-  form_info <- processFormula(~(x||group), NULL)
+  form_info <- processFormula(~(x||group), NULL, modInfo)
   out <- processAllBars(~(x||group), priors=pr, coefPrefix=quote(beta_), 
                     sdPrefix=quote(alpha_), modInfo, form_info)
   expect_equal(out$terms, c("group", "group:x"))

@@ -119,6 +119,15 @@ checkNoFormulaFunctions <- function(form){
   invisible()
 }
 
+# Check if all parameters in formula are present in constants
+checkFormulaParametersinConstants <- function(form, modelInfo){
+  vars <- all.vars(form)
+  miss <- vars[!vars %in% names(modelInfo$constants)]
+  if(length(miss) > 0){
+    stop("Missing variable(s) ", paste(miss, collapse=", "), " in constants", call.=FALSE)
+  }
+}
+
 # Extract entire bracket structure
 # "formula" is actually a formula component, e.g. quote(x[1:n])
 extractBracket <- function(formula){
@@ -349,13 +358,17 @@ makeAdjustedFormula <- function(formula, rand_terms, centerVar=NULL){
   stats::reformulate(all_terms)
 }
 
-processFormula <- function(formula, centerVar){
+processFormula <- function(formula, centerVar, modelInfo){
 
   # Make sure formula is a formula
   formula <- as.formula(formula)
 
   # Check there aren't any functions in the formulas, error if there are
-  checkNoFormulaFunctions(formula)    
+  checkNoFormulaFunctions(formula)
+
+  # Check all covariates are in the constants
+  checkFormulaParametersinConstants(formula, modelInfo)
+
   fixed_form <- reformulas::nobars(formula)
   trms <- stats::terms(fixed_form)
   has_int <- attr(trms, "intercept")
@@ -432,11 +445,12 @@ fixTerms <- function(trms, formula_info){
 #'  default all random effects have mean 0 as with lme4.
 #' 
 #' @examples
+#' constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))
 #' code <- nimbleCode({
-#'   mu[1:10] <- LINPRED(~x + x2)
+#'   mu[1:3] <- LINPRED(~x + x2)
 #' })
 #'
-#' mod <- nimbleModel(code)
+#' mod <- nimbleModel(code, constants=constants)
 #' mod$getCode()
 NULL
 
@@ -446,7 +460,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
-    form_info <- processFormula(formula, centerVar)
+    form_info <- processFormula(formula, centerVar, modelInfo)
 
     # Get index range on LHS to use if the RHS formulas do not specify them
     LHS_ind <- extractIndices(LHS)
@@ -622,11 +636,12 @@ makeParameterStructureModMatNames <- function(formula, data){
 #'  default all random effects have mean 0 as with lme4.
 #'
 #' @examples
+#' constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))
 #' code <- nimbleCode({
 #'   LINPRED_PRIORS(~x + x2)
 #' })
 #' 
-#' mod <- nimbleModel(code)
+#' mod <- nimbleModel(code, constants = constants)
 #' mod$getCode()
 NULL
 
@@ -641,7 +656,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   form <- as.formula(form)
   #form <- removeBracketsFromFormula(form)
   #checkNoFormulaFunctions(form)
-  form_info <- processFormula(form, centerVar)
+  form_info <- processFormula(form, centerVar, modelInfo)
   
   priorSpecs <- eval(priorSpecs, envir=.env) 
 

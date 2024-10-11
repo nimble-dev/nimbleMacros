@@ -456,7 +456,10 @@ test_that("LINPRED", {
     LINPRED$process(code, modInfo, NULL)$code,
     LINPRED$process(code2, modInfo, NULL)$code,
   )
-
+  
+  # Covariate not in constants
+  code <- quote(y[1:n] <- LINPRED(~x4, link=log, priorSpecs=NULL))
+  expect_error(LINPRED$process(code, modInfo, NULL))
 })
 
 test_that("LINPRED with random effect", {

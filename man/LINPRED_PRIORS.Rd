@@ -30,11 +30,12 @@ R formula. As such it makes the most sense to use this macro together with
 the LINPRED macro which takes similar arguments.
 }
 \examples{
+constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))
 code <- nimbleCode({
   LINPRED_PRIORS(~x + x2)
 })
 
-mod <- nimbleModel(code)
+mod <- nimbleModel(code, constants = constants)
 mod$getCode()
 }
 \author{

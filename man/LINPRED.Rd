@@ -35,11 +35,12 @@ Options are available to specify a link function and to also generate
 code for priors corresponding to the parameters in the linear predictor.
 }
 \examples{
+constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))
 code <- nimbleCode({
-  mu[1:10] <- LINPRED(~x + x2)
+  mu[1:3] <- LINPRED(~x + x2)
 })
 
-mod <- nimbleModel(code)
+mod <- nimbleModel(code, constants=constants)
 mod$getCode()
 }
 \author{
