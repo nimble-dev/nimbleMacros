@@ -444,6 +444,19 @@ test_that("LINPRED", {
     beta_x2[x2[1:n]] + beta_x2_x3[x2[1:n]] * x3[1:n]))
   )
 
+  # With modMatNames = TRUE (code should be unchanged)
+  code <- quote(y[1:n] <- LINPRED(~x2, link=log, priorSpecs=NULL, modMatNames=TRUE))
+  expect_equal(
+    LINPRED$process(code, modInfo, NULL)$code,
+    quote(log(y[1:n]) <- nimbleMacros::FORLOOP(beta_Intercept + beta_x2[x2[1:n]]))
+  )
+
+  code2 <- quote(y[1:n] <- LINPRED(~x2, link=log, priorSpecs=NULL, modMatNames=FALSE))
+  expect_equal(
+    LINPRED$process(code, modInfo, NULL)$code,
+    LINPRED$process(code2, modInfo, NULL)$code,
+  )
+
 })
 
 test_that("LINPRED with random effect", {

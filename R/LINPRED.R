@@ -425,6 +425,8 @@ fixTerms <- function(trms, formula_info){
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
 #' @param priorSpecs Prior specifications, should be generated with setPrior()
+#' @param modMatNames Logical, should parameters be named so they match the
+#'  names you would get from R's model.matrix function?
 #' @param noncenter Logical; use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
@@ -441,7 +443,7 @@ NULL
 #' @export
 LINPRED <- nimble::model_macro_builder(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSpecs=setPriors(), 
+         sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
     form_info <- processFormula(formula, centerVar)
@@ -484,10 +486,11 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Add code for priors to output if needed
     if(!is.null(priorSpecs)){
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSpecs=PRIORSET, modMatNames=FALSE,
+                                     priorSpecs=PRIORSET, modMatNames=MODMAT,
                                      noncenter = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSpecs, UNCENTER = noncenter, CENTERVAR=centerVar))
+                                   PRIORSET=priorSpecs, MODMAT=modMatNames, 
+                                   UNCENTER = noncenter, CENTERVAR=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 

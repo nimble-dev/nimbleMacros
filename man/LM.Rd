@@ -22,6 +22,9 @@ default is no prefix.}
 
 \item{priorSpecs}{List of prior specifications, should be generated using 
 setPriors()}
+
+\item{modMatNames}{Logical, should parameters be named so they match the
+names you would get from R's model.matrix function?}
 }
 \description{
 This macro generates code for LMs, GLMs, and GLMMs using formula notation 

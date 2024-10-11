@@ -21,6 +21,9 @@ default is no prefix.}
 
 \item{priorSpecs}{Prior specifications, should be generated with setPrior()}
 
+\item{modMatNames}{Logical, should parameters be named so they match the
+names you would get from R's model.matrix function?}
+
 \item{noncenter}{Logical; use noncentered parameterization?}
 
 \item{centerVar}{Grouping covariate to 'center' on in parameterization. By

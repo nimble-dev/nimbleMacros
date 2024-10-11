@@ -21,6 +21,8 @@
 #'  default is no prefix.
 #' @param priorSpecs List of prior specifications, should be generated using 
 #'  setPriors()
+#' @param modMatNames Logical, should parameters be named so they match the
+#'  names you would get from R's model.matrix function?
 #'
 #' @examples
 #' constants <- list(y = rnorm(10),
@@ -54,6 +56,10 @@ LM <- list(process = function(code, modelInfo, .env){
   family <- if(is.null(RHS$family)) quote(gaussian) else RHS$family
   family <- processFamily(family)
   link <- if(family$link == "identity") NULL else as.name(family$link)
+
+  # Get modMatNames
+  modMatNames <- RHS$modMatNames
+  if(is.null(modMatNames)) modMatNames <- FALSE
 
   # Create binomial sample size
   bin_agg <- FALSE
@@ -102,9 +108,10 @@ LM <- list(process = function(code, modelInfo, .env){
   dataDec <- getDataDistCode(family$family, LHS, idx, par2)
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- LINPRED(FORM, link=LINK, coefPrefix=COEFPREFIX,
-                                       sdPrefix=SDPREFIX, priorSpecs=PRIORS),
+                                       sdPrefix=SDPREFIX, priorSpecs=PRIORS, 
+                                       modMatNames=MODMAT),
                    list(IDX=idx, FORM=form, COEFPREFIX=coefPrefix, SDPREFIX=sdPrefix,
-                        PRIORS=priorSpecs, LINK=link))
+                        PRIORS=priorSpecs, LINK=link, MODMAT=modMatNames))
   pars_added <- list(quote(mu_))
   out <- list(dataDec, LP)
 
