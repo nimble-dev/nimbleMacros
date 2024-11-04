@@ -215,7 +215,7 @@ checkDuplicateBracketComponents <- function(code){
 NULL
 
 #' @export
-FORLOOP <- nimble::model_macro_builder(
+FORLOOP <- nimble::buildMacro(
 function(code, modelInfo, .env){
   # Remove FORLOOP from the code line
   code <- removeMacroCall(code)

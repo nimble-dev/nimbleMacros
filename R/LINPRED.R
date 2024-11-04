@@ -455,7 +455,7 @@ fixTerms <- function(trms, formula_info){
 NULL
 
 #' @export
-LINPRED <- nimble::model_macro_builder(
+LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
@@ -647,7 +647,7 @@ NULL
 
 #' @export
 
-LINPRED_PRIORS <- nimble::model_macro_builder(
+LINPRED_PRIORS <- nimble::buildMacro(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
          modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
