@@ -458,7 +458,9 @@ NULL
 LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
-         noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+         noncenter = FALSE, centerVar=NULL,
+         spatialModel = NULL, spatialData = NULL, spatialIndex = NULL,
+         modelInfo, .env){
 
     form_info <- processFormula(formula, centerVar, modelInfo)
 
@@ -492,19 +494,32 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     dat <- makeDummyDataFrame(new_form, modelInfo$constants)
     # Make linear predictor from formula and data
     RHS <- makeLPFromFormula(new_form, dat, LHS_ind, coefPrefix)
+
+    # Add spatial random effect to linear predictor if needed
+    # Use LHS index if no spatial index (this does nothing if spatialModel is NULL)
+    if(!is.null(spatialModel)){
+      if(is.null(spatialIndex)){
+        if(length(LHS_ind) > 1) stop("Must specify spatialIndex manually", call.=FALSE)
+        spatialIndex <- LHS_ind[[1]] 
+      }
+      RHS <- addSpatialToLP(RHS, coefPrefix, spatialModel, spatialIndex)
+    }
+
     # Add FORLOOP macro to result
     RHS <- as.call(list(quote(nimbleMacros::FORLOOP), RHS))
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
 
     # Add code for priors to output if needed
-    if(!is.null(priorSpecs)){
+    if(!is.null(priorSpecs)){      
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSpecs=PRIORSET, modMatNames=MODMAT,
-                                     noncenter = UNCENTER, centerVar=CENTERVAR),
+                                     noncenter = UNCENTER, centerVar=CENTERVAR, 
+                                     spatialModel = SPATMODEL, spatialIndex = SPATIDX),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
                                    PRIORSET=priorSpecs, MODMAT=modMatNames, 
-                                   UNCENTER = noncenter, CENTERVAR=centerVar))
+                                   UNCENTER = noncenter, CENTERVAR=centerVar,
+                                   SPATMODEL = spatialModel, SPATIDX = spatialIndex))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -649,7 +664,9 @@ NULL
 
 LINPRED_PRIORS <- nimble::buildMacro(
 function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
-         modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+         modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, 
+         spatialModel = NULL, spatialIndex = NULL,
+         modelInfo, .env){
 
   # Make sure formula is in correct format
   if(form[[1]] != quote(`~`)) form <- c(quote(`~`),form) 
@@ -678,6 +695,13 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   out <- c(list(fixed$code), list(rand_info$code))
   out <- out[!sapply(out, is.null)]
   out <- embedLinesInCurlyBrackets(out)
+  
+  # Add spatial random effect if needed
+  if(!is.null(spatialModel)){
+    if(is.null(spatialIndex)) stop("Must provide spatialIndex", call=FALSE)
+    out <- addSpatialToPriors(out, coefPrefix, spatialModel, spatialIndex)
+  }
+  
   out <- removeExtraBrackets(out)
   
   list(code=out, modelInfo=modelInfo)
