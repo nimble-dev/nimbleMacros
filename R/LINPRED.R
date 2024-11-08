@@ -443,6 +443,10 @@ fixTerms <- function(trms, formula_info){
 #' @param noncenter Logical; use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
+#' @param spatialModel Optional call to a supported spatial model.
+#' @param spatialIndex Optional specification of index range for spatial
+#'  random effect. If left out, the index range provided on the left-hand
+#'  side of the declaration is used.
 #' 
 #' @examples
 #' constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))
@@ -459,7 +463,7 @@ LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
          noncenter = FALSE, centerVar=NULL,
-         spatialModel = NULL, spatialData = NULL, spatialIndex = NULL,
+         spatialModel = NULL, spatialIndex = NULL,
          modelInfo, .env){
 
     form_info <- processFormula(formula, centerVar, modelInfo)
@@ -649,6 +653,10 @@ makeParameterStructureModMatNames <- function(formula, data){
 #' @param noncenter Logical, use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
+#' @param spatialModel Optional call to a supported spatial model.
+#' @param spatialIndex Optional specification of index range for spatial
+#'  random effect. If left out, the index range provided on the left-hand
+#'  side of the declaration is used.
 #'
 #' @examples
 #' constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))

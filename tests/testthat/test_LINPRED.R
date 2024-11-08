@@ -423,7 +423,7 @@ test_that("LINPRED", {
     LINPRED$process(code, modInfo, NULL)$code,
     quote({
       y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept)
-      nimbleMacros::LINPRED_PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=setPriors(), modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
+      nimbleMacros::LINPRED_PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=setPriors(), modMatNames=FALSE, noncenter=FALSE, centerVar=NULL, spatialModel=NULL, spatialIndex=NULL)
     })
   )
   
@@ -433,7 +433,7 @@ test_that("LINPRED", {
     LINPRED$process(code, modInfo, environment())$code,
     quote({
       y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept)
-      nimbleMacros::LINPRED_PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=pr, modMatNames=FALSE, noncenter=FALSE, centerVar=NULL)
+      nimbleMacros::LINPRED_PRIORS(~1, coefPrefix = beta_, sdPrefix=NULL, priorSpecs=pr, modMatNames=FALSE, noncenter=FALSE, centerVar=NULL, spatialModel=NULL, spatialIndex=NULL)
     })
   )
 
