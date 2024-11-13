@@ -13,12 +13,16 @@ neighbors}
 \item{prefix}{All macro-generated parameters will begin with this prefix,
 default is ICAR_ (so x becomes ICAR_x)}
 
+\item{priorSpecs}{List of prior specifications, should be generated using 
+setPriors()}
+
 \item{zero_mean}{Value passed to corresponding argument in dcar_normal() 
 distribution in NIMBLE code}
 }
 \description{
 Takes spatial data as a Spatial object or data frame of coordinates, and
-generates corresponding code for an ICAR random effect
+generates corresponding code and constants for an intrinsic conditional 
+auto-regressive (ICAR) random effect
 }
 \author{
 Ken Kellner

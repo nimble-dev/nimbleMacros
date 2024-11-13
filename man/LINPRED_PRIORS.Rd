@@ -23,6 +23,12 @@ names you would get from R's model.matrix function?}
 
 \item{centerVar}{Grouping covariate to 'center' on in parameterization. By
 default all random effects have mean 0 as with lme4.}
+
+\item{spatialModel}{Optional call to a supported spatial model.}
+
+\item{spatialIndex}{Optional specification of index range for spatial
+random effect. If left out, the index range provided on the left-hand
+side of the declaration is used.}
 }
 \description{
 Generates appropriate priors for a linear predictor derived from an 
