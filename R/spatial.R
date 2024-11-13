@@ -8,7 +8,7 @@ addSpatialToLP <- function(code, coefPrefix, spatialModel = NULL,
   
   # Check supported models
   mod_name <- safeDeparse(spatialModel[[1]])
-  supported_models <- c("ICAR")
+  supported_models <- c("ICAR", "GP")
   if(!mod_name %in% supported_models){
     stop("Spatial model must be one of the following: ", paste(supported_models, collapse=", "), call.=FALSE)
   }
@@ -136,4 +136,92 @@ getICARInfo.data.frame <- function(x, prefix, threshold, ...){
 getICARInfo.SpatialPoints <- function(x, prefix, threshold, ...){
   if(!requireNamespace("sp", quietly=TRUE)) stop("Package sp required", call.=FALSE)
   getICARInfo.data.frame(as.data.frame(sp::coordinates(x)), prefix=prefix, threshold=threshold)
+}
+
+#' Macro to build code for an Gaussian Process random effect
+#'
+#' Takes spatial data as a Spatial object or data frame of coordinates, and
+#' generates corresponding code for an Gaussian process random effect
+#'
+#' @name GP
+#' @author Ken Kellner
+#' 
+#' @param spatData Spatial data object; can be SpatialPoints, SpatialPolygons,
+#'  or data frame of coordinates
+#' @param prefix All macro-generated parameters will begin with this prefix,
+#'  default is GP_ (so x becomes GP_x)
+#' @param priorSpecs List of prior specifications, should be generated using 
+#'  setPriors()
+NULL
+
+#' @export
+GP <- nimble::buildMacro(
+function(stoch, LHS, spatData, prefix=quote(GP_), priorSpecs=setPriors(), modelInfo, .env){  
+  idx <- extractIndices(LHS)[[1]]
+  spatData <- eval(spatData, envir=.env)
+  pars <- paste0(deparse(prefix), c("sigma","rho","mu","cov"))
+  names(pars) <- c("sigma","rho","mu","cov")
+  pars_names <- lapply(pars, str2lang)
+
+  # New constants
+  new_const <- getDistMat(spatData, prefix)
+  modelInfo$constants <- c(modelInfo$constants, new_const)
+  
+  # Priors
+  priorSpecs <- eval(priorSpecs, envir=.env)
+  sdPrior <- matchPrior(pars_names$sigma, "sd", priorSpecs = priorSpecs)
+  if(!is.null(priorSpecs$rho)){ # TODO: fix this later?
+    rhoPrior <- priorSpecs$rho
+  } else {
+    rhoPrior <- quote(dunif(0,5))
+  }
+  priors <- substitute({
+    SIGMA ~ SDPRIOR
+    RHO ~ RHOPRIOR
+  }, list(SIGMA=pars_names$sigma, RHO=pars_names$rho, SDPRIOR=sdPrior, RHOPRIOR=rhoPrior))
+
+  dist_name <- str2lang(paste0(prefix, "dists"))
+  cov_line <- substitute(COV[IDX, IDX] <- SIGMA*SIGMA*exp(-DIST[IDX, IDX] / RHO),
+                         list(COV=pars_names$cov, IDX=idx, DIST=dist_name,
+                              RHO=pars_names$rho, SIGMA=pars_names$sigma))
+  gp_line <- substitute(LHS ~ dmnorm(ZEROS[IDX], cov = COV[IDX, IDX]),
+                        list(LHS=LHS, ZEROS=str2lang(paste0(prefix, "zeros")),
+                             IDX=idx, COV=pars_names$cov))
+  
+  out <- embedLinesInCurlyBrackets(list(priors, cov_line, gp_line))
+  out <- removeExtraBrackets(out)
+
+  list(code=out, modelInfo=modelInfo)
+},
+use3pieces=TRUE,
+unpackArgs=TRUE)
+
+getDistMat <- function(x, prefix) UseMethod("getDistMat")
+
+getDistMat.matrix <- function(x, prefix){
+  dists <- as.matrix(dist(x))
+  dists <- dists / max(dists)
+  out <- list(dists, rep(0, nrow(dists)))
+  names(out) <- paste0(prefix, c("dists", "zeros"))
+  out
+}
+
+getDistMat.data.frame <- function(x, prefix){
+  getDistMat(as.matrix(x), prefix)
+}
+
+getDistMat.SpatialPoints <- function(x, prefix){
+  if(!requireNamespace("sp", quietly=TRUE)) stop("Package sp required", call.=FALSE)
+  getDistMat(sp::coordinates(x), prefix)
+}
+
+getDistMat.SpatialPolygons <- function(x, prefix){
+  if(!requireNamespace("sp", quietly=TRUE)) stop("Package sp required", call.=FALSE)
+  if(!requireNamespace("sf", quietly=TRUE)) stop("Package sf required", call.=FALSE)
+  verbose <- nimble::nimbleOptions()$verbose
+  if(is.null(verbose)) verbose <- FALSE
+  if(verbose) message('  [Note] Using centroids of polygons for distance matrix')
+  x <- sf::st_as_sf(x)
+  cent <- sf::st_centroid(x)
+  getDistMat(sf::st_coordinates(cent), prefix)
 }
