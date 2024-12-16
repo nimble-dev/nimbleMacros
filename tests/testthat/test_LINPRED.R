@@ -385,7 +385,8 @@ test_that("LINPRED", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3)))
+                    x3=round(rnorm(10),3)),
+                  inits=list(beta_Intercept=0))
 
   code <- quote(y[1:n] <- LINPRED(~1, priorSpecs=NULL))
  
