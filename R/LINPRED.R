@@ -412,23 +412,34 @@ fixTerms <- function(trms, formula_info){
   check_terms <- strsplit(trms, ":")
   reorder_terms <- sapply(check_terms, function(x, ref){
     ind <- which(sapply(ref, function(z) identical(sort(z), sort(x))))
-    formula_info$terms[ind]
+    if(length(ind) > 0) return(formula_info$terms[ind])
+    paste(x, collapse=":") # return original if not found
   }, ref=formula_info$terms_ref)
   reorder_terms
 }
 
 # Here 'formula' should be the output of processFormula 
-makeDefaultCoefficientInits <- function(formula, orig_formula,
+makeDefaultCoefficientInits <- function(form_info, orig_formula,
                                         data, coefPrefix, modMatNames){
   
   # Get structure of coefficients
-  inits <- makeEmptyParameterStructure(formula, data)
+  inits <- makeEmptyParameterStructure(removeBracketsFromFormula(form_info$formula), data)
   # Update names to match code
   names(inits) <- paste0(safeDeparse(coefPrefix), names(inits))
   names(inits) <- gsub(":", "_", names(inits), fixed=TRUE)
   
   # Repeat with original formula to account for centerVar
-  inits2 <- makeEmptyParameterStructure(reformulas::nobars(as.formula(orig_formula)), data)
+  new_form <- removeBracketsFromFormula(as.formula(orig_formula))
+  new_form <- reformulas::nobars(new_form)
+  # make sure structure matches
+  trms <- stats::terms(new_form)
+  has_int <- ifelse(attr(trms, "intercept") == 1, "1", "0")
+  trms <- attr(trms, "term.labels")
+  trms <- c(has_int, trms)
+  trms <- fixTerms(trms, form_info)
+  new_form <- stats::reformulate(trms)
+
+  inits2 <- makeEmptyParameterStructure(new_form, data)
   if(length(inits2) > 0){
     # Update names to match code
     names(inits2) <- paste0(safeDeparse(coefPrefix), names(inits2))
@@ -447,8 +458,7 @@ makeDefaultCoefficientInits <- function(formula, orig_formula,
 
   # If modMatNames, we also need inits for the re-named parameters
   if(modMatNames){
-    orig_formula <- as.formula(orig_formula) # double checking this
-    nms <- makeParameterStructureModMatNames(reformulas::nobars(orig_formula), data)
+    nms <- makeParameterStructureModMatNames(new_form, data)
     nms <- unlist(nms)
     nms <- nms[nms != "0"]
     nms <- paste0(coefPrefix, nms)
@@ -551,7 +561,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
     # Add default inits
-    inits <- makeDefaultCoefficientInits(new_form, formula, dat, coefPrefix,
+    inits <- makeDefaultCoefficientInits(form_info, formula, dat, coefPrefix,
                                          modMatNames)
     if(length(inits) > 0){
       if(is.null(modelInfo$inits)) modelInfo$inits <- list()
@@ -742,7 +752,7 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   out <- removeExtraBrackets(out)
 
   # Add default inits
-  inits <- makeDefaultCoefficientInits(new_form, form, dat, coefPrefix,
+  inits <- makeDefaultCoefficientInits(form_info, form, dat, coefPrefix,
                                          modMatNames)
   sd_inits <- makeDefaultSDInits(form, modelInfo, form_info, sdPrefix)
   inits <- utils::modifyList(inits, sd_inits)
