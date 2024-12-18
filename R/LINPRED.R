@@ -412,9 +412,73 @@ fixTerms <- function(trms, formula_info){
   check_terms <- strsplit(trms, ":")
   reorder_terms <- sapply(check_terms, function(x, ref){
     ind <- which(sapply(ref, function(z) identical(sort(z), sort(x))))
-    formula_info$terms[ind]
+    if(length(ind) > 0) return(formula_info$terms[ind])
+    paste(x, collapse=":") # return original if not found
   }, ref=formula_info$terms_ref)
   reorder_terms
+}
+
+# Here 'formula' should be the output of processFormula 
+makeDefaultCoefficientInits <- function(form_info, orig_formula,
+                                        data, coefPrefix, modMatNames){
+  
+  # Get structure of coefficients
+  inits <- makeEmptyParameterStructure(removeBracketsFromFormula(form_info$formula), data)
+  # Update names to match code
+  names(inits) <- paste0(safeDeparse(coefPrefix), names(inits))
+  names(inits) <- gsub(":", "_", names(inits), fixed=TRUE)
+  
+  # Repeat with original formula to account for centerVar
+  new_form <- removeBracketsFromFormula(as.formula(orig_formula))
+  new_form <- reformulas::nobars(new_form)
+  # make sure structure matches
+  trms <- stats::terms(new_form)
+  has_int <- ifelse(attr(trms, "intercept") == 1, "1", "0")
+  trms <- attr(trms, "term.labels")
+  trms <- c(has_int, trms)
+  trms <- fixTerms(trms, form_info)
+  new_form <- stats::reformulate(trms)
+
+  inits2 <- makeEmptyParameterStructure(new_form, data)
+  if(length(inits2) > 0){
+    # Update names to match code
+    names(inits2) <- paste0(safeDeparse(coefPrefix), names(inits2))
+    names(inits2) <- gsub(":", "_", names(inits2), fixed=TRUE)
+    if(is.null(inits)) inits <- list()
+    inits <- utils::modifyList(inits, inits2)
+  }
+
+  # Cleanup structure
+  inits <- lapply(inits, function(x){
+    if(length(x) == 0){
+      return(0)
+    }
+    drop(x)
+  })
+
+  # If modMatNames, we also need inits for the re-named parameters
+  if(modMatNames){
+    nms <- makeParameterStructureModMatNames(new_form, data)
+    nms <- unlist(nms)
+    nms <- nms[nms != "0"]
+    nms <- paste0(coefPrefix, nms)
+    modmat_inits <- as.list(rep(0, length(nms)))
+    names(modmat_inits) <- nms
+    inits <- utils::modifyList(inits, modmat_inits)
+  } 
+  inits
+}
+
+makeDefaultSDInits <- function(formula, modelInfo, formula_info, sdPrefix){
+  bars <- reformulas::findbars(formula)
+  sd_names <- lapply(bars, getHyperpriorNames, modelInfo=modelInfo,
+                     formula_info=formula_info, prefix=sdPrefix)
+  sd_names <- unlist(sd_names)
+  sd_names <- sapply(sd_names, safeDeparse)
+  sd_names
+  inits <- as.list(rep(1, length(sd_names)))
+  names(inits) <- sd_names
+  inits
 }
 
 #' Macro to build code for linear predictor from R formula
@@ -496,6 +560,13 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     RHS <- as.call(list(quote(nimbleMacros::FORLOOP), RHS))
     # Combine LHS and RHS
     code <- substitute(LHS <- RHS, list(LHS = LHS, RHS = RHS))
+    # Add default inits
+    inits <- makeDefaultCoefficientInits(form_info, formula, dat, coefPrefix,
+                                         modMatNames)
+    if(length(inits) > 0){
+      if(is.null(modelInfo$inits)) modelInfo$inits <- list()
+      modelInfo$inits <- utils::modifyList(modelInfo$inits, inits)
+    }
 
     # Add code for priors to output if needed
     if(!is.null(priorSpecs)){
@@ -679,6 +750,16 @@ function(form, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(),
   out <- out[!sapply(out, is.null)]
   out <- embedLinesInCurlyBrackets(out)
   out <- removeExtraBrackets(out)
+
+  # Add default inits
+  inits <- makeDefaultCoefficientInits(form_info, form, dat, coefPrefix,
+                                         modMatNames)
+  sd_inits <- makeDefaultSDInits(form, modelInfo, form_info, sdPrefix)
+  inits <- utils::modifyList(inits, sd_inits)
+  if(length(inits) > 0){
+    if(is.null(modelInfo$inits)) modelInfo$inits <- list()
+    modelInfo$inits <- utils::modifyList(modelInfo$inits, inits)
+  }
   
   list(code=out, modelInfo=modelInfo)
 },

@@ -385,7 +385,8 @@ test_that("LINPRED", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3)))
+                    x3=round(rnorm(10),3)),
+                  inits=list(beta_Intercept=0))
 
   code <- quote(y[1:n] <- LINPRED(~1, priorSpecs=NULL))
  
@@ -400,9 +401,16 @@ test_that("LINPRED", {
   )
 
   code <- quote(y[1:n] ~ LINPRED(~x + x3, priorSpecs=NULL))
+  out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
-    LINPRED$process(code, modInfo, NULL)$code,
+    out$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x3 * x3[1:n]))
+  )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_Intercept = 0, 
+         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x3 = c(x3 = 0))
   )
 
   code <- quote(y[1:n] ~ LINPRED(~x, priorSpecs=NULL, coefPrefix=alpha_))
@@ -438,17 +446,31 @@ test_that("LINPRED", {
   )
 
   code <- quote(y[1:n] ~ LINPRED(~x + (x3|x2), priorSpecs=NULL))
+  out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
-    LINPRED$process(code, modInfo, NULL)$code,
+    out$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] +
     beta_x2[x2[1:n]] + beta_x2_x3[x2[1:n]] * x3[1:n]))
+  )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_Intercept = 0, beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x2 = structure(c(x2d = 0, x2e = 0), dim = 2L, dimnames = list(c("x2d", "x2e"))), 
+         beta_x2_x3 = c(x2d = 0, x2e = 0))
   )
 
   # With modMatNames = TRUE (code should be unchanged)
   code <- quote(y[1:n] <- LINPRED(~x2, link=log, priorSpecs=NULL, modMatNames=TRUE))
+  out <- LINPRED$process(code, modInfo, NULL)
   expect_equal(
-    LINPRED$process(code, modInfo, NULL)$code,
+    out$code,
     quote(log(y[1:n]) <- nimbleMacros::FORLOOP(beta_Intercept + beta_x2[x2[1:n]]))
+  )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_Intercept = 0, 
+         beta_x2 = structure(c(x2d = 0, x2e = 0), dim = 2L, dimnames = list(c("x2d", "x2e"))), 
+         beta_x2e = 0)
   )
 
   code2 <- quote(y[1:n] <- LINPRED(~x2, link=log, priorSpecs=NULL, modMatNames=FALSE))
@@ -479,6 +501,11 @@ test_that("LINPRED with random effect", {
     out$modelInfo$constants,
     modInfo$constants
   )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_Intercept = 0, beta_x3 = c(x3 = 0), 
+         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))))
+  )
 
   # With subtracted intercepts
   code <- quote(y[1:n] ~ LINPRED(~-1 + x, priorSpecs=NULL))
@@ -487,16 +514,25 @@ test_that("LINPRED with random effect", {
     out$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]]))
   )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))))
+  )
 
   code2 <- quote(y[1:n] ~ LINPRED(~-1 + (1|x), priorSpecs=NULL))
   out2 <- LINPRED$process(code2, modInfo, NULL)
   expect_equal(out2$code, out$code)
+  expect_equal(out2$modelInfo$inits, out$modelInfo$inits)
 
   code3 <- quote(y[1:n] ~ LINPRED(~-1 + (-1+x3|x), priorSpecs=NULL))
   out3 <- LINPRED$process(code3, modInfo, NULL)
   expect_equal(
     out3$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x3_x[x[1:n]] * x3[1:n]))
+  )
+  expect_equal(
+    out3$modelInfo$inits,
+    list(beta_x3_x = c(xa = 0, xb = 0, xc = 0))
   )
 
 
@@ -539,6 +575,13 @@ test_that("LINPRED with random effect", {
       beta_x2_x[x2[1:n], x[1:n]]))
   )
 
+  expect_equal(
+    out5$modelInfo$inits,
+    list(beta_x2 = structure(c(x2d = 0, x2e = 0), dim = 2L, dimnames = list(c("x2d", "x2e"))), 
+         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x2_x = structure(c(0, 0, 0, 0, 0, 0), dim = 2:3, dimnames = list(c("x2d", "x2e"), c("xa", "xb", "xc"))))
+  )
+
   code6 <- quote(LINPRED_PRIORS(~x*x2 - 1 - x + (1|x) ))
   out6 <- LINPRED_PRIORS$process(code6, modInfo, NULL)
   expect_equal(
@@ -556,7 +599,13 @@ test_that("LINPRED with random effect", {
     beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
     })
   )
-  
+  expect_equal(
+    out6$modelInfo$inits,
+    list(beta_x2 = structure(c(x2d = 0, x2e = 0), dim = 2L, dimnames = list(c("x2d", "x2e"))), 
+         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x2_x = structure(c(0, 0, 0, 0, 0, 0), dim = 2:3, dimnames = list(c("x2d", "x2e"), c("xa", "xb", "xc"))), sd_x = 1)
+  )
+    
   # Generate error when trying to get random slope for factor
   code6 <- quote(y[1:n] ~ LINPRED(~ (x2|x), priorSpecs=NULL ))
   expect_error(LINPRED$process(code6, modInfo, NULL))
@@ -581,7 +630,17 @@ test_that("LINPRED with 'centered' random effect", {
     out$modelInfo$constants,
     modInfo$constants
   )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_x3 = c(x3 = 0), 
+         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_Intercept = 0)
+  )
 
+  code2 <- quote(LINPRED_PRIORS(~x3 + (1|x), centerVar=x))
+  out2 <- LINPRED_PRIORS$process(code2, modInfo, NULL)
+  expect_equal(out2$modelInfo$inits, c(out$modelInfo$inits, list(sd_x=1)))
+  
   code <- quote(y[1:n] ~ LINPRED(~x3 + (x3|x), priorSpecs=NULL, centerVar=x))
  
   out <- LINPRED$process(code, modInfo, NULL)
@@ -589,7 +648,13 @@ test_that("LINPRED with 'centered' random effect", {
     out$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
-
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x_x3 = c(xa = 0, xb = 0, xc = 0), 
+         beta_Intercept = 0, beta_x3 = c(x3 = 0))
+  )
+ 
   code <- quote(y[1:n] ~ LINPRED(~x3 + (x3|x) + (1|x2), priorSpecs=NULL, centerVar=x))
  
   out <- LINPRED$process(code, modInfo, NULL)
@@ -597,6 +662,18 @@ test_that("LINPRED with 'centered' random effect", {
     out$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x2[x2[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x2 = structure(c(x2d = 0, x2e = 0), dim = 2L, dimnames = list(c("x2d", "x2e"))), 
+         beta_x_x3 = c(xa = 0, xb = 0, xc = 0), 
+         beta_Intercept = 0, beta_x3 = c(x3 = 0))
+  )
+  
+  code2 <- quote(LINPRED_PRIORS(~x3+(x3|x)+(1|x2), centerVar=x))
+  out2 <- LINPRED_PRIORS$process(code2, modInfo,NULL)
+  expect_equal(out2$modelInfo$inits,
+               c(out$modelInfo$inits, list(sd_x=1, sd_x_x3=1, sd_x2=1)))
 
   code <- quote(y[1:n] ~ LINPRED(~(x3|x), priorSpecs=NULL, centerVar=x))
   out <- LINPRED$process(code, modInfo, NULL)
@@ -604,7 +681,26 @@ test_that("LINPRED with 'centered' random effect", {
     out$code,
     quote(y[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x_x3[x[1:n]] * x3[1:n]))
   )
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
+         beta_x_x3 = c(xa = 0, xb = 0, xc = 0), 
+         beta_Intercept = 0)
+  )
 
+  # NOTE: The below code does not provide a prior for beta_x3, which it probably should
+  # you can fix this by adding x3 manually to the fixed part of the formula
+  # not sure if this is a bug exactly? Probably need to check it somehow
+  code2 <- quote(LINPRED_PRIORS(~(x3|x), centerVar=x))
+  out2 <- LINPRED_PRIORS$process(code2, modInfo, NULL)
+
+  #test_code <- nimbleCode({
+  #  mu[1:n] <- LINPRED(~(x3|x), centerVar=x)
+  #  y[1:n] ~ FORLOOP(dnorm(mu[1:n], sd = sd_res))
+  #  sd_res ~ dunif(0, 100)
+  #})
+  #mod <- nimbleModel(test_code, constants=c(modInfo$constants, list(n=10, y=rnorm(10))))
+  #samples <- nimbleMCMC(mod, niter=10, nburnin=0)
 })
 
 test_that("LINPRED with factor array covariate", {
@@ -619,6 +715,11 @@ test_that("LINPRED with factor array covariate", {
     quote(y[1:M, 1:J] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:M, 1:J]]))
   )
   expect_equal(dim(out$modelInfo$constants$x), c(3,4))
+  expect_equal(
+    out$modelInfo$inits,
+    list(beta_Intercept = 0,
+         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))))
+  )
 
   p <- nimble:::codeProcessModelMacros(code, modInfo, environment())
   expect_true(is.numeric(p$modelInfo$constants$x))
