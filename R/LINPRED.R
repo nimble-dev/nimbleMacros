@@ -42,14 +42,14 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
     
     # Make sure formula is in correct format
-    formula <- as.formula(formula)
+    formula <- stats::as.formula(formula)
     
     # Get index range on LHS to use if the RHS formulas do not specify them
     LHS_ind <- extractBracket(LHS)
 
     # Split formula into components and process the components
     components <- buildLP(formula, defaultBracket = LHS_ind, 
-                    coefPrefix = nimbleMacros:::safeDeparse(coefPrefix),
+                    coefPrefix = safeDeparse(coefPrefix),
                     modelInfo = modelInfo, centerVar = centerVar)
     
     # Update modelInfo
@@ -130,11 +130,11 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
 
   # Make sure formula is in correct format
   if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
-  formula <- as.formula(formula)
+  formula <- stats::as.formula(formula)
 
   # Split formula into components and process the components
   components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
-                    coefPrefix = nimbleMacros:::safeDeparse(coefPrefix),
+                    coefPrefix = safeDeparse(coefPrefix),
                     modelInfo = modelInfo, centerVar = centerVar)
     
   # Update constants in modelInfo
@@ -146,7 +146,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
     modelInfo$inits <- utils::modifyList(modelInfo$inits, inits)
   }
 
-  components <- buildPriors(components, coefPrefix=nimbleMacros:::safeDeparse(coefPrefix), 
+  components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
                             priorSpecs=nimbleMacros::setPriors(),
                             modMatNames = modMatNames, noncenter=noncenter)
@@ -193,7 +193,7 @@ getInits <- function(components){
   inits <- lapply(components, function(x) x$inits)
   inits <- inits[!sapply(inits, is.null)]
   if(length(inits) == 0) return(NULL)
-  inits <- Reduce(modifyList, inits)
+  inits <- Reduce(utils::modifyList, inits)
   inits
 }
 
@@ -202,7 +202,7 @@ getConstants <- function(components){
   const <- lapply(components, function(x) x$constants)
   const <- const[!sapply(const, is.null)]
   if(length(const) == 0) return(list())
-  const <- Reduce(modifyList, const)
+  const <- Reduce(utils::modifyList, const)
   const
 } 
 
@@ -211,7 +211,7 @@ updateModelInfo <- function(modelInfo, components){
   if(is.null(modelInfo$constants)){
     modelInfo$constants <- list()
   }
-  modelInfo$constants <- modifyList(modelInfo$constants, getConstants(components))
+  modelInfo$constants <- utils::modifyList(modelInfo$constants, getConstants(components))
   modelInfo
 }
 
@@ -234,8 +234,8 @@ buildPriors <- function(components, coefPrefix="beta_", sdPrefix=NULL, modelInfo
 getPriors <- function(components){
   code <- lapply(components, function(x) x$priorCode)
   code <- code[!sapply(code, is.null)]
-  code <- nimbleMacros:::embedLinesInCurlyBrackets(code)
-  nimbleMacros:::removeExtraBrackets(code)
+  code <- embedLinesInCurlyBrackets(code)
+  removeExtraBrackets(code)
 }
 
 # Below is the code for all the individual operations on the components, in order
@@ -321,6 +321,7 @@ createRandomComponents <- function(formula){
 # For example x[1:n] becomes "x" term and "[1:n]"
 addTermsAndBrackets <- function(x, defaultBracket, ...) UseMethod("addTermsAndBrackets")
 
+#' @exportS3Method NULL
 addTermsAndBrackets.formulaComponentIntercept <- function(x, defaultBracket, ...){
   x$term <- as.character(x$lang)
   # intercept terms cannot have brackets
@@ -328,14 +329,16 @@ addTermsAndBrackets.formulaComponentIntercept <- function(x, defaultBracket, ...
 }
 .S3method("addTermsAndBrackets", "formulaComponentIntercept", addTermsAndBrackets.formulaComponentIntercept)
 
+#' @exportS3Method NULL
 addTermsAndBrackets.formulaComponentFunction <- function(x, defaultBracket, ...){
   x # don't do anything; function components have to handle this manually
 }
 .S3method("addTermsAndBrackets", "formulaComponentFunction", addTermsAndBrackets.formulaComponentFunction)
 
+#' @exportS3Method NULL
 addTermsAndBrackets.formulaComponentFixed <- function(x, defaultBracket, ...){
   # Strip bracket and convert language to character
-  x$term <- nimbleMacros:::safeDeparse(nimbleMacros:::removeSquareBrackets(x$lang))
+  x$term <- safeDeparse(removeSquareBrackets(x$lang))
 
   # variables
   vars <- all.vars(str2lang(x$term))
@@ -344,7 +347,7 @@ addTermsAndBrackets.formulaComponentFixed <- function(x, defaultBracket, ...){
   names(brack) <- vars
 
   # Add actual brackets if they exist
-  actual_bracks <- nimbleMacros:::extractAllBrackets(x$lang)
+  actual_bracks <- extractAllBrackets(x$lang)
   for (i in 1:length(brack)){
     if(names(brack)[i] %in% names(actual_bracks)){
       idx <- which(names(brack)[i] == names(actual_bracks))
@@ -357,7 +360,7 @@ addTermsAndBrackets.formulaComponentFixed <- function(x, defaultBracket, ...){
 }
 .S3method("addTermsAndBrackets", "formulaComponentFixed", addTermsAndBrackets.formulaComponentFixed)
 
-
+#' @exportS3Method NULL
 addTermsAndBrackets.formulaComponentRandom <- function(x, defaultBracket, constants, ...){
   
   # Check for nested random effect and update bar expression/lang and constants
@@ -370,13 +373,13 @@ addTermsAndBrackets.formulaComponentRandom <- function(x, defaultBracket, consta
   }
 
   # Get the grouping (random) factor
-  rfact <- nimbleMacros:::safeDeparse(nimbleMacros:::getRandomFactorName(x$lang, FALSE))
+  rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE))
 
   # Expand LHS of bar [e.g. x in (x|group)] into full set of terms including intercept
-  LHS <- as.formula(as.call(list(as.name("~"), x$lang[[2]])))
-  LHS <- nimbleMacros:::removeBracketsFromFormula(LHS)
-  trms <- attr(terms(LHS), "term.labels")
-  int <- as.logical(attr(terms(LHS), "intercept"))
+  LHS <- stats::as.formula(as.call(list(as.name("~"), x$lang[[2]])))
+  LHS <- removeBracketsFromFormula(LHS)
+  trms <- attr(stats::terms(LHS), "term.labels")
+  int <- as.logical(attr(stats::terms(LHS), "intercept"))
 
   # If only intercept on LHS return just factor
   # so (1|group) becomes group
@@ -408,7 +411,7 @@ addTermsAndBrackets.formulaComponentRandom <- function(x, defaultBracket, consta
   names(brack) <- vars
 
   # Add actual brackets if they exist
-  actual_bracks <- nimbleMacros:::extractAllBrackets(x$lang)
+  actual_bracks <- extractAllBrackets(x$lang)
   for (i in 1:length(brack)){
     if(names(brack)[i] %in% names(actual_bracks)){
       idx <- which(names(brack)[i] == names(actual_bracks))
@@ -443,14 +446,14 @@ getRandomFactorName <- function(barExp, keep_idx = FALSE){
 # 2. Actually creates new factor group_group2 in constants, which is a combination
 #    of levels of group and group2 (following lme4)
 processNestedRandomEffects <- function(barExp, constants){
-  if(!nimbleMacros:::isBar(barExp)) stop("Input is not bar expression")
+  if(!isBar(barExp)) stop("Input is not bar expression")
   RHS <- barExp[[3]]
   is_nested <- is.call(RHS) && RHS[[1]] == ":"
   # If no nesting return inputs
   if(!is_nested) return(list(barExp=barExp, constants=constants))
 
   # Create new combined random factor term
-  fac_names <- strsplit(nimbleMacros:::safeDeparse(RHS), ":")[[1]]
+  fac_names <- strsplit(safeDeparse(RHS), ":")[[1]]
   comb_name <- paste(fac_names, collapse="_")
   barExp[[3]] <- as.name(comb_name)
 
@@ -502,6 +505,7 @@ processNestedRandomEffects <- function(barExp, constants){
 addParameterName <- function(x, prefix) UseMethod("addParameterName")
 
 # Intercept parameter always called PREFIX_Intercept
+#' @exportS3Method NULL
 addParameterName.formulaComponentIntercept <- function(x, prefix){
   if(x$lang == 1){
     x$parameter <- paste0(prefix, "Intercept")
@@ -513,6 +517,7 @@ addParameterName.formulaComponentIntercept <- function(x, prefix){
 .S3method("addParameterName", "formulaComponentIntercept", addParameterName.formulaComponentIntercept)
 
 # Function parameter names must be handled manually
+#' @exportS3Method NULL
 addParameterName.formulaComponentFunction <- function(x, prefix){
   x
 }
@@ -521,6 +526,7 @@ addParameterName.formulaComponentFunction <- function(x, prefix){
 # For fixed and random terms, the parameter name is just PREFIX_term
 # where any : in the term name is replaced by _, for BUGS compatability
 # So "x" becomes "beta_x", "x:y" becomes "beta_x_y"
+#' @exportS3Method NULL
 addParameterName.formulaComponent <- function(x, prefix){
   if(is.null(x$term)) x$parameter <- NULL
   param <- paste0(prefix, x$term)
@@ -538,6 +544,7 @@ addParameterName.formulaComponent <- function(x, prefix){
 addParameterStructure <- function(x, constants) UseMethod("addParameterStructure")
 
 # Intercept parameters have no dimensions by definition
+#' @exportS3Method NULL
 addParameterStructure.formulaComponentIntercept <- function(x, constants){
   x$structure <- numeric(0)
   x
@@ -545,6 +552,7 @@ addParameterStructure.formulaComponentIntercept <- function(x, constants){
 .S3method("addParameterStructure", "formulaComponentIntercept", addParameterStructure.formulaComponentIntercept)
 
 # Function components have to handle this internally (if necessary)
+#' @exportS3Method NULL
 addParameterStructure.formulaComponentFunction <- function(x, constants){
   x
 }
@@ -560,6 +568,7 @@ addParameterStructure.formulaComponentFunction <- function(x, constants){
 #
 # The row/column names of the structure are either the name of the covariate (for continuous)
 # or the names of the factor levels (for factors / interactions with factors)
+#' @exportS3Method NULL
 addParameterStructure.formulaComponent <- function(x, constants){
   # Identify all covariates in each term by splitting on :
   # Note this will be a list with length = number of parameters
@@ -605,14 +614,17 @@ addParameterStructure.formulaComponent <- function(x, constants){
 addDataType <- function(x, constants) UseMethod("addDataType")
 
 # For intercept and function components do nothing
+#' @exportS3Method NULL
 addDataType.formulaComponentIntercept <- function(x, constants) x
 .S3method("addDataType", "formulaComponentIntercept", addDataType.formulaComponentIntercept)
+#' @exportS3Method NULL
 addDataType.formulaComponentFunction <- function(x, constants) x
 .S3method("addDataType", "formulaComponentFunction", addDataType.formulaComponentFunction)
 
 # For fixed/random, identify the covariates included in the terms
 # of the component, look them up in the constants,
 # and identify their type (continuous or factor)
+#' @exportS3Method NULL
 addDataType.formulaComponent <- function(x, constants){
   trm_split <- strsplit(x$term, ":")
   types <- lapply(trm_split, function(trm){
@@ -644,6 +656,7 @@ addLinPredCode <- function(x) UseMethod("addLinPredCode")
 
 # For intercept components, the linear predictor chunk is just the
 # parameter name, e.g. beta_Intercept
+#' @exportS3Method NULL
 addLinPredCode.formulaComponentIntercept <- function(x){
   x$linPredCode <- x$parameter
   x
@@ -651,6 +664,7 @@ addLinPredCode.formulaComponentIntercept <- function(x){
 .S3method("addLinPredCode", "formulaComponentIntercept", addLinPredCode.formulaComponentIntercept)
 
 # As usual, function components will have to handle this on their own
+#' @exportS3Method NULL
 addLinPredCode.formulaComponentFunction <- function(x){
   x
 }
@@ -658,6 +672,7 @@ addLinPredCode.formulaComponentFunction <- function(x){
 
 # For fixed/random components, use the parameter name, structure,
 # and brackets to construct the corresponding BUGS code
+#' @exportS3Method NULL
 addLinPredCode.formulaComponent <- function(x){
   
   # Iterate over each parameter in the component
@@ -756,7 +771,7 @@ centeredFormulaDropTerms <- function(components, centerVar){
   # For example (1|group) --> "group"
   rfacts <- sapply(components, function(x){
     if(!inherits(x, "formulaComponentRandom")) return("")
-    nimbleMacros:::safeDeparse(nimbleMacros:::getRandomFactorName(x$lang, FALSE))
+    safeDeparse(getRandomFactorName(x$lang, FALSE))
   })
   # Determine which of these components match the specified centerVar
   has_center <- rfacts == centerVar
@@ -775,10 +790,10 @@ centeredFormulaDropTerms <- function(components, centerVar){
   # TODO: this maybe should be a separate function?
   drop_terms <- sapply(components[has_center], function(x){     # Iterate through centered components
     # Pull out terms in LHS of bar expression, e.g. (x||group) --> "1", "x" 
-    LHS <- as.formula(as.call(list(as.name("~"), x$lang[[2]])))
-    LHS <- nimbleMacros:::removeBracketsFromFormula(LHS) # remove any brackets
-    trms <- attr(terms(LHS), "term.labels")
-    has_int <- as.logical(attr(terms(LHS), "intercept")) # handle implied intercept
+    LHS <- stats::as.formula(as.call(list(as.name("~"), x$lang[[2]])))
+    LHS <- removeBracketsFromFormula(LHS) # remove any brackets
+    trms <- attr(stats::terms(LHS), "term.labels")
+    has_int <- as.logical(attr(stats::terms(LHS), "intercept")) # handle implied intercept
     if(has_int) trms <- c("1", trms)
     trms
   })
@@ -831,6 +846,7 @@ centeredFormulaDropTerms <- function(components, centerVar){
 
 fillParameterStructure <- function(x, fixedPars) UseMethod("fillParameterStructure")
 
+#' @exportS3Method NULL
 fillParameterStructure.formulaComponent <- function(x, fixedPars){
   x
 }
@@ -838,6 +854,7 @@ fillParameterStructure.formulaComponent <- function(x, fixedPars){
 
 # Random effects don't need to worry about this issue so at the moment 
 # they don't fill in the structure and just return the input
+#' @exportS3Method NULL
 fillParameterStructure.formulaComponentRandom <- function(x, fixedPars){
   x
 }
@@ -846,6 +863,7 @@ fillParameterStructure.formulaComponentRandom <- function(x, fixedPars){
 # Given a list of the names of the fixed-effect parameters to estimate
 # (obtained from model.matrix, see below)
 # Insert these names into the correct slots of the parameter structure
+#' @exportS3Method NULL
 fillParameterStructure.formulaComponentFixed <- function(x, fixedPars){
   if(is.null(fixedPars)) return(x)
 
@@ -873,9 +891,9 @@ getFixedParametersToEstimate <- function(components, constants){
   fixed_formula <- getFormula(components, dropRandomComponents=TRUE, 
                            dropFunctionComponents=TRUE)
   # Create dummy data frame for use with model matrix
-  dummy_df <- nimbleMacros:::makeDummyDataFrame(fixed_formula, constants)
+  dummy_df <- makeDummyDataFrame(fixed_formula, constants)
   # Get colnames of model.matrix
-  fixed_pars <- colnames(model.matrix(fixed_formula, dummy_df))
+  fixed_pars <- colnames(stats::model.matrix(fixed_formula, dummy_df))
   if(length(fixed_pars) < 1) return(NULL)
   strsplit(fixed_pars, ":") # split any interaction terms
 }
@@ -914,6 +932,7 @@ addPriorsCode <- function(x, priorSpecs, ...){
   UseMethod("addPriorsCode")
 }
 
+#' @exportS3Method NULL
 addPriorsCode.formulaComponent <- function(x, priorSpecs, ...){
   x
 }
@@ -921,6 +940,7 @@ addPriorsCode.formulaComponent <- function(x, priorSpecs, ...){
 
 # Intercept is simple
 # Just need to make sure if there is no intercept there is also no prior code for it
+#' @exportS3Method NULL
 addPriorsCode.formulaComponentIntercept <- function(x, priorSpecs, ...){
   # If there is no intercept, make sure there is no prior code for it
   if(x$lang == 0){
@@ -941,6 +961,7 @@ addPriorsCode.formulaComponentIntercept <- function(x, priorSpecs, ...){
 # For fixed effect components, we can also specify if we want to use
 # parameter names that match the names model.matrix generates (modMatNames = TRUE)
 # This adds extra lines of BUGS code to the priors
+#' @exportS3Method NULL
 addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMatNames = FALSE, ...){
 
   # How many parameters in the component? should just be 1 for fixed effects
@@ -998,19 +1019,20 @@ addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMa
     })
   })
 
-  code <- nimbleMacros:::embedLinesInCurlyBrackets(code)
-  code <- nimbleMacros:::removeExtraBrackets(code)
+  code <- embedLinesInCurlyBrackets(code)
+  code <- removeExtraBrackets(code)
   x$priorCode <- code
   x
 }
 .S3method("addPriorsCode", "formulaComponentFixed", addPriorsCode.formulaComponentFixed)
 
 # Add prior code for random effects component
+#' @exportS3Method NULL
 addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL, modelInfo, components, noncenter=FALSE, ...){
   # Create hyperpriors on random effect SDs
   # If this is an uncorrelated random effect there will just be 1,
   # if it's correlated there will be more than one SD
-  sd_prefix <- ifelse(is.null(sdPrefix), "", nimbleMacros:::safeDeparse(sdPrefix))
+  sd_prefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
   trm <- gsub(":", "_", x$term)
   sd_names <- paste0(sd_prefix, "sd_", trm)
 
@@ -1031,8 +1053,8 @@ addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL,
 
   # Combine the two code pieces
   code <- c(code1, code2)
-  code <- nimbleMacros:::embedLinesInCurlyBrackets(code)
-  code <- nimbleMacros:::removeExtraBrackets(code)
+  code <- embedLinesInCurlyBrackets(code)
+  code <- removeExtraBrackets(code)
   x$priorCode <- code
   x$noncenter <- noncenter
   x  
@@ -1042,7 +1064,7 @@ addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL,
 # Create uncorrelated random prior
 uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, components, noncenter=FALSE){
   # Get random grouping factor name
-  rfact <- nimbleMacros:::safeDeparse(nimbleMacros:::getRandomFactorName(x$lang, FALSE))
+  rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE))
 
   # Look it up in the constants asnd make sure it's a factor, and get the levels
   fac <- constants[[rfact]]
@@ -1079,10 +1101,10 @@ uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, component
   # If this random effect is centered, we have to adjust the means
   if(x$centered){
     # Identify terms on the LHS of the bar expression
-    LHS <- as.formula(as.call(list(as.name("~"), x$lang[[2]])))
-    LHS <- nimbleMacros:::removeBracketsFromFormula(LHS)
-    trms <- attr(terms(LHS), "term.labels")
-    has_int <- as.logical(attr(terms(LHS), "intercept"))
+    LHS <- stats::as.formula(as.call(list(as.name("~"), x$lang[[2]])))
+    LHS <- removeBracketsFromFormula(LHS)
+    trms <- attr(stats::terms(LHS), "term.labels")
+    has_int <- as.logical(attr(stats::terms(LHS), "intercept"))
     if(has_int) trms <- c("1", trms)
     stopifnot(length(trms) == 1)
     # Search through fixed effect components for ones that match these terms
@@ -1119,7 +1141,7 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   if(noncenter) stop("Noncentered parameterization not supported for correlated random effects", call.=FALSE)
 
   # Get grouping covariate and make sure it's a factor
-  rfact <- nimbleMacros:::safeDeparse(nimbleMacros:::getRandomFactorName(x$lang, FALSE))
+  rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE))
   fac <- modelInfo$constants[[rfact]]
   if(!is.factor(fac)) stop("Grouping cov is not a factor", call.=FALSE)
   # Figure out the number of levels of the factor
@@ -1145,7 +1167,7 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
     substitute(SDS[IDX] <- SDPAR, 
                list(SDS = str2lang(sd_vec), IDX=as.numeric(i), SDPAR=str2lang(sd_name[i])))
   })
-  sds <- nimbleMacros:::embedLinesInCurlyBrackets(sds)
+  sds <- embedLinesInCurlyBrackets(sds)
 
   # BUGS code for Ustar and U
   Ustar_name <- as.name(paste0("Ustar_", rfact))
@@ -1163,10 +1185,10 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   re_means <- rep(0, length(par_names))
   # If centered, get the correct parameter name (see uncorrelated version above)
   if(x$centered){
-    LHS <- as.formula(as.call(list(as.name("~"), x$lang[[2]])))
-    LHS <- nimbleMacros:::removeBracketsFromFormula(LHS)
-    trms <- attr(terms(LHS), "term.labels")
-    has_int <- as.logical(attr(terms(LHS), "intercept"))
+    LHS <- stats::as.formula(as.call(list(as.name("~"), x$lang[[2]])))
+    LHS <- removeBracketsFromFormula(LHS)
+    trms <- attr(stats::terms(LHS), "term.labels")
+    has_int <- as.logical(attr(stats::terms(LHS), "intercept"))
     if(has_int) trms <- c("1", trms)
     stopifnot(length(trms) > 1)
     component_terms <- lapply(components, function(z) z$term)
@@ -1206,14 +1228,14 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   })
 
   # Generate BUGS code combining B and B_split into a for loop
-  B_loop <- nimbleMacros:::embedLinesInCurlyBrackets(c(B, B_split))
+  B_loop <- embedLinesInCurlyBrackets(c(B, B_split))
   B_loop <- c(list(as.name("for"), idx, substitute(1:NLEV, list(NLEV=as.numeric(nlev)))),
               B_loop)
   B_loop <- as.call(B_loop)
 
   # Return BUGS code combining all parts
-  code <- nimbleMacros:::embedLinesInCurlyBrackets(list(sds, u, re_mean_loop, B_loop))
-  nimbleMacros:::removeExtraBrackets(code)
+  code <- embedLinesInCurlyBrackets(list(sds, u, re_mean_loop, B_loop))
+  removeExtraBrackets(code)
 }
 
 # Nimble function needed above
@@ -1252,22 +1274,25 @@ addInits <- function(x, ...){
 }
 
 # By default do nothing
+#' @exportS3Method NULL
 addInits.formulaComponent <- function(x, ...){
   x
 }
 .S3method("addInits", "formulaComponent", addInits.formulaComponent)
 
 # Intercept initial value is just 0
+#' @exportS3Method NULL
 addInits.formulaComponentIntercept <- function(x, ...){
   inits <- list(0)
   names(inits) <- x$parameter
   if(is.null(x$inits)) x$inits <- list()
-  x$inits <- modifyList(x$inits, inits) # to avoid duplicate entries
+  x$inits <- utils::modifyList(x$inits, inits) # to avoid duplicate entries
   x
 }
 .S3method("addInits", "formulaComponentIntercept", addInits.formulaComponentIntercept)
 
 # Fixed effects inits are the parameter structure filled with 0s
+#' @exportS3Method NULL
 addInits.formulaComponentFixed <- function(x, ...){
   stopifnot(length(x$structure) == 1)
   inits <- unname(x$structure[[1]])
@@ -1278,13 +1303,14 @@ addInits.formulaComponentFixed <- function(x, ...){
   inits <- list(inits)
   names(inits) <- x$parameter
   if(is.null(x$inits)) x$inits <- list()
-  x$inits <- modifyList(x$inits, inits)
+  x$inits <- utils::modifyList(x$inits, inits)
   x
 }
 .S3method("addInits", "formulaComponentFixed", addInits.formulaComponentFixed)
 
 # Random effects inits are parameter structure filled with 0s
 # Random effect SDs are initialized to 1
+#' @exportS3Method NULL
 addInits.formulaComponentRandom <- function(x, sdPrefix=NULL, ...){
 
   # Initial values for parameters
@@ -1304,7 +1330,7 @@ addInits.formulaComponentRandom <- function(x, sdPrefix=NULL, ...){
   inits_par
 
   # Get SD names
-  sd_prefix <- ifelse(is.null(sdPrefix), "", nimbleMacros:::safeDeparse(sdPrefix))
+  sd_prefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
   trm <- gsub(":", "_", x$term)
   sd_names <- paste0(sd_prefix, "sd_", trm)
   
@@ -1317,7 +1343,7 @@ addInits.formulaComponentRandom <- function(x, sdPrefix=NULL, ...){
   # Combine initial values and add to component slot
   inits <- c(inits_par, inits_sd)
   if(is.null(x$inits)) x$inits <- list()
-  x$inits <- modifyList(x$inits, inits)
+  x$inits <- utils::modifyList(x$inits, inits)
   x
 }
 .S3method("addInits", "formulaComponentRandom", addInits.formulaComponentRandom)
