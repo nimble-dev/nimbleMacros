@@ -590,7 +590,8 @@ addParameterStructure.formulaComponent <- function(x, constants){
       is_factor <- is.factor(dat) | is.character(dat)
       if(!is_factor) return(trm) # For continous covs, just return the cov name
       if(is.character(dat)) dat <- factor(dat)
-      levels(dat)                     # Otherwise return the factor levels
+      levs <- gsub(" ", "_", levels(dat)) # remove spaces in level names
+      levs                                # Otherwise return the factor levels
     })
 
     # For factors / factor interactions,
@@ -906,6 +907,7 @@ getFixedParametersToEstimate <- function(components, constants){
   # Get colnames of model.matrix
   fixed_pars <- colnames(stats::model.matrix(fixed_formula, dummy_df))
   if(length(fixed_pars) < 1) return(NULL)
+  fixed_pars <- gsub(" ", "_", fixed_pars) # get rid of spaces in names
   strsplit(fixed_pars, ":") # split any interaction terms
 }
 
