@@ -282,28 +282,29 @@ test_that("LINPRED with random effect", {
     quote({
     beta_x2[1] ~ dnorm(0, sd = 1000)
     beta_x2[2] ~ dnorm(0, sd = 1000)
-    beta_x2_x[1, 1] <- 0
-    beta_x2_x[2, 1] <- 0
-    beta_x2_x[1, 2] ~ dnorm(0, sd = 1000)
-    beta_x2_x[2, 2] ~ dnorm(0, sd = 1000)
-    beta_x2_x[1, 3] ~ dnorm(0, sd = 1000)
-    beta_x2_x[2, 3] ~ dnorm(0, sd = 1000)
+    beta_x_x2[1, 1] <- 0
+    beta_x_x2[2, 1] ~ dnorm(0, sd = 1000)
+    beta_x_x2[3, 1] ~ dnorm(0, sd = 1000)
+    beta_x_x2[1, 2] <- 0
+    beta_x_x2[2, 2] ~ dnorm(0, sd = 1000)
+    beta_x_x2[3, 2] ~ dnorm(0, sd = 1000)
     sd_x ~ dunif(0, 100)
     beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
     })
   )
   expect_equal(
     out6$modelInfo$inits,
-    list(beta_x2 = structure(c(x2d = 0, x2e = 0), dim = 2L, dimnames = list(c("x2d", "x2e"))), 
-         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))), 
-         beta_x2_x = structure(c(0, 0, 0, 0, 0, 0), dim = 2:3, dimnames = list(c("x2d", "x2e"), c("xa", "xb", "xc"))), sd_x = 1)
+    list(beta_x2 = structure(c(0, 0), dim = 2L), 
+         beta_x_x2 = structure(c(0, 0, 0, 0, 0, 0), dim = 3:2), 
+         beta_x = structure(c(0, 0, 0), dim = 3L), 
+    sd_x = 1)
   )
     
   # Generate error when trying to get random slope for factor
-  code6 <- quote(y[1:n] ~ LINPRED(~ (x2|x), priorSpecs=NULL ))
-  expect_error(LINPRED$process(code6, modInfo, NULL))
+  #code6 <- quote(y[1:n] ~ LINPRED(~ (x2|x), priorSpecs=NULL ))
+  #expect_error(LINPRED$process(code6, modInfo, NULL))
   code6 <- quote(LINPRED_PRIORS(~ (x2|x) ))
-  expect_error(LINPRED_PRIORS$process(code6, modInfo, NULL))
+  expect_error(LINPRED_PRIORS$process(code6, modInfo, NULL), "Correlated")
 })
 
 test_that("LINPRED with 'centered' random effect", {
@@ -424,7 +425,7 @@ test_that("LINPRED with factor array covariate", {
   expect_equal(
     out$modelInfo$inits,
     list(beta_Intercept = 0,
-         beta_x = structure(c(xa = 0, xb = 0, xc = 0), dim = 3L, dimnames = list(c("xa", "xb", "xc"))))
+         beta_x = structure(c(0, 0, 0), dim = 3L))
   )
 
   p <- nimble:::codeProcessModelMacros(code, modInfo, environment())
@@ -439,13 +440,13 @@ test_that("LINPRED errors when there are functions in the formula", {
                     x3=round(rnorm(10),3)))
 
   code <- quote(y[1:n] <- LINPRED(~scale(x), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL))
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL), "Functions")
 
   code <- quote(y[1:n] <- LINPRED(~scale(x) + (1|x2), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL))
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL), "Functions")
 
   code <- quote(y[1:n] <- LINPRED(~x3 + I(x[1:10]), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL))
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL), "Functions")
 
 })
 

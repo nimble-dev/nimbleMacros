@@ -132,6 +132,9 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
   if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
   formula <- stats::as.formula(formula)
 
+  # Evaluate prior settings
+  priorSpecs <- eval(priorSpecs, envir=.env) 
+
   # Split formula into components and process the components
   components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
                     coefPrefix = safeDeparse(coefPrefix),
@@ -148,7 +151,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
 
   components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
-                            priorSpecs=nimbleMacros::setPriors(),
+                            priorSpecs=priorSpecs,
                             modMatNames = modMatNames, noncenter=noncenter)
 
   # Get complete prior code
@@ -167,6 +170,9 @@ unpackArgs=TRUE
 # the linear predictor code for the components can be added
 buildLP <- function(formula, defaultBracket, coefPrefix="beta_", modelInfo, centerVar=NULL){
   comps <- separateFormulaComponents(formula)
+  # Functions will be handled here; for now an error
+  is_function <- sapply(comps, function(x) inherits(x, "formulaComponentFunction"))
+  if(any(is_function)) stop("Functions in formulas not yet supported", call.=FALSE)
   comps <- lapply(comps, addTermsAndBrackets, defaultBracket = defaultBracket, constants = modelInfo$constants)
   # Update constants in modelInfo with any new constants before moving on
   # constants may have been created by addTermsAndBrackets if there were nested random effects
@@ -581,7 +587,9 @@ addParameterStructure.formulaComponent <- function(x, constants){
     # Iterate over the covariates within the term
     levs <- lapply(trms, function(trm){
       dat <- constants[[trm]]         # Pull the covariate from the constants
-      if(!is.factor(dat)) return(trm) # For continous covs, just return the cov name 
+      is_factor <- is.factor(dat) | is.character(dat)
+      if(!is_factor) return(trm) # For continous covs, just return the cov name
+      if(is.character(dat)) dat <- factor(dat)
       levels(dat)                     # Otherwise return the factor levels
     })
 
@@ -870,9 +878,12 @@ fillParameterStructure.formulaComponentFixed <- function(x, fixedPars){
   # Iterate over all parameter structures in the component, should only be 1
   new_struct <- lapply(x$structure, function(struct){
     struct[] <- "0" # Make all entries 0 to begin with
+    # Get dimnames
+    dimref <- unlist(dimnames(struct))
     for (i in 1:length(fixedPars)){ # iterate over all parameter elements to estimate
       ind <- t(fixedPars[[i]]) # the row/column names (=indices) of the parameter element to estimate
-      if(length(dim(struct)) == length(ind) & all(ind %in% unlist(dimnames(struct)))){
+      if(length(dim(struct)) == length(ind) & all(ind %in% dimref)){
+        ind[] <- ind[order(match(ind, dimref))]   # reorder inds to match if needed
         struct[ind] <- paste(ind, collapse="_") # insert the name of the parameter element into the cell
       }
     }
@@ -1156,7 +1167,7 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   par_dims <- lapply(x$structure, dim)
   n_group_covs <- sapply(par_dims, function(z) sum(z > 1))
   # Won't work with random effects for factor slopes
-  if(any(n_group_covs) > 1){
+  if(any(n_group_covs > 1)){
     stop("Correlated random slopes for factors not yet supported.\nTry converting to dummy variables instead.", call.=FALSE)
   }
 
