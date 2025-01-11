@@ -587,10 +587,10 @@ test_that("priors with random effect", {
       beta_Intercept ~ dnorm(0, sd = 1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
-      sd_x_x2d ~ dunif(0, 100)
-      sd_x_x2e ~ dunif(0, 100)
-      beta_x_x2[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2d))
-      beta_x_x2[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2e))
+      sd_x2d_x ~ dunif(0, 100)
+      sd_x2e_x ~ dunif(0, 100)
+      beta_x2_x[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_x))
+      beta_x2_x[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_x))
     })
   )
 
@@ -600,8 +600,8 @@ test_that("priors with random effect", {
   expect_equal(
     out5a$code,
     quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x3 * x3[1:n] +
-    beta_x[x[1:n]] + beta_x_x2[x[1:n], x2[1:n]] + beta_x_w[x[1:n],
-    w[1:n]] + beta_x_x2_w[x[1:n], x2[1:n], w[1:n]]))
+    beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]] + beta_w_x[w[1:n],
+    x[1:n]] + beta_x2_w_x[x2[1:n], w[1:n], x[1:n]]))
   )
 
   code5b <- quote(LINPRED_PRIORS(~x3 + (x2*w||x), priorSpecs=setPriors()))
@@ -614,28 +614,28 @@ test_that("priors with random effect", {
     beta_x3 ~ dnorm(0, sd = 1000)
     sd_x ~ dunif(0, 100)
     beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
-    sd_x_x2d ~ dunif(0, 100)
-    sd_x_x2e ~ dunif(0, 100)
-    beta_x_x2[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2d))
-    beta_x_x2[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2e))
-    sd_x_wf ~ dunif(0, 100)
-    sd_x_wg ~ dunif(0, 100)
-    sd_x_wh ~ dunif(0, 100)
-    beta_x_w[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_wf))
-    beta_x_w[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_wg))
-    beta_x_w[1:3, 3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_wh))
-    sd_x_x2d_wf ~ dunif(0, 100)
-    sd_x_x2e_wf ~ dunif(0, 100)
-    sd_x_x2d_wg ~ dunif(0, 100)
-    sd_x_x2e_wg ~ dunif(0, 100)
-    sd_x_x2d_wh ~ dunif(0, 100)
-    sd_x_x2e_wh ~ dunif(0, 100)
-    beta_x_x2_w[1:3, 1, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2d_wf))
-    beta_x_x2_w[1:3, 2, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2e_wf))
-    beta_x_x2_w[1:3, 1, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2d_wg))
-    beta_x_x2_w[1:3, 2, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2e_wg))
-    beta_x_x2_w[1:3, 1, 3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2d_wh))
-    beta_x_x2_w[1:3, 2, 3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x_x2e_wh))
+    sd_x2d_x ~ dunif(0, 100)
+    sd_x2e_x ~ dunif(0, 100)
+    beta_x2_x[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_x))
+    beta_x2_x[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_x))
+    sd_wf_x ~ dunif(0, 100)
+    sd_wg_x ~ dunif(0, 100)
+    sd_wh_x ~ dunif(0, 100)
+    beta_w_x[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wf_x))
+    beta_w_x[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wg_x))
+    beta_w_x[3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_wh_x))
+    sd_x2d_wf_x ~ dunif(0, 100)
+    sd_x2e_wf_x ~ dunif(0, 100)
+    sd_x2d_wg_x ~ dunif(0, 100)
+    sd_x2e_wg_x ~ dunif(0, 100)
+    sd_x2d_wh_x ~ dunif(0, 100)
+    sd_x2e_wh_x ~ dunif(0, 100)
+    beta_x2_w_x[1, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_wf_x))
+    beta_x2_w_x[2, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_wf_x))
+    beta_x2_w_x[1, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_wg_x))
+    beta_x2_w_x[2, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_wg_x))
+    beta_x2_w_x[1, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2d_wh_x))
+    beta_x2_w_x[2, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x2e_wh_x))
     })
   )
 })
@@ -683,8 +683,8 @@ test_that("priors with 'partially centered' random effect", {
       beta_x3 ~ dnorm(0, sd=1000)
       sd_x ~ dunif(0, 100)
       beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_Intercept, sd = sd_x))
-      sd_x_x3 ~ dunif(0, 100)
-      beta_x_x3[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_x3, sd = sd_x_x3))
+      sd_x3_x ~ dunif(0, 100)
+      beta_x3_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_x3, sd = sd_x3_x))
     })
   )
 
@@ -697,9 +697,9 @@ test_that("priors with 'partially centered' random effect", {
       beta_Intercept ~ dnorm(0, sd = 1000)
       beta_x3 ~ dnorm(0, sd = 1000)
       sd_x ~ dunif(0, 100)
-      sd_x_x3 ~ dunif(0, 100)
+      sd_x3_x ~ dunif(0, 100)
       re_sds_x[1] <- sd_x
-      re_sds_x[2] <- sd_x_x3
+      re_sds_x[2] <- sd_x3_x
       Ustar_x[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
       U_x[1:2, 1:2] <- uppertri_mult_diag(Ustar_x[1:2, 1:2], re_sds_x[1:2])
       re_means_x[1] <- beta_Intercept
@@ -707,21 +707,21 @@ test_that("priors with 'partially centered' random effect", {
       for (i_ in 1:3) {
         B_x[i_, 1:2] ~ dmnorm(re_means_x[1:2], cholesky= U_x[1:2,1:2], prec_param = 0)
         beta_x[i_] <- B_x[i_, 1]
-        beta_x_x3[i_] <- B_x[i_, 2]
+        beta_x3_x[i_] <- B_x[i_, 2]
       }
     })
   )
 
   # Factor random slopes not supported
-  code4a <- quote(mu[1:n] <- LINPRED(~x2 + (x2||x), priorSpecs=NULL, centerVar=x))
-  expect_error(out4a <- LINPRED$process(code4a, modInfo, NULL))
+  #code4a <- quote(mu[1:n] <- LINPRED(~x2 + (x2||x), priorSpecs=NULL, centerVar=x))
+  #expect_error(out4a <- LINPRED$process(code4a, modInfo, NULL))
   #expect_equal(
   #  out4a$code,
   #  quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
   #)
 
   code4b <- quote(LINPRED_PRIORS(~x2 + (x2||x), centerVar=x))
-  expect_error(out4b <- LINPRED_PRIORS$process(code4b, modInfo, NULL))
+  expect_error(out4b <- LINPRED_PRIORS$process(code4b, modInfo, NULL), "Centering")
 })
 
 test_that("priors with noncentered random effects", {
@@ -757,9 +757,9 @@ test_that("priors with noncentered random effects", {
       sd_x ~ dunif(0, 100)
       beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
       beta_x[1:3] <- nimbleMacros::FORLOOP(beta_Intercept + sd_x * beta_x_raw[1:3])
-      sd_x_x3 ~ dunif(0, 100)
-      beta_x_x3_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x_x3[1:3] <- nimbleMacros::FORLOOP(beta_x3 + sd_x_x3 * beta_x_x3_raw[1:3])
+      sd_x3_x ~ dunif(0, 100)
+      beta_x3_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+      beta_x3_x[1:3] <- nimbleMacros::FORLOOP(beta_x3 + sd_x3_x * beta_x3_x_raw[1:3])
     })
   )
 
@@ -770,7 +770,7 @@ test_that("priors with noncentered random effects", {
   out4a <- LINPRED$process(code4a, modInfo, NULL)
   expect_equal(
     out4a$code,
-    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
+    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]]))
   )
 
   code4b <- quote(LINPRED_PRIORS(~(x2||x), noncenter=TRUE))
@@ -782,14 +782,14 @@ test_that("priors with noncentered random effects", {
       sd_x ~ dunif(0, 100)
       beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
       beta_x[1:3] <- nimbleMacros::FORLOOP(0 + sd_x * beta_x_raw[1:3])
-      sd_x_x2d ~ dunif(0, 100)
-      sd_x_x2e ~ dunif(0, 100)
-      beta_x_x2_raw[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x_x2[1:3, 1] <- nimbleMacros::FORLOOP(0 + sd_x_x2d *
-        beta_x_x2_raw[1:3, 1])
-      beta_x_x2_raw[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x_x2[1:3, 2] <- nimbleMacros::FORLOOP(0 + sd_x_x2e *
-        beta_x_x2_raw[1:3, 2])
+      sd_x2d_x ~ dunif(0, 100)
+      sd_x2e_x ~ dunif(0, 100)
+      beta_x2_x_raw[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+      beta_x2_x[1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_x *
+        beta_x2_x_raw[1, 1:3])
+      beta_x2_x_raw[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+      beta_x2_x[2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_x *
+        beta_x2_x_raw[2, 1:3])
 
     })
   )
@@ -800,8 +800,8 @@ test_that("priors with noncentered random effects", {
   expect_equal(
     out5a$code,
     quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x3 * x3[1:n] +
-    beta_x[x[1:n]] + beta_x_x2[x[1:n], x2[1:n]] + beta_x_w[x[1:n],
-    w[1:n]] + beta_x_x2_w[x[1:n], x2[1:n], w[1:n]]))
+    beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]] + beta_w_x[w[1:n],
+    x[1:n]] + beta_x2_w_x[x2[1:n], w[1:n], x[1:n]]))
   )
 
   code5b <- quote(LINPRED_PRIORS(~x3 + (x2*w||x), noncenter=TRUE, priorSpecs=setPriors()))
@@ -815,61 +815,61 @@ test_that("priors with noncentered random effects", {
     sd_x ~ dunif(0, 100)
     beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
     beta_x[1:3] <- nimbleMacros::FORLOOP(0 + sd_x * beta_x_raw[1:3])
-    sd_x_x2d ~ dunif(0, 100)
-    sd_x_x2e ~ dunif(0, 100)
-    beta_x_x2_raw[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x_x2[1:3, 1] <- nimbleMacros::FORLOOP(0 + sd_x_x2d *
-        beta_x_x2_raw[1:3, 1])
-    beta_x_x2_raw[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x_x2[1:3, 2] <- nimbleMacros::FORLOOP(0 + sd_x_x2e *
-        beta_x_x2_raw[1:3, 2])
-    sd_x_wf ~ dunif(0, 100)
-    sd_x_wg ~ dunif(0, 100)
-    sd_x_wh ~ dunif(0, 100)
-    beta_x_w_raw[1:3, 1] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x_w[1:3, 1] <- nimbleMacros::FORLOOP(0 + sd_x_wf * beta_x_w_raw[1:3,
-        1])
-    beta_x_w_raw[1:3, 2] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x_w[1:3, 2] <- nimbleMacros::FORLOOP(0 + sd_x_wg * beta_x_w_raw[1:3,
-        2])
-    beta_x_w_raw[1:3, 3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x_w[1:3, 3] <- nimbleMacros::FORLOOP(0 + sd_x_wh * beta_x_w_raw[1:3,
-        3])
-    sd_x_x2d_wf ~ dunif(0, 100)
-    sd_x_x2e_wf ~ dunif(0, 100)
-    sd_x_x2d_wg ~ dunif(0, 100)
-    sd_x_x2e_wg ~ dunif(0, 100)
-    sd_x_x2d_wh ~ dunif(0, 100)
-    sd_x_x2e_wh ~ dunif(0, 100)
-    beta_x_x2_w_raw[1:3, 1, 1] ~ nimbleMacros::FORLOOP(dnorm(0,
+    sd_x2d_x ~ dunif(0, 100)
+    sd_x2e_x ~ dunif(0, 100)
+    beta_x2_x_raw[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+    beta_x2_x[1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_x *
+        beta_x2_x_raw[1, 1:3])
+    beta_x2_x_raw[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+    beta_x2_x[2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_x *
+        beta_x2_x_raw[2, 1:3])
+    sd_wf_x ~ dunif(0, 100)
+    sd_wg_x ~ dunif(0, 100)
+    sd_wh_x ~ dunif(0, 100)
+    beta_w_x_raw[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+    beta_w_x[1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_wf_x * beta_w_x_raw[1,
+        1:3])
+    beta_w_x_raw[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+    beta_w_x[2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_wg_x * beta_w_x_raw[2,
+        1:3])
+    beta_w_x_raw[3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
+    beta_w_x[3, 1:3] <- nimbleMacros::FORLOOP(0 + sd_wh_x * beta_w_x_raw[3,
+        1:3])
+    sd_x2d_wf_x ~ dunif(0, 100)
+    sd_x2e_wf_x ~ dunif(0, 100)
+    sd_x2d_wg_x ~ dunif(0, 100)
+    sd_x2e_wg_x ~ dunif(0, 100)
+    sd_x2d_wh_x ~ dunif(0, 100)
+    sd_x2e_wh_x ~ dunif(0, 100)
+    beta_x2_w_x_raw[1, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
         sd = 1))
-    beta_x_x2_w[1:3, 1, 1] <- nimbleMacros::FORLOOP(0 + sd_x_x2d_wf *
-        beta_x_x2_w_raw[1:3, 1, 1])
-    beta_x_x2_w_raw[1:3, 2, 1] ~ nimbleMacros::FORLOOP(dnorm(0,
+    beta_x2_w_x[1, 1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_wf_x *
+        beta_x2_w_x_raw[1, 1, 1:3])
+    beta_x2_w_x_raw[2, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
         sd = 1))
-    beta_x_x2_w[1:3, 2, 1] <- nimbleMacros::FORLOOP(0 + sd_x_x2e_wf *
-        beta_x_x2_w_raw[1:3, 2, 1])
-    beta_x_x2_w_raw[1:3, 1, 2] ~ nimbleMacros::FORLOOP(dnorm(0,
+    beta_x2_w_x[2, 1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_wf_x *
+        beta_x2_w_x_raw[2, 1, 1:3])
+    beta_x2_w_x_raw[1, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
         sd = 1))
-    beta_x_x2_w[1:3, 1, 2] <- nimbleMacros::FORLOOP(0 + sd_x_x2d_wg *
-        beta_x_x2_w_raw[1:3, 1, 2])
-    beta_x_x2_w_raw[1:3, 2, 2] ~ nimbleMacros::FORLOOP(dnorm(0,
+    beta_x2_w_x[1, 2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_wg_x *
+        beta_x2_w_x_raw[1, 2, 1:3])
+    beta_x2_w_x_raw[2, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
         sd = 1))
-    beta_x_x2_w[1:3, 2, 2] <- nimbleMacros::FORLOOP(0 + sd_x_x2e_wg *
-        beta_x_x2_w_raw[1:3, 2, 2])
-    beta_x_x2_w_raw[1:3, 1, 3] ~ nimbleMacros::FORLOOP(dnorm(0,
+    beta_x2_w_x[2, 2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_wg_x *
+        beta_x2_w_x_raw[2, 2, 1:3])
+    beta_x2_w_x_raw[1, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
         sd = 1))
-    beta_x_x2_w[1:3, 1, 3] <- nimbleMacros::FORLOOP(0 + sd_x_x2d_wh *
-        beta_x_x2_w_raw[1:3, 1, 3])
-    beta_x_x2_w_raw[1:3, 2, 3] ~ nimbleMacros::FORLOOP(dnorm(0,
+    beta_x2_w_x[1, 3, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_wh_x *
+        beta_x2_w_x_raw[1, 3, 1:3])
+    beta_x2_w_x_raw[2, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
         sd = 1))
-    beta_x_x2_w[1:3, 2, 3] <- nimbleMacros::FORLOOP(0 + sd_x_x2e_wh *
-        beta_x_x2_w_raw[1:3, 2, 3])
+    beta_x2_w_x[2, 3, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_wh_x *
+        beta_x2_w_x_raw[2, 3, 1:3])
     })
   )
 
   # Correlated random effects don't work yet
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Noncentered")
 })
 
 test_that("priors errors when there are functions in the formula", {
@@ -880,12 +880,12 @@ test_that("priors errors when there are functions in the formula", {
                     x3=round(rnorm(10),3)))
 
   code <- quote(LINPRED_PRIORS(~scale(x3) + (1|x), noncenter=TRUE))
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Functions")
   
   code <- quote(LINPRED_PRIORS(~scale(x3) + (1|x), noncenter=TRUE)) 
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Functions")
 
   code <- quote(LINPRED_PRIORS(~I(x3[1:10]), noncenter=TRUE))
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL))
+  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Functions")
 
 })

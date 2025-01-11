@@ -1046,6 +1046,22 @@ addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL,
   sd_prefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
   trm <- gsub(":", "_", x$term)
   sd_names <- paste0(sd_prefix, "sd_", trm)
+  is_uncorrelated <- length(sd_names) == 1
+
+  # Handle random factor slopes (for uncorrelated random variable only)
+  # TODO: Put this in separate function?
+  par_dim <- dim(x$structure[[1]])
+  has_random_factor <- sum(par_dim > 1) > 1
+  if(is_uncorrelated & has_random_factor){
+    rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE)) 
+    dim_short_names <- strsplit(x$term, ":")[[1]]
+    rfact_ind <- which(dim_short_names == rfact)
+    nms <- attributes(x$structure[[1]])$dimnames
+    nms[rfact_ind] <- rfact 
+    nms <- expand.grid(nms)
+    nms <- apply(nms, 1, function(x) paste(as.character(x), collapse="_"))
+    sd_names <- paste0(sd_prefix, "sd_", nms) 
+  }
 
   code1 <- lapply(sd_names, function(z){
     prior <- nimbleMacros::matchPrior(str2lang(z), "sd", priorSpecs = priorSpecs)
@@ -1054,7 +1070,7 @@ addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL,
   })
 
   # Create priors on random effects
-  if(length(sd_names) == 1){
+  if(is_uncorrelated){
     # If just one SD, this must be uncorrelated, so run uncorrelatedRandomPrior 
     code2 <- uncorrelatedRandomPrior(x, priorSpecs, sd_names, modelInfo$constants, components, noncenter)
   } else {
@@ -1086,14 +1102,15 @@ uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, component
   # Get parameter structure
   par_dim <- dim(x$structure[[1]])
   trm_split <- strsplit(x$term, ":")[[1]] 
-  trm_split <- trm_split[attributes(par_dim)$dim > 1]
+  trm_split <- trm_split[par_dim > 1]
   rfact_ind <- which(trm_split== rfact)
 
   # Check if structure implies an interaction between two factors,
   # which means a random slope for a factor covariate
-  if(length(dim(par_dim)) > 1){
+  has_random_factor <- sum(par_dim > 1) > 1
+  if(has_random_factor){
     # Handle random slopes for factors
-    pd <- dim(par_dim)
+    pd <- par_dim
     pd <- lapply(pd, function(x) 1:x)
     pd[rfact_ind] <- paste0("1:",nlev)
     pd <- expand.grid(pd)
@@ -1111,6 +1128,9 @@ uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, component
 
   # If this random effect is centered, we have to adjust the means
   if(x$centered){
+    if(has_random_factor){
+      stop("Centering variable not supported for factor random slopes", call.=FALSE)
+    }
     # Identify terms on the LHS of the bar expression
     LHS <- stats::as.formula(as.call(list(as.name("~"), x$lang[[2]])))
     LHS <- removeBracketsFromFormula(LHS)
@@ -1130,20 +1150,24 @@ uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, component
 
   # Build final code
   # If using noncentered parameterization, need to add an extra step to code
-  if(noncenter){
-    r_lhs_raw <- paste0(par_name, "_raw", idx)
-    code <- substitute({
-      LHS_RAW ~ nimbleMacros::FORLOOP(dnorm(0, sd=1))
-      LHS <- nimbleMacros::FORLOOP(MEAN + SD * LHS_RAW)
-        }, 
-      list(LHS=str2lang(r_lhs), LHS_RAW = str2lang(r_lhs_raw),
-           MEAN=rand_mean, SD=str2lang(sd_name)))
-  } else {
-    code <- substitute(LHS ~ nimbleMacros::FORLOOP(dnorm(MEAN, sd=SD)),
-      list(LHS=str2lang(r_lhs), MEAN=rand_mean, SD=str2lang(sd_name)))
-  }
+  code <- sapply(1:length(r_lhs), function(i){
+    if(noncenter){
+      r_lhs_raw <- paste0(par_name, "_raw", idx)
+      out <- substitute({
+        LHS_RAW ~ nimbleMacros::FORLOOP(dnorm(0, sd=1))
+        LHS <- nimbleMacros::FORLOOP(MEAN + SD * LHS_RAW)
+          }, 
+        list(LHS=str2lang(r_lhs[i]), LHS_RAW = str2lang(r_lhs_raw[i]),
+            MEAN=rand_mean, SD=str2lang(sd_name[i])))
+    } else {
+      out <- substitute(LHS ~ nimbleMacros::FORLOOP(dnorm(MEAN, sd=SD)),
+        list(LHS=str2lang(r_lhs[i]), MEAN=rand_mean, SD=str2lang(sd_name[i])))
+    }
+    out
+  })
 
-  code  
+  code <- embedLinesInCurlyBrackets(code)
+  removeExtraBrackets(code)
 }
 
 # Create correlated random prior
@@ -1344,7 +1368,23 @@ addInits.formulaComponentRandom <- function(x, sdPrefix=NULL, ...){
   sd_prefix <- ifelse(is.null(sdPrefix), "", safeDeparse(sdPrefix))
   trm <- gsub(":", "_", x$term)
   sd_names <- paste0(sd_prefix, "sd_", trm)
-  
+  is_uncorrelated <- length(sd_names) == 1
+
+  # Handle random factor slopes (for uncorrelated random variable only)
+  par_dim <- dim(x$structure[[1]])
+  has_random_factor <- sum(par_dim > 1) > 1
+  if(is_uncorrelated & has_random_factor){
+    rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE)) 
+    dim_short_names <- strsplit(x$term, ":")[[1]]
+    rfact_ind <- which(dim_short_names == rfact)
+
+    nms <- attributes(x$structure[[1]])$dimnames
+    nms[rfact_ind] <- rfact 
+    nms <- expand.grid(nms)
+    nms <- apply(nms, 1, function(x) paste(as.character(x), collapse="_"))
+    sd_names <- paste0(sd_prefix, "sd_", nms) 
+  }
+ 
   # Create initial values for SDs
   inits_sd <- lapply(1:length(sd_names), function(i){
     1
