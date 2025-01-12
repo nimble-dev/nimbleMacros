@@ -456,7 +456,7 @@ processNestedRandomEffects <- function(barExp, constants){
   RHS <- barExp[[3]]
   is_nested <- is.call(RHS) && RHS[[1]] == ":"
   # If no nesting return inputs
-  if(!is_nested) return(list(barExp=barExp, constants=constants))
+  if(!is_nested) return(list(barExp=barExp, constants=NULL))
 
   # Create new combined random factor term
   fac_names <- strsplit(safeDeparse(RHS), ":")[[1]]
