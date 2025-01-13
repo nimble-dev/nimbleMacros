@@ -49,7 +49,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
 
     # Split formula into components and process the components
     components <- buildLP(formula, defaultBracket = LHS_ind, 
-                    coefPrefix = safeDeparse(coefPrefix),
+                    coefPrefix = safeDeparse(coefPrefix), sdPrefix=sdPrefix,
                     modelInfo = modelInfo, centerVar = centerVar)
     
     # Update modelInfo
@@ -137,7 +137,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
 
   # Split formula into components and process the components
   components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
-                    coefPrefix = safeDeparse(coefPrefix),
+                    coefPrefix = safeDeparse(coefPrefix), sdPrefix=sdPrefix,
                     modelInfo = modelInfo, centerVar = centerVar)
     
   # Update constants in modelInfo
@@ -168,7 +168,7 @@ unpackArgs=TRUE
 # Splits the formula into separate components (terms)
 # Then iteratively adds information to each component until eventually
 # the linear predictor code for the components can be added
-buildLP <- function(formula, defaultBracket, coefPrefix="beta_", modelInfo, centerVar=NULL){
+buildLP <- function(formula, defaultBracket, coefPrefix="beta_", sdPrefix=NULL, modelInfo, centerVar=NULL){
   comps <- separateFormulaComponents(formula)
   # Functions will be handled here; for now an error
   is_function <- sapply(comps, function(x) inherits(x, "formulaComponentFunction"))
@@ -183,7 +183,7 @@ buildLP <- function(formula, defaultBracket, coefPrefix="beta_", modelInfo, cent
   comps <- lapply(comps, addParameterStructure, constants = modelInfo$constants)
   comps <- lapply(comps, addLinPredCode)
   comps <- centeredFormulaDropTerms(comps, centerVar)
-  comps <- lapply(comps, addInits)
+  comps <- lapply(comps, addInits, sdPrefix=sdPrefix)
   comps
 }
 
@@ -987,7 +987,13 @@ addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMa
     # Get all possible indices in the parameter structure
     # For example for a vector of length 3 it would be 1,2,3
     # for a 2x2 matrix it would be 1,1; 1,2; 2,1; 2,2 etc.
-    inds <- which(struct == struct, arr.ind=TRUE) 
+    inds <- which(struct == struct, arr.ind=TRUE)
+
+    # Drop unnecessary dimensions
+    if(nrow(inds) > 1){
+      drop_cols <- apply(inds, 2, function(z) all(z[1] == z))
+      inds <- inds[,!drop_cols,drop=FALSE]
+    }
 
     # Iterate over all indices
     lapply(1:nrow(inds), function(j){
@@ -1095,17 +1101,22 @@ uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, component
   # Get random grouping factor name
   rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE))
 
-  # Look it up in the constants asnd make sure it's a factor, and get the levels
+  # Look it up in the constants and make sure it's a factor, and get the levels
   fac <- constants[[rfact]]
-  if(!is.factor(fac)) stop("Grouping cov is not a factor", call.=FALSE)
-  nlev <- length(levels(constants[[rfact]]))
+  is_fac_or_char <- is.factor(fac) | is.character(fac)
+  if(!is_fac_or_char) stop("Grouping cov is not a factor", call.=FALSE)
+  # Figure out the number of levels of the factor
+  nlev <- length(levels(as.factor(constants[[rfact]])))
   par_name <- x$parameter
 
   # Get parameter structure
   par_dim <- dim(x$structure[[1]])
-  trm_split <- strsplit(x$term, ":")[[1]] 
+  trm_split <- strsplit(x$term, ":")[[1]]
+
+  # Drop unnecessary dimension
   trm_split <- trm_split[par_dim > 1]
   rfact_ind <- which(trm_split== rfact)
+  par_dim <- par_dim[par_dim > 1]
 
   # Check if structure implies an interaction between two factors,
   # which means a random slope for a factor covariate
@@ -1143,9 +1154,13 @@ uncorrelatedRandomPrior <- function(x, priorSpecs, sd_name, constants, component
     # Search through fixed effect components for ones that match these terms
     component_terms <- lapply(components, function(z) z$term)
     trm_ind <- which(component_terms == trms)
-    # Identify the parameter name for these terms, which become the means
-    # for the centered random effect
-    rand_mean <- str2lang(components[[trm_ind]]$parameter)
+    if(length(trm_ind) == 0){
+      rand_mean <- 0 # reset mean to 0 if term doesn't exist in fixed effects
+    } else {
+      # Identify the parameter name for these terms, which become the means
+      # for the centered random effect
+      rand_mean <- str2lang(components[[trm_ind]]$parameter)
+    }
     # If the parameter doesn't exist, re-set the mean to 0
     if(is.null(rand_mean)) rand_mean <- 0
   }
@@ -1180,9 +1195,10 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   # Get grouping covariate and make sure it's a factor
   rfact <- safeDeparse(getRandomFactorName(x$lang, FALSE))
   fac <- modelInfo$constants[[rfact]]
-  if(!is.factor(fac)) stop("Grouping cov is not a factor", call.=FALSE)
+  is_fac_or_char <- is.factor(fac) | is.character(fac)
+  if(!is_fac_or_char) stop("Grouping cov is not a factor", call.=FALSE)
   # Figure out the number of levels of the factor
-  nlev <- length(levels(modelInfo$constants[[rfact]]))
+  nlev <- length(levels(as.factor(modelInfo$constants[[rfact]])))
   
   # How many parameters are there? Should be at least 2
   par_names <- x$parameter
