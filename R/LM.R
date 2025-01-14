@@ -121,6 +121,10 @@ LM <- list(process = function(code, modelInfo, .env){
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=par2))
     pars_added <- c(pars_added, list(par2))
     out <- c(out, list(sigprior))
+    new_inits <- list(1)
+    names(new_inits) <- safeDeparse(par2)
+    if(is.null(modelInfo$inits)) modelInfo$inits <- list()
+    modelInfo$inits <- utils::modifyList(modelInfo$inits, new_inits) 
   }
 
   list(code=removeExtraBrackets(embedLinesInCurlyBrackets(out)),

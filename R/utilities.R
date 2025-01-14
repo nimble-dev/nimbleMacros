@@ -90,13 +90,6 @@ extractAllBrackets <- function(formula){
   return(out)
 }
 
-# Remove brackets and everything inside them from formula
-# E.g. ~x[1:n] + x2[1:k] --> ~x + x2
-removeBracketsFromFormula <- function(formula){
-  out <- removeSquareBrackets(formula)
-  stats::as.formula(out)
-}
-
 removeSquareBrackets <- function(code){
   if(is.name(code)) return(code)
   if(code[[1]] == "["){
@@ -112,12 +105,4 @@ removeSquareBrackets <- function(code){
     out <- as.call(out)
   }
   out
-}
-
-# Check if input is a proper bar expression
-isBar <- function(code){
-  if(!is.call(code)) return(FALSE)
-  if(length(code) != 3) return(FALSE)
-  if(code[[1]] != "|") return(FALSE)
-  TRUE
 }
