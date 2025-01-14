@@ -866,37 +866,370 @@ test_that("Centering with uncorrelated random effects", {
          sd_group = 1, beta_x_group = c(0, 0, 0), sd_x_group = 1)
   )
 
-  # Generate error when trying to get random slope for factor
-  #code6 <- quote(y[1:n] ~ LINPRED(~ (x2|x), priorSpecs=NULL ))
-  #expect_error(LINPRED$process(code6, modInfo, NULL))
-  #code6 <- quote(LINPRED_PRIORS(~ (x2|x) ))
-  #expect_error(LINPRED_PRIORS$process(code6, modInfo, NULL), "Correlated")
-
   nimbleOptions(enableMacroComments = TRUE)
 })
 
 test_that("noncentered parameterization with uncorrelated random effects", {
+  nimbleOptions(enableMacroComments = FALSE)
+  set.seed(123)
+  modInfo <- list(constants= list(y = rnorm(10), group=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
+                    x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
 
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x||group), noncenter=TRUE)
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
 
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_group[group[i_1]] + 
+            beta_x_group[group[i_1]] * x[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    for (i_2 in 1:3) {
+        beta_group_raw[i_2] ~ dnorm(0, sd = 1)
+    }
+    for (i_3 in 1:3) {
+        beta_group[i_3] <- 0 + sd_group * beta_group_raw[i_3]
+    }
+    sd_x_group ~ dunif(0, 100)
+    for (i_4 in 1:3) {
+        beta_x_group_raw[i_4] ~ dnorm(0, sd = 1)
+    }
+    for (i_5 in 1:3) {
+        beta_x_group[i_5] <- 0 + sd_x_group * beta_x_group_raw[i_5]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_Intercept = 0, beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+      sd_group = 1, beta_x_group = c(0, 0, 0), sd_x_group = 1, 
+      beta_group_raw = structure(c(0, 0, 0), dim = 3L), beta_x_group_raw = c(0, 0, 0))
+  )
 
+  # With centering variable also
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x||group), noncenter=TRUE, centerVar=group)
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_group[group[i_1]] + beta_x_group[group[i_1]] * 
+            x[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    for (i_2 in 1:3) {
+        beta_group_raw[i_2] ~ dnorm(0, sd = 1)
+    }
+    for (i_3 in 1:3) {
+        beta_group[i_3] <- beta_Intercept + sd_group * beta_group_raw[i_3]
+    }
+    sd_x_group ~ dunif(0, 100)
+    for (i_4 in 1:3) {
+        beta_x_group_raw[i_4] ~ dnorm(0, sd = 1)
+    }
+    for (i_5 in 1:3) {
+        beta_x_group[i_5] <- beta_x + sd_x_group * beta_x_group_raw[i_5]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_Intercept = 0, beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+      sd_group = 1, beta_x_group = c(0, 0, 0), sd_x_group = 1, 
+      beta_group_raw = structure(c(0, 0, 0), dim = 3L), beta_x_group_raw = c(0, 0, 0))
+  )
+
+  # Factor slope
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x2||group), noncenter=TRUE)
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_group[group[i_1]] + 
+            beta_x2_group[x2[i_1], group[i_1]]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    for (i_2 in 1:3) {
+        beta_group_raw[i_2] ~ dnorm(0, sd = 1)
+    }
+    for (i_3 in 1:3) {
+        beta_group[i_3] <- 0 + sd_group * beta_group_raw[i_3]
+    }
+    sd_x2d_group ~ dunif(0, 100)
+    sd_x2e_group ~ dunif(0, 100)
+    for (i_4 in 1:3) {
+        beta_x2_group_raw[1, i_4] ~ dnorm(0, sd = 1)
+    }
+    for (i_5 in 1:3) {
+        beta_x2_group[1, i_5] <- 0 + sd_x2d_group * beta_x2_group_raw[1, 
+            i_5]
+    }
+    for (i_6 in 1:3) {
+        beta_x2_group_raw[2, i_6] ~ dnorm(0, sd = 1)
+    }
+    for (i_7 in 1:3) {
+        beta_x2_group[2, i_7] <- 0 + sd_x2e_group * beta_x2_group_raw[2, 
+            i_7]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_Intercept = 0, beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+         sd_group = 1, beta_x2_group = structure(c(0, 0, 0, 0, 0, 0), dim = 2:3), 
+         sd_x2d_group = 1, sd_x2e_group = 1, beta_group_raw = structure(c(0, 0, 0), dim = 3L), 
+         beta_x2_group_raw = structure(c(0, 0, 0, 0, 0, 0), dim = 2:3))
+  )
+
+  nimbleOptions(enableMacroComments = TRUE)
 })
 
 test_that("correlated random effects", {
+  nimbleOptions(enableMacroComments = FALSE)
+  set.seed(123)
+  modInfo <- list(constants= list(y = rnorm(10), group=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
+                    x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
 
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x|group))
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
 
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_group[group[i_1]] + 
+            beta_x_group[group[i_1]] * x[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    sd_x_group ~ dunif(0, 100)
+    re_sds_group[1] <- sd_group
+    re_sds_group[2] <- sd_x_group
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
+        1:2], re_sds_group[1:2])
+    re_means_group[1] <- 0
+    re_means_group[2] <- 0
+    for (i_2 in 1:3) {
+        B_group[i_2, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 
+            1:2], prec_param = 0)
+        beta_group[i_2] <- B_group[i_2, 1]
+        beta_x_group[i_2] <- B_group[i_2, 2]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_Intercept = 0, beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+         beta_x_group = c(0, 0, 0), sd_group = 1, sd_x_group = 1)
+  )
 
+  # Set eta value
+  pr <- setPriors(eta=3)
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x|group), priorSpecs=pr)
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_group[group[i_1]] + 
+            beta_x_group[group[i_1]] * x[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    sd_x_group ~ dunif(0, 100)
+    re_sds_group[1] <- sd_group
+    re_sds_group[2] <- sd_x_group
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(3, 2)
+    U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
+        1:2], re_sds_group[1:2])
+    re_means_group[1] <- 0
+    re_means_group[2] <- 0
+    for (i_2 in 1:3) {
+        B_group[i_2, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 
+            1:2], prec_param = 0)
+        beta_group[i_2] <- B_group[i_2, 1]
+        beta_x_group[i_2] <- B_group[i_2, 2]
+    }
+    })
+  )
+
+  # More than two correlated params
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x + x3|group))
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_group[group[i_1]] + 
+            beta_x_group[group[i_1]] * x[i_1] + beta_x3_group[group[i_1]] * 
+            x3[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    sd_x_group ~ dunif(0, 100)
+    sd_x3_group ~ dunif(0, 100)
+    re_sds_group[1] <- sd_group
+    re_sds_group[2] <- sd_x_group
+    re_sds_group[3] <- sd_x3_group
+    Ustar_group[1:3, 1:3] ~ dlkj_corr_cholesky(1.3, 3)
+    U_group[1:3, 1:3] <- uppertri_mult_diag(Ustar_group[1:3, 
+        1:3], re_sds_group[1:3])
+    re_means_group[1] <- 0
+    re_means_group[2] <- 0
+    re_means_group[3] <- 0
+    for (i_2 in 1:3) {
+        B_group[i_2, 1:3] ~ dmnorm(re_means_group[1:3], cholesky = U_group[1:3, 
+            1:3], prec_param = 0)
+        beta_group[i_2] <- B_group[i_2, 1]
+        beta_x_group[i_2] <- B_group[i_2, 2]
+        beta_x3_group[i_2] <- B_group[i_2, 3]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_Intercept = 0, beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+         beta_x_group = c(0, 0, 0), beta_x3_group = c(0, 0, 0), sd_group = 1, 
+         sd_x_group = 1, sd_x3_group = 1)
+  )
+
+  # Factor random slopes don't work
+  code <- quote(LINPRED_PRIORS(~x + (x2|group)))
+  expect_error(LINPRED_PRIORS$process(code, modInfo, NULL), "Correlated")
+
+  nimbleOptions(enableMacroComments = TRUE)
 })
 
 test_that("Centering with correlated random effects", {
+  nimbleOptions(enableMacroComments = FALSE)
+  set.seed(123)
+  modInfo <- list(constants= list(y = rnorm(10), group=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
+                    x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
 
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (x|group), centerVar=group)
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
 
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_group[group[i_1]] + beta_x_group[group[i_1]] * 
+            x[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    sd_x_group ~ dunif(0, 100)
+    re_sds_group[1] <- sd_group
+    re_sds_group[2] <- sd_x_group
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
+        1:2], re_sds_group[1:2])
+    re_means_group[1] <- beta_Intercept
+    re_means_group[2] <- beta_x
+    for (i_2 in 1:3) {
+        B_group[i_2, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 
+            1:2], prec_param = 0)
+        beta_group[i_2] <- B_group[i_2, 1]
+        beta_x_group[i_2] <- B_group[i_2, 2]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_Intercept = 0, beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+         beta_x_group = c(0, 0, 0), sd_group = 1, sd_x_group = 1)
+  )
 
+  # With intercept dropped
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~0 + x + (x|group), centerVar=group)
+  })
+  mod <- nimbleModel(code, constants=modInfo$constants)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_group[group[i_1]] + beta_x_group[group[i_1]] * 
+            x[i_1]
+    }
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    sd_x_group ~ dunif(0, 100)
+    re_sds_group[1] <- sd_group
+    re_sds_group[2] <- sd_x_group
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
+        1:2], re_sds_group[1:2])
+    re_means_group[1] <- 0
+    re_means_group[2] <- beta_x
+    for (i_2 in 1:3) {
+        B_group[i_2, 1:2] ~ dmnorm(re_means_group[1:2], cholesky = U_group[1:2, 
+            1:2], prec_param = 0)
+        beta_group[i_2] <- B_group[i_2, 1]
+        beta_x_group[i_2] <- B_group[i_2, 2]
+    }
+    })
+  )
+  expect_equal(
+    mod$modelDef$macroInits,
+    list(beta_x = 0, beta_group = structure(c(0, 0, 0), dim = 3L), 
+         beta_x_group = c(0, 0, 0), sd_group = 1, sd_x_group = 1)
+  )
+
+  nimbleOptions(enableMacroComments = TRUE)
 })
 
 test_that("Noncentered parameterization doesn't work with correlated random effects", {
+  nimbleOptions(enableMacroComments = FALSE)
+  set.seed(123)
+  modInfo <- list(constants= list(y = rnorm(10), group=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
+                    x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
+  # Noncentered doesn't work with correlated random effects  
+  code <- quote(LINPRED_PRIORS(~x + (x|group), noncenter=TRUE))
+  expect_error(LINPRED_PRIORS$process(code, modInfo, NULL)$code, "Noncentered")
 
-
-
+  nimbleOptions(enableMacroComments = TRUE)
 })
 
 
@@ -1032,6 +1365,7 @@ test_that("LINPRED with factor array covariate", {
   nimbleOptions(enableMacroComments = TRUE)
 })
 
+
 test_that("LINPRED errors when there are functions in the formula", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
@@ -1050,266 +1384,14 @@ test_that("LINPRED errors when there are functions in the formula", {
 })
 
 
-
-test_that("priors with 'partially centered' random effect", {
-  set.seed(123)
-  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
-                    x2=factor(sample(letters[4:5], 10, replace=T)),
-                    w = factor(sample(letters[6:8], 10, replace=T)),
-                    x3=round(rnorm(10),3), n=10))
-
-  code <- quote(LINPRED_PRIORS(~x3 + (1|x), centerVar=x))
- 
-  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
-  expect_equal(
-    out$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      beta_x3 ~ dnorm(0, sd=1000)
-      sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_Intercept, sd = sd_x))
-    })
-  )
-
-  code <- quote(LINPRED_PRIORS(~x3 + (1|x), centerVar=test))
- 
-  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
-  expect_equal(
-    out$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      beta_x3 ~ dnorm(0, sd=1000)
-      sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = sd_x))
-    })
-  )
-
-  code <- quote(LINPRED_PRIORS(~x3 + (x3||x), centerVar=x))
- 
-  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
-  expect_equal(
-    out$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      beta_x3 ~ dnorm(0, sd=1000)
-      sd_x ~ dunif(0, 100)
-      beta_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_Intercept, sd = sd_x))
-      sd_x3_x ~ dunif(0, 100)
-      beta_x3_x[1:3] ~ nimbleMacros::FORLOOP(dnorm(beta_x3, sd = sd_x3_x))
-    })
-  )
-
-  code <- quote(LINPRED_PRIORS(~x3 + (x3|x), centerVar=x))
- 
-  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
-  expect_equal(
-    out$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      beta_x3 ~ dnorm(0, sd = 1000)
-      sd_x ~ dunif(0, 100)
-      sd_x3_x ~ dunif(0, 100)
-      re_sds_x[1] <- sd_x
-      re_sds_x[2] <- sd_x3_x
-      Ustar_x[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
-      U_x[1:2, 1:2] <- uppertri_mult_diag(Ustar_x[1:2, 1:2], re_sds_x[1:2])
-      re_means_x[1] <- beta_Intercept
-      re_means_x[2] <- beta_x3
-      for (i_ in 1:3) {
-        B_x[i_, 1:2] ~ dmnorm(re_means_x[1:2], cholesky= U_x[1:2,1:2], prec_param = 0)
-        beta_x[i_] <- B_x[i_, 1]
-        beta_x3_x[i_] <- B_x[i_, 2]
-      }
-    })
-  )
-
-  # Factor random slopes not supported
-  #code4a <- quote(mu[1:n] <- LINPRED(~x2 + (x2||x), priorSpecs=NULL, centerVar=x))
-  #expect_error(out4a <- LINPRED$process(code4a, modInfo, NULL))
-  #expect_equal(
-  #  out4a$code,
-  #  quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_x[x[1:n]] + beta_x_x2[x[1:n], x2[1:n]]))
-  #)
-
-  code4b <- quote(LINPRED_PRIORS(~x2 + (x2||x), centerVar=x))
-  expect_error(out4b <- LINPRED_PRIORS$process(code4b, modInfo, NULL), "Centering")
-})
-
-test_that("priors with noncentered random effects", {
-
-  set.seed(123)
-  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
-                    x2=factor(sample(letters[4:5], 10, replace=T)),
-                    w = factor(sample(letters[6:8], 10, replace=T)),
-                    x3=round(rnorm(10),3), n=10))
-
-  code <- quote(LINPRED_PRIORS(~x3 + (1|x), noncenter=TRUE))
- 
-  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
-  expect_equal(
-    out$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      beta_x3 ~ dnorm(0, sd=1000)
-      sd_x ~ dunif(0, 100)
-      beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x[1:3] <- nimbleMacros::FORLOOP(0 + sd_x * beta_x_raw[1:3])
-    })
-  )
-
-  code <- quote(LINPRED_PRIORS(~x3 + (x3||x), noncenter=TRUE, centerVar=x))
- 
-  out <- nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL)
-  expect_equal(
-    out$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      beta_x3 ~ dnorm(0, sd = 1000)
-      sd_x ~ dunif(0, 100)
-      beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x[1:3] <- nimbleMacros::FORLOOP(beta_Intercept + sd_x * beta_x_raw[1:3])
-      sd_x3_x ~ dunif(0, 100)
-      beta_x3_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x3_x[1:3] <- nimbleMacros::FORLOOP(beta_x3 + sd_x3_x * beta_x3_x_raw[1:3])
-    })
-  )
-
-  code <- quote(LINPRED_PRIORS(~x3 + (x3|x), noncenter=TRUE, centerVar=x))
-
-  # Factor slope
-  code4a <- quote(mu[1:n] <- LINPRED(~(x2||x), priorSpecs=NULL, noncenter=TRUE))
-  out4a <- LINPRED$process(code4a, modInfo, NULL)
-  expect_equal(
-    out4a$code,
-    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]]))
-  )
-
-  code4b <- quote(LINPRED_PRIORS(~(x2||x), noncenter=TRUE))
-  out4b <- LINPRED_PRIORS$process(code4b, modInfo, NULL)
-  expect_equal(
-    out4b$code,
-    quote({
-      beta_Intercept ~ dnorm(0, sd = 1000)
-      sd_x ~ dunif(0, 100)
-      beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x[1:3] <- nimbleMacros::FORLOOP(0 + sd_x * beta_x_raw[1:3])
-      sd_x2d_x ~ dunif(0, 100)
-      sd_x2e_x ~ dunif(0, 100)
-      beta_x2_x_raw[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x2_x[1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_x *
-        beta_x2_x_raw[1, 1:3])
-      beta_x2_x_raw[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-      beta_x2_x[2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_x *
-        beta_x2_x_raw[2, 1:3])
-
-    })
-  )
-  
-  code5a <- quote(mu[1:n] <- LINPRED(~x3 + (x2*w||x), noncenter=TRUE, priorSpecs=NULL))
-  out5a <- LINPRED$process(code5a, modInfo, NULL)
-
-  expect_equal(
-    out5a$code,
-    quote(mu[1:n] <- nimbleMacros::FORLOOP(beta_Intercept + beta_x3 * x3[1:n] +
-    beta_x[x[1:n]] + beta_x2_x[x2[1:n], x[1:n]] + beta_w_x[w[1:n],
-    x[1:n]] + beta_x2_w_x[x2[1:n], w[1:n], x[1:n]]))
-  )
-
-  code5b <- quote(LINPRED_PRIORS(~x3 + (x2*w||x), noncenter=TRUE, priorSpecs=setPriors()))
-  out5b <- LINPRED_PRIORS$process(code5b, modInfo, NULL)
-  
-  expect_equal(
-    out5b$code,
-    quote({
-    beta_Intercept ~ dnorm(0, sd = 1000)
-    beta_x3 ~ dnorm(0, sd = 1000)
-    sd_x ~ dunif(0, 100)
-    beta_x_raw[1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x[1:3] <- nimbleMacros::FORLOOP(0 + sd_x * beta_x_raw[1:3])
-    sd_x2d_x ~ dunif(0, 100)
-    sd_x2e_x ~ dunif(0, 100)
-    beta_x2_x_raw[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x2_x[1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_x *
-        beta_x2_x_raw[1, 1:3])
-    beta_x2_x_raw[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_x2_x[2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_x *
-        beta_x2_x_raw[2, 1:3])
-    sd_wf_x ~ dunif(0, 100)
-    sd_wg_x ~ dunif(0, 100)
-    sd_wh_x ~ dunif(0, 100)
-    beta_w_x_raw[1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_w_x[1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_wf_x * beta_w_x_raw[1,
-        1:3])
-    beta_w_x_raw[2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_w_x[2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_wg_x * beta_w_x_raw[2,
-        1:3])
-    beta_w_x_raw[3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0, sd = 1))
-    beta_w_x[3, 1:3] <- nimbleMacros::FORLOOP(0 + sd_wh_x * beta_w_x_raw[3,
-        1:3])
-    sd_x2d_wf_x ~ dunif(0, 100)
-    sd_x2e_wf_x ~ dunif(0, 100)
-    sd_x2d_wg_x ~ dunif(0, 100)
-    sd_x2e_wg_x ~ dunif(0, 100)
-    sd_x2d_wh_x ~ dunif(0, 100)
-    sd_x2e_wh_x ~ dunif(0, 100)
-    beta_x2_w_x_raw[1, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
-        sd = 1))
-    beta_x2_w_x[1, 1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_wf_x *
-        beta_x2_w_x_raw[1, 1, 1:3])
-    beta_x2_w_x_raw[2, 1, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
-        sd = 1))
-    beta_x2_w_x[2, 1, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_wf_x *
-        beta_x2_w_x_raw[2, 1, 1:3])
-    beta_x2_w_x_raw[1, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
-        sd = 1))
-    beta_x2_w_x[1, 2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_wg_x *
-        beta_x2_w_x_raw[1, 2, 1:3])
-    beta_x2_w_x_raw[2, 2, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
-        sd = 1))
-    beta_x2_w_x[2, 2, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_wg_x *
-        beta_x2_w_x_raw[2, 2, 1:3])
-    beta_x2_w_x_raw[1, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
-        sd = 1))
-    beta_x2_w_x[1, 3, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2d_wh_x *
-        beta_x2_w_x_raw[1, 3, 1:3])
-    beta_x2_w_x_raw[2, 3, 1:3] ~ nimbleMacros::FORLOOP(dnorm(0,
-        sd = 1))
-    beta_x2_w_x[2, 3, 1:3] <- nimbleMacros::FORLOOP(0 + sd_x2e_wh_x *
-        beta_x2_w_x_raw[2, 3, 1:3])
-    })
-  )
-
-  # Correlated random effects don't work yet
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Noncentered")
-})
-
-test_that("priors errors when there are functions in the formula", {
-
-  set.seed(123)
-  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
-                    x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3)))
-
-  code <- quote(LINPRED_PRIORS(~scale(x3) + (1|x), noncenter=TRUE))
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Functions")
-  
-  code <- quote(LINPRED_PRIORS(~scale(x3) + (1|x), noncenter=TRUE)) 
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Functions")
-
-  code <- quote(LINPRED_PRIORS(~I(x3[1:10]), noncenter=TRUE))
-  expect_error(nimbleMacros::LINPRED_PRIORS$process(code, modInfo, NULL), "Functions")
-
-})
-
 test_that("Nested random effects", {
-
+  nimbleOptions(enableMacroComments = FALSE)
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), 
                                x=factor(sample(letters[1:3], 10, replace=T)),
                                w = factor(sample(letters[6:8], 10, replace=T)),
                     x3=round(rnorm(10),3), n=10),
                 indexCreator=nimble:::labelFunctionCreator("i"))
-
 
   # w:x notation
   # Linear predictor
@@ -1330,30 +1412,20 @@ test_that("Nested random effects", {
   expect_equal(
     mod$getCode(),
     quote({
-    "# LINPRED"
-    "  ## nimbleMacros::FORLOOP"
     for (i_1 in 1:n) {
         mu[i_1] <- beta_Intercept + beta_x3 * x3[i_1] + beta_x_w[x_w[i_1]] + 
             beta_x3_x_w[x_w[i_1]] * x3[i_1]
     }
-    "  ## ----"
-    "  ## nimbleMacros::LINPRED_PRIORS"
     beta_Intercept ~ dnorm(0, sd = 1000)
     beta_x3 ~ dnorm(0, sd = 1000)
     sd_x_w ~ dunif(0, 100)
-    "    ### nimbleMacros::FORLOOP"
     for (i_2 in 1:7) {
         beta_x_w[i_2] ~ dnorm(0, sd = sd_x_w)
     }
-    "    ### ----"
     sd_x3_x_w ~ dunif(0, 100)
-    "    ### nimbleMacros::FORLOOP"
     for (i_3 in 1:7) {
         beta_x3_x_w[i_3] ~ dnorm(0, sd = sd_x3_x_w)
     }
-    "    ### ----"
-    "  ## ----"
-    "# ----"
   })
   )
   expect_equal(mod$getConstants()$x_w, as.numeric(out$modelInfo$constants$x_w))
@@ -1368,48 +1440,76 @@ test_that("Nested random effects", {
   expect_equal(
     mod$getCode(),
     quote({
-    "# LINPRED"
-    "  ## nimbleMacros::FORLOOP"
     for (i_1 in 1:n) {
         mu[i_1] <- beta_Intercept + beta_x3 * x3[i_1] + beta_x_w[x_w[i_1]] + 
             beta_w[w[i_1]] + beta_x3_x_w[x_w[i_1]] * x3[i_1] + 
             beta_x3_w[w[i_1]] * x3[i_1]
     }
-    "  ## ----"
-    "  ## nimbleMacros::LINPRED_PRIORS"
     beta_Intercept ~ dnorm(0, sd = 1000)
     beta_x3 ~ dnorm(0, sd = 1000)
     sd_x_w ~ dunif(0, 100)
-    "    ### nimbleMacros::FORLOOP"
     for (i_2 in 1:7) {
         beta_x_w[i_2] ~ dnorm(0, sd = sd_x_w)
     }
-    "    ### ----"
     sd_w ~ dunif(0, 100)
-    "    ### nimbleMacros::FORLOOP"
     for (i_3 in 1:3) {
         beta_w[i_3] ~ dnorm(0, sd = sd_w)
     }
-    "    ### ----"
     sd_x3_x_w ~ dunif(0, 100)
-    "    ### nimbleMacros::FORLOOP"
     for (i_4 in 1:7) {
         beta_x3_x_w[i_4] ~ dnorm(0, sd = sd_x3_x_w)
     }
-    "    ### ----"
     sd_x3_w ~ dunif(0, 100)
-    "    ### nimbleMacros::FORLOOP"
     for (i_5 in 1:3) {
         beta_x3_w[i_5] ~ dnorm(0, sd = sd_x3_w)
     }
-    "    ### ----"
-    "  ## ----"
-    "# ----"
     }) 
   )
   expect_equal(mod$getConstants()$x_w, as.numeric(out$modelInfo$constants$x_w))
 
+  nimbleOptions(enableMacroComments = TRUE)
 })
+
+
+test_that("Macro comments work with LINPRED", {
+
+  nimbleOptions(enableMacroComments = TRUE)
+  set.seed(123)
+  modInfo <- list(constants= list(y = rnorm(10), group=factor(sample(letters[1:3], 10, replace=T)),
+                    x2=factor(sample(letters[4:5], 10, replace=T)),
+                    x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
+                    x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
+
+  # Random intercept
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + (1|group))
+  })
+  mod <- nimbleModel(code, constants = modInfo$constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    "# LINPRED"
+    "  ## nimbleMacros::FORLOOP"
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_group[group[i_1]]
+    }
+    "  ## ----"
+    "  ## nimbleMacros::LINPRED_PRIORS"
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    sd_group ~ dunif(0, 100)
+    "    ### nimbleMacros::FORLOOP"
+    for (i_2 in 1:3) {
+        beta_group[i_2] ~ dnorm(0, sd = sd_group)
+    }
+    "    ### ----"
+    "  ## ----"
+    "# ----"
+    })
+  )
+})
+
 
 test_that("removeBracketsFromFormula",{  
   expect_equal(
@@ -1491,4 +1591,34 @@ test_that("makeDummyDataFrame", {
     makeDummyDataFrame(~x + z, dat),
     "List element z in constants is NULL"
   )
+})
+
+test_that("processNestedRandomEffects", {
+  dat <- list(group=factor(c("a","b","c")), group2=factor(c("d","e","f")))
+  
+  out1 <- processNestedRandomEffects(quote(1|group), dat)
+  expect_equal(out1$barExp, quote(1|group))
+  expect_equal(out1$constants, NULL)
+
+  out2 <- processNestedRandomEffects(quote(1|group:group2), dat)
+  expect_equal(out2$barExp, quote(1|group_group2))
+  expect_equal(out2$constants, list(group_group2=factor(c("a:d", "b:e", "c:f"))))
+  
+  # Check the new factor is not duplicated
+  dat2 <- c(dat, out2$constants)
+  out3 <- processNestedRandomEffects(quote(1|group:group2), dat2)
+  expect_equal(out3$constants, list())
+
+  # Handle character matrices
+  dat2 <- list(group=matrix(c("a","b","b","a"), 2, 2),
+              group2=matrix(c("c","d","c","d"), 2, 2))
+
+  out4 <- processNestedRandomEffects(quote(1|group:group2), dat2)
+  expect_equal(out4$constants$group_group2,
+               matrix(c("a:c","b:d","b:c","a:d"), 2, 2))
+  
+  # Mismatched array sizes should error
+  dat3 <- list(group=matrix(c("a","b","b","a","z","z"), 3, 2),
+              group2=matrix(c("c","d","c","d"), 2, 2))
+  expect_error(processNestedRandomEffects(quote(1|group:group2), dat3))
 })

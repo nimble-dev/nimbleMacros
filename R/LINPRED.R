@@ -142,12 +142,6 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
     
   # Update constants in modelInfo
   modelInfo <- updateModelInfo(modelInfo, components)
-  # Update initial values
-  inits <- getInits(components)
-  if(length(inits) > 0){
-    if(is.null(modelInfo$inits)) modelInfo$inits <- list()
-    modelInfo$inits <- utils::modifyList(modelInfo$inits, inits)
-  }
 
   components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
@@ -156,7 +150,14 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
 
   # Get complete prior code
   code <- getPriors(components)
-  
+
+  # Update initial values
+  inits <- getInits(components)
+  if(length(inits) > 0){
+    if(is.null(modelInfo$inits)) modelInfo$inits <- list()
+    modelInfo$inits <- utils::modifyList(modelInfo$inits, inits)
+  }
+
   list(code=code, modelInfo=modelInfo)
 },
 use3pieces=FALSE,
@@ -497,6 +498,21 @@ processNestedRandomEffects <- function(barExp, constants){
   }
 
   list(barExp=barExp, constants=out)
+}
+
+# Check if input is a proper bar expression
+isBar <- function(code){
+  if(!is.call(code)) return(FALSE)
+  if(length(code) != 3) return(FALSE)
+  if(code[[1]] != "|") return(FALSE)
+  TRUE
+}
+
+# Remove brackets and everything inside them from formula
+# E.g. ~x[1:n] + x2[1:k] --> ~x + x2
+removeBracketsFromFormula <- function(formula){
+  out <- removeSquareBrackets(formula)
+  stats::as.formula(out)
 }
 
 
