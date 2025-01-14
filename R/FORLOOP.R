@@ -182,6 +182,7 @@ checkDuplicateBracketComponents <- function(code){
   if(!hasBracket(code)) stop("Code should have bracket")
   code <- getBracket(code)
   out <- lapply(3:length(code), function(x) code[[x]])
+  out <- out[sapply(out, anyIndexRange)]
   dups <- duplicated(out)
   if(any(dups)){
     stop("Not sure how to expand duplicated index ",

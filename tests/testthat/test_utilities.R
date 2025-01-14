@@ -76,3 +76,36 @@ test_that("RHS<-", {
   code2 <- quote(alpha[1])
   expect_error(RHS(code2) <- quote(test))
 })
+
+test_that("removeExtraBrackets", {       
+  # Test removing brackets inside for loops
+  code <- nimbleCode({
+  {
+    alpha <- 1
+    for (i in 1:n){
+      {
+        for (j in 1:k){
+          z <- 1
+          {
+          y <- 1
+          }
+        }
+      }
+    }
+  }
+  })
+  
+  expect_equal(
+    removeExtraBrackets(code),
+    quote({
+      alpha <- 1
+      for (i in 1:n){
+        for (j in 1:k){
+          z <- 1
+          y <- 1
+        }
+      }
+    })
+  )
+
+})

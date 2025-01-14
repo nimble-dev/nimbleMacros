@@ -1,6 +1,6 @@
 Package: nimbleMacros
-Version: 0.0.11
-Date: 2024-11-04
+Version: 0.0.12
+Date: 2025-01-14
 Title: Macros for 'nimble' Code
 Authors@R: person("Ken", "Kellner", email="contact@kenkellner.com", 
                   role=c("cre","aut"))
@@ -13,8 +13,6 @@ Suggests:
     knitr,
     markdown,
     testthat
-Remotes:
-    nimble=github::nimble-dev/nimble/packages/nimble@devel
 Description: A plug-in to the 'nimble' R package that provides various macros usable in NIMBLE's dialect of BUGS.
 License: GPL-3
 NeedsCompilation: no

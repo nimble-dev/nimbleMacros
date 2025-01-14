@@ -10,6 +10,7 @@ vignette: >
 ---
 
 ```{r, echo=FALSE}
+set.seed(123)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(fig.path="overview-figures/")
 suppressMessages(library(nimbleMacros))
