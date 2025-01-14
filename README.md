@@ -28,7 +28,7 @@ Provided macros include:
 
 * `LM`: A macro to generate code for complete linear, generalized linear, and generalized linear mixed models. The macro uses the same syntax as familiar R functions such as `lm`, `glm`, `glmer`, and `glmmTMB`.
 * `LINPRED`: A macro to generate code for linear predictors using a formula-based syntax, including handling of continuous and categorical covariates and random effects.
-* `PRIORS`: : A macro to generate code for prior specifications using a formula-based syntax, including handling of continuous and categorical covariates and random effects.
+* `LINPRED_PRIORS`: : A macro to generate code for prior specifications using a formula-based syntax, including handling of continuous and categorical covariates and random effects.
 * `FORLOOP`: A macro generating a `for` loop or nested set of `for` loops based on a bracket and index based syntax.
 
 See the [package vignette](https://github.com/nimble-dev/nimbleMacros/blob/master/vignettes/nimbleMacros.Rmd) for more details.
