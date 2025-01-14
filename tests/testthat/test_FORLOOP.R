@@ -210,87 +210,102 @@ test_that("replaceRanges", {
 test_that("FORLOOP", {
   comments_on <- nimbleOptions()$enableMacroComments
   nimbleOptions(enableMacroComments=FALSE)
-  expect_equal(
-    # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:10] ~ FORLOOP(dnorm(0, sd=10))
-    }), modelInfo=list(), env=environment())$code,
-    # reference
-    nimbleCode({
-      for (i_1 in 1:10){
-        beta[i_1] ~ dnorm(0, sd = 10)
-      }
-    })  
-  )
+
+  # Basic for loop
+  code <- nimbleCode({
+    beta[1:10] ~ FORLOOP(dnorm(0, sd=10))
+  })
+  mod <- nimbleModel(code)
 
   expect_equal(
-    # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:2,1:10,1] ~ FORLOOP(dnorm(0, sd=10))
-    }), modelInfo=list(), env=environment())$code,
-    # reference
-    nimbleCode({
-      for (i_1 in 1:2) {
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:10) {
+        beta[i_1] ~ dnorm(0, sd = 10)
+    }
+    })
+  )
+
+  # Nested for loops
+  code <- nimbleCode({
+    beta[1:2,1:10,1] ~ FORLOOP(dnorm(0, sd=10))
+  })
+  mod <- nimbleModel(code)
+
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:2) {
         for (i_2 in 1:10) {
             beta[i_1, i_2, 1] ~ dnorm(0, sd = 10)
         }
-      }
+    }
     })
   )
 
+  # Ignore macro if no bracket on LHS
+  code <- nimbleCode({
+    sigma ~ FORLOOP(dunif(0,10))
+  })
+  mod <- nimbleModel(code)
+
   expect_equal(
-    # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
-      sigma ~ FORLOOP(dunif(0,10))
-    }), modelInfo=list(), env=environment())$code,
-    # reference
-    nimbleCode({
-      sigma ~ dunif(0, 10)
+    mod$getCode(),
+    quote({
+    sigma ~ dunif(0, 10)
     })
   )
 
+  # Ignore macro if no index ranges on LHS
+  code <- nimbleCode({
+    beta[1,2] ~ FORLOOP(dnorm(0, sd=10))
+  })
+  mod <- nimbleModel(code)
+
   expect_equal(
-    # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1,2] ~ FORLOOP(dnorm(0, sd=10))
-    }), modelInfo=list(), env=environment())$code,
-    # reference
-    nimbleCode({
-      beta[1,2] ~ dnorm(0, sd=10)
+    mod$getCode(),
+    quote({
+    beta[1, 2] ~ dnorm(0, sd = 10)
     })
   )
 
+  # Three-layer for loop with combo of index ranges and parameters on LHS and RHS
+  constants <- list(k=3, l=4)
+  code <- nimbleCode({
+    beta[1:10,1:k,1:l] ~ FORLOOP(dnorm(alpha[1:k, 1:10], sigma[1:l]))
+  })
+  mod <- nimbleModel(code, constants=constants)
+
   expect_equal(
-    # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
-      beta[1:10,1:k,1:l] ~ FORLOOP(dnorm(alpha[1:k, 1:10], sigma[1:l]))
-    }), modelInfo=list(), env=environment())$code,
-    # reference
-    nimbleCode({
-      for (i_1 in 1:10) {
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:10) {
         for (i_2 in 1:k) {
             for (i_3 in 1:l) {
-                beta[i_1, i_2, i_3] ~ dnorm(alpha[i_2, i_1], sigma[i_3])
+                beta[i_1, i_2, i_3] ~ dnorm(alpha[i_2, i_1], 
+                  sigma[i_3])
             }
         }
-      }
+    }
     })
   )
 
   # Very complex nested brackets
+  constants <- list(M=3, NS=c(2,3,4), sind=c(3,2,1), IDX=matrix(1:12, 3, 4))
+  code <- nimbleCode({
+    beta[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]] ~ FORLOOP(dnorm(alpha[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]], sigma[1:M]))
+  })
+  mod <- nimbleModel(code, constants=constants)
+
   expect_equal(
-    # macro
-    nimble:::codeProcessModelMacros(nimbleCode({
-      beta[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]] ~ FORLOOP(dnorm(alpha[sind[1:M],IDX[sind[1:M], 1:NS[1:M]]], sigma[1:M]))
-    }), modelInfo=list(), env=environment())$code,
-    # reference
-    nimbleCode({
-      for (i_1 in 1:M) {
-          for (i_2 in 1:NS[i_1]) {
-              beta[sind[i_1], IDX[sind[i_1], i_2]] ~ dnorm(alpha[sind[i_1],
-                  IDX[sind[i_1], i_2]], sigma[i_1])
-          }
-      }
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:M) {
+        for (i_2 in 1:NS[i_1]) {
+            beta[sind[i_1], IDX[sind[i_1], i_2]] ~ dnorm(alpha[sind[i_1], 
+                IDX[sind[i_1], i_2]], sigma[i_1])
+        }
+    }
     })
   )
 
@@ -299,7 +314,8 @@ test_that("FORLOOP", {
   expect_error(
     # macro
     FORLOOP$process(quote(y[1:M, 1:M] ~ FORLOOP(dnorm(mu[1:M, 1:M]))),
-      modelInfo=modelInfo, .env=environment())
+      modelInfo=modelInfo, .env=environment()),
+    "duplicated index"
   )
 
   nimbleOptions(enableMacroComments=comments_on)
