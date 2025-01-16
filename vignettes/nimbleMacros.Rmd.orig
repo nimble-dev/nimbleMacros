@@ -278,6 +278,31 @@ mod <- nimbleModel(code, chick_const)
 mod$getCode()
 ```
 
+
+## Functions in formulas
+
+The `LINPRED` macro supports a handful of functions commonly included in formulas: `offset()`, `scale()`, and `I()`.
+For example, to build a linear predictor with the `Time` covariate scaled to have mean 0 and SD 1:
+
+```{r}
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~scale(Time[1:N]), priorSpecs = NULL, link = log)
+})
+mod <- nimbleModel(code, chick_const)
+mod$getCode()
+```
+
+This adds a new constant `Time_scaled` to the constants:
+
+```{r}
+head(mod$getConstants()$Time_scaled)
+```
+
+`LINPRED` uses a modular system to handle formula functions.
+You can add support for additional functions in `LINPRED` formulas by writing a function with a specific name, class, and output.
+See the source code of the package, specifically the file `formulaFunction.R`, for examples of how to create these functions.
+
+
 ## Get default priors
 
 If we do not manually set the `priorSpecs` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
