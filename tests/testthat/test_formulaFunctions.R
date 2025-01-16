@@ -106,3 +106,189 @@ test_that("offset formula function works", {
 
   nimbleOptions(enableMacroComments=TRUE)
 })
+
+test_that("scale formula function works", {
+  nimbleOptions(enableMacroComments=FALSE)
+  set.seed(123)
+  constants <- list(y=rnorm(3), x = runif(3, 5, 10), z = rnorm(3), n=3, 
+                    x2=matrix(runif(3,5,10), 3, 1), z2=matrix(rnorm(3), 3, 1))
+
+  # Basic scale
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x) + z) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_scaled * x_scaled[i_1] + 
+            beta_z * z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_scaled ~ dnorm(0, sd = 1000)
+    beta_z ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_scaled,
+    scale(constants$x)
+  )
+  # x is not removed from constants
+  expect_equal(
+    mod$getConstants()$x,
+    constants$x
+  )
+
+  # Interaction with non-scaled term
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x):z) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_scaled_z * x_scaled[i_1] * 
+            z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_scaled_z ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_scaled,
+    scale(constants$x)
+  )
+
+  # Interaction and linear term
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x) + scale(x):z) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_scaled * x_scaled[i_1] + 
+            beta_x_scaled_z * x_scaled[i_1] * z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_scaled ~ dnorm(0, sd = 1000)
+    beta_x_scaled_z ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_scaled,
+    scale(constants$x)
+  )
+
+  # Non-scaled term comes first in interaction
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~z:scale(x)) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_z_x_scaled * z[i_1] * 
+            x_scaled[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_z_x_scaled ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_scaled,
+    scale(constants$x)
+  )
+
+  # Interaction of two scaled terms
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x):scale(z)) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_scaled_z_scaled * 
+            x_scaled[i_1] * z_scaled[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_scaled_z_scaled ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_scaled,
+    scale(constants$x)
+  )
+  expect_equivalent(
+    mod$getConstants()$z_scaled,
+    scale(constants$z)
+  )
+
+  # Scale with brackets
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x2[1:n,1]):z)
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x2_scaled_z * x2_scaled[i_1, 
+            1] * z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x2_scaled_z ~ dnorm(0, sd = 1000)
+  })
+  )
+  expect_equivalent(
+    mod$getConstants()$x2_scaled,
+    scale(constants$x2)
+  )
+  expect_equal(dim(mod$getConstants()$x2_scaled), dim(constants$x2))
+
+  # Scale with brackets on the other interaction term
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x2[1:n,1]):z2[1:n,1])
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x2_scaled_z2 * x2_scaled[i_1, 
+            1] * z2[i_1, 1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x2_scaled_z2 ~ dnorm(0, sd = 1000)
+  })
+  )
+
+  # Error if covariate is not in constants
+  code <- quote(mu[1:n] <- LINPRED(~scale(test)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "Covariate inside"
+  )
+
+  # Error if expression inside scale
+  code <- quote(mu[1:n] <- LINPRED(~scale(x*x)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "expression"
+  )
+
+  # Error if multiple types of functions in an interaction
+  code <- quote(mu[1:n] <- LINPRED(~scale(x):test(z)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "multiple different formula functions"
+  )
+
+  nimbleOptions(enableMacroComments=TRUE)
+})
