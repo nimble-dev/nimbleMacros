@@ -346,7 +346,17 @@ processFormulaFunction <- function(x, defaultBracket, coefPrefix="beta_",
 
   if(!inherits(x, "formulaComponentFunction")) return(x)
 
-  func <- safeDeparse(x$lang[[1]])
+  # Identify the first function that appears in the term (in case it's an interaction)
+  trms <- splitInteractionTerms(x$lang)
+  trms <- trms[!sapply(trms, is.name)]
+  funcs <- sapply(trms, function(x) x[[1]])
+
+  if(any(funcs[[1]] != funcs)){
+    stop("Interactions with multiple different formula functions not supported", call.=FALSE)
+  }
+
+  func <- safeDeparse(funcs[[1]])
+
   cand <- paste0(func, "FormulaFunction")
   
   processor_available <- FALSE
@@ -367,6 +377,12 @@ processFormulaFunction <- function(x, defaultBracket, coefPrefix="beta_",
   out
 }
 
+splitInteractionTerms <- function(code){
+  out <- removeSquareBrackets(code)
+  out <- safeDeparse(out)
+  out <- strsplit(out, ":")[[1]]
+  lapply(out, str2lang)
+}
 
 # addTermsAndBrackets----------------------------------------------------------
 # Takes formula component, adds formula terms to term slot and splits out brackets into bracket slot
