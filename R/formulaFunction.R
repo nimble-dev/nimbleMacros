@@ -147,3 +147,80 @@ scaleFormulaFunction <- list(process =
   x
 })
 class(scaleFormulaFunction) <- "formulaFunction"
+
+
+#' Function to handle I() in LINPRED
+#'
+#' Translates I() in an R formula passed to LINPRED into corresponding
+#' NIMBLE code (and new constant) for a scaled covariate.
+#' Only allows for expressions involving one covariate (not functions of covariates).
+#'
+#' @name IFormulaFunction
+#'
+#' @param x A formulaComponentFunction object created from an I() term
+#'
+#'
+NULL
+
+#' @export
+IFormulaFunction <- list(process = 
+  function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+
+  # Identify which interaction terms involve scale
+  trms <- splitInteractionTerms(x$lang)
+  has_I <- !sapply(trms, is.name)
+
+  bracks <- extractAllBrackets(x$lang)
+
+  for (i in 1:length(trms)){
+    if(!has_I[i]){
+      trm_idx <- safeDeparse(trms[[i]])
+      if(trm_idx %in% names(bracks)){
+        brack <- bracks[[trm_idx]]
+      } else {
+        brack <- defaultBracket
+      }
+      trms[[i]] <- str2lang(paste0(safeDeparse(trms[[i]]), brack))
+    } else {
+      interior <- trms[[i]][[2]]
+
+      # Extract any brackets
+      trm_idx <- all.vars(interior)
+      if(length(trm_idx) > 1) stop("Cannot handle more than one variable in I()", call.=FALSE)
+      if(trm_idx %in% names(bracks)){
+        brack <- bracks[[trm_idx]]
+      } else {
+        brack <- defaultBracket
+      }
+  
+      # New term
+      new_term <- safeDeparse(interior)
+      new_term <- gsub(" ", "", new_term)
+      new_term <- gsub("\\^|\\*|\\+|\\-|\\/", "_", new_term)
+
+      # Get constant
+      const <- modelInfo$constants[[trm_idx]]
+      if(is.null(const)) stop("Covariate inside I() is missing from constants", call.=FALSE)
+      if(!is.numeric(const)) stop("Covariate inside I() must be numeric", call.=FALSE)
+
+      # Evaluate expression
+      out <- eval(interior, env = modelInfo$constants)
+      add_const <- list(out)
+      names(add_const) <- new_term 
+
+      # Add the new constant to the object
+      if(is.null(x$constants)) x$constants <- list()
+      x$constants <- modifyList(x$constants, add_const)
+      trms[[i]] <- str2lang(paste0(new_term, brack))
+    }
+  }
+
+  # Updated interaction
+  x$lang <- str2lang(paste(sapply(trms, safeDeparse), collapse=":"))
+
+  # Update class
+  class(x)[1] <- "formulaComponentFixed"
+  
+  x
+})
+class(IFormulaFunction) <- "formulaFunction"

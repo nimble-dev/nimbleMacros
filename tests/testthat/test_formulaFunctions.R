@@ -292,3 +292,127 @@ test_that("scale formula function works", {
 
   nimbleOptions(enableMacroComments=TRUE)
 })
+
+test_that("I() formula function works", {
+  nimbleOptions(enableMacroComments=FALSE)
+  set.seed(123)
+  constants <- list(x=rnorm(3), z=rnorm(3), a=matrix(rnorm(3), 3, 1), n=3)
+
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + I(z^2))
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  # Basic example
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_z_2 * 
+            z_2[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    beta_z_2 ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equal(
+    mod$getConstants()$z_2,
+    constants$z^2
+  )
+
+  # Involved in interaction
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x:I(z^2))
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_z_2 * x[i_1] * z_2[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_z_2 ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equal(
+    mod$getConstants()$z_2,
+    constants$z^2
+  )
+
+  # Subtraction operation
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~I(x-1))
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_1 * x_1[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_1 ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equal(
+    mod$getConstants()$x_1,
+    constants$x - 1
+  )
+
+  # Indices
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + I(a[1:n,1]^2))
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_a_2 * 
+            a_2[i_1, 1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    beta_a_2 ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equal(
+    mod$getConstants()$a_2,
+    constants$a^2
+  )
+
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~x + z:I(a[1:n,1]^2))
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x * x[i_1] + beta_z_a_2 * 
+            z[i_1] * a_2[i_1, 1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x ~ dnorm(0, sd = 1000)
+    beta_z_a_2 ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equal(
+    mod$getConstants()$a_2,
+    constants$a^2
+  )
+
+  # Two variables in I() not allowed
+  code <- quote(mu[1:n] <- LINPRED(~I(x+z)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "more than one"
+  )
+
+  nimbleOptions(enableMacroComments=TRUE)
+})
