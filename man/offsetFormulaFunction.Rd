@@ -3,10 +3,39 @@
 \name{offsetFormulaFunction}
 \alias{offsetFormulaFunction}
 \title{Function to handle offset() in LINPRED}
+\usage{
+offsetFormulaFunction(
+  x,
+  defaultBracket,
+  coefPrefix,
+  sdPrefix,
+  modelInfo,
+  env,
+  ...
+)
+}
 \arguments{
-\item{x}{A formulaComponentFunction object created from an offset() term}
+\item{x}{A \code{formulaComponentFunction} object created from an offset() term}
+
+\item{defaultBracket}{The bracket from the LHS of LINPRED}
+
+\item{coefPrefix}{The prefix to use for any new linear predictor parameters created}
+
+\item{sdPrefix}{The prefix to use for any new standard deviation parameters created}
+
+\item{modelInfo}{Named list containing model information including constants}
+
+\item{env}{Environment in which the LINPRED macro was called}
+
+\item{...}{Not currently used}
+}
+\value{
+An object of class \code{formulaComponent}.
 }
 \description{
 Translates offset() in an R formula passed to LINPRED into corresponding
-NIMBLE code for an offset in the linear predictor.
+NIMBLE code for an offset in the linear predictor. This is used internally
+by \code{LINPRED} and should not be called directly. New formula functions
+should have the same arguments, naming structure, class (\code{formulaFunction}) 
+and return object class (\code{formulaComponent}).
 }

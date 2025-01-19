@@ -1,18 +1,23 @@
 #' Function to handle offset() in LINPRED
 #'
 #' Translates offset() in an R formula passed to LINPRED into corresponding
-#' NIMBLE code for an offset in the linear predictor.
+#' NIMBLE code for an offset in the linear predictor. This is used internally
+#' by \code{LINPRED} and should not be called directly. New formula functions
+#' should have the same arguments, naming structure, class (\code{formulaFunction}) 
+#' and return object class (\code{formulaComponent}).
 #'
-#' @name offsetFormulaFunction
+#' @param x A \code{formulaComponentFunction} object created from an offset() term
+#' @param defaultBracket The bracket from the LHS of LINPRED
+#' @param coefPrefix The prefix to use for any new linear predictor parameters created
+#' @param sdPrefix The prefix to use for any new standard deviation parameters created
+#' @param modelInfo Named list containing model information including constants
+#' @param env Environment in which the LINPRED macro was called
+#' @param ... Not currently used
 #'
-#' @param x A formulaComponentFunction object created from an offset() term
+#' @return An object of class \code{formulaComponent}.
 #'
-#'
-NULL
-
 #' @export
-offsetFormulaFunction <- list(process = 
-  function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+offsetFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
  
   # Get the code inside offset()
   interior <- x$lang[[2]]
@@ -42,7 +47,7 @@ offsetFormulaFunction <- list(process =
     add_const <- list(new_const)
     names(add_const) <- const_name
     if(is.null(x$constants)) x$constants <- list()
-    x$constants <- modifyList(x$constants, add_const)
+    x$constants <- utils::modifyList(x$constants, add_const)
     # Update the name of the term to put in the linear predictor
     interior <- str2lang(const_name)
   }
@@ -52,8 +57,8 @@ offsetFormulaFunction <- list(process =
   x$linPredCode <- code
   x$priorCode <- NULL   # no prior code for an offset
   x
-})
-class(offsetFormulaFunction) <- "formulaFunction"
+}
+class(offsetFormulaFunction) <- c(class(offsetFormulaFunction), "formulaFunction")
 
 # Extract all 'names' from a call
 # So qnorm(log(x)) would yield qnorm, log, x
@@ -71,18 +76,23 @@ get_all_names_recursive <- function(code){
 #' Function to handle scale() in LINPRED
 #'
 #' Translates scale() in an R formula passed to LINPRED into corresponding
-#' NIMBLE code (and new constant) for a scaled covariate.
-#'
-#' @name scaleFormulaFunction
+#' NIMBLE code (and new constant) for a scaled covariate. This is used internally
+#' by \code{LINPRED} and should not be called directly. New formula functions
+#' should have the same arguments, naming structure, class (\code{formulaFunction}) 
+#' and return object class (\code{formulaComponent}).
 #'
 #' @param x A formulaComponentFunction object created from a scale() term
+#' @param defaultBracket The bracket from the LHS of LINPRED
+#' @param coefPrefix The prefix to use for any new linear predictor parameters created
+#' @param sdPrefix The prefix to use for any new standard deviation parameters created
+#' @param modelInfo Named list containing model information including constants
+#' @param env Environment in which the LINPRED macro was called
+#' @param ... Not currently used
 #'
+#' @return An object of class \code{formulaComponentFixed}.
 #'
-NULL
-
 #' @export
-scaleFormulaFunction <- list(process = 
-  function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+scaleFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
   trms <- splitInteractionTerms(x$lang)
@@ -133,7 +143,7 @@ scaleFormulaFunction <- list(process =
 
       # Add the new constant to the object
       if(is.null(x$constants)) x$constants <- list()
-      x$constants <- modifyList(x$constants, add_const)
+      x$constants <- utils::modifyList(x$constants, add_const)
       trms[[i]] <- str2lang(paste0(new_term, brack))
     }
   }
@@ -145,8 +155,8 @@ scaleFormulaFunction <- list(process =
   class(x)[1] <- "formulaComponentFixed"
   
   x
-})
-class(scaleFormulaFunction) <- "formulaFunction"
+}
+class(scaleFormulaFunction) <- c(class(scaleFormulaFunction), "formulaFunction")
 
 
 #' Function to handle I() in LINPRED
@@ -154,17 +164,22 @@ class(scaleFormulaFunction) <- "formulaFunction"
 #' Translates I() in an R formula passed to LINPRED into corresponding
 #' NIMBLE code (and new constant) for a scaled covariate.
 #' Only allows for expressions involving one covariate (not functions of covariates).
-#'
-#' @name IFormulaFunction
+#' This is used internally by \code{LINPRED} and should not be called directly. 
+#' New formula functions should have the same arguments, naming structure, class 
+#' (\code{formulaFunction}) and return object class (\code{formulaComponent}).
 #'
 #' @param x A formulaComponentFunction object created from an I() term
+#' @param defaultBracket The bracket from the LHS of LINPRED
+#' @param coefPrefix The prefix to use for any new linear predictor parameters created
+#' @param sdPrefix The prefix to use for any new standard deviation parameters created
+#' @param modelInfo Named list containing model information including constants
+#' @param env Environment in which the LINPRED macro was called
+#' @param ... Not currently used
 #'
+#' @return An object of class \code{formulaComponentFixed}.
 #'
-NULL
-
 #' @export
-IFormulaFunction <- list(process = 
-  function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+IFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
   trms <- splitInteractionTerms(x$lang)
@@ -204,13 +219,13 @@ IFormulaFunction <- list(process =
       if(!is.numeric(const)) stop("Covariate inside I() must be numeric", call.=FALSE)
 
       # Evaluate expression
-      out <- eval(interior, env = modelInfo$constants)
+      out <- eval(interior, envir = modelInfo$constants)
       add_const <- list(out)
       names(add_const) <- new_term 
 
       # Add the new constant to the object
       if(is.null(x$constants)) x$constants <- list()
-      x$constants <- modifyList(x$constants, add_const)
+      x$constants <- utils::modifyList(x$constants, add_const)
       trms[[i]] <- str2lang(paste0(new_term, brack))
     }
   }
@@ -222,5 +237,5 @@ IFormulaFunction <- list(process =
   class(x)[1] <- "formulaComponentFixed"
   
   x
-})
-class(IFormulaFunction) <- "formulaFunction"
+}
+class(IFormulaFunction) <- c(class(IFormulaFunction), "formulaFunction")

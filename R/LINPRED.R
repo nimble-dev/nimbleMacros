@@ -364,7 +364,7 @@ processFormulaFunction <- function(x, defaultBracket, coefPrefix="beta_",
     processor <- get(cand, envir = env)
     if(inherits(processor, "formulaFunction")){
       processor_available <- TRUE
-      out <- processor$process(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...)
+      out <- processor(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...)
       if(!inherits(out, "formulaComponent")){
         stop("Processing function doesn't return formulaComponent object", call.=FALSE)
       }
