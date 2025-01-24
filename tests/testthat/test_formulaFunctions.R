@@ -440,3 +440,182 @@ test_that("I() formula function works", {
 
   nimbleOptions(enableMacroComments=TRUE)
 })
+
+test_that("log formula function works", {
+  nimbleOptions(enableMacroComments=FALSE)
+  set.seed(123)
+  constants <- list(y=rnorm(3), x = runif(3, 5, 10), z = rnorm(3), n=3, 
+                    x2=matrix(runif(3,5,10), 3, 1), z2=matrix(rnorm(3), 3, 1),
+                    x3 = matrix(runif(9,5,10), 3, 3))
+
+  # Basic log
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~log(x) + z) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_log * x_log[i_1] + 
+            beta_z * z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_log ~ dnorm(0, sd = 1000)
+    beta_z ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_log,
+    log(constants$x)
+  )
+
+  # log with non-vectors
+  code <- nimbleCode({
+    mu[1:n,1:3] <- LINPRED(~log(x3[1:n,1:3])) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        for (i_2 in 1:3) {
+            mu[i_1, i_2] <- beta_Intercept + beta_x3_log * 
+                x3_log[i_1, i_2]
+        }
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x3_log ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equal(mod$getConstants()$x3_log, log(constants$x3))
+
+  # Interaction with non-scaled term
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~log(x):z) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_log_z * x_log[i_1] * 
+            z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_log_z ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_log,
+    log(constants$x)
+  )
+
+  # Non-log term comes first in interaction
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~z:log(x)) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_z_x_log * z[i_1] * 
+            x_log[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_z_x_log ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_log,
+    log(constants$x)
+  )
+
+  # Interaction of two logged terms
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~log(x):log(z)) 
+  })
+  expect_warning(mod <- nimbleModel(code, constants=constants), "NaN")
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_log_z_log * 
+            x_log[i_1] * z_log[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_log_z_log ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_log,
+    log(constants$x)
+  )
+  expect_equivalent(
+    mod$getConstants()$z_log,
+    expect_warning(log(constants$z))
+  )
+
+  # log with brackets
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~log(x2[1:n,1]):z)
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x2_log_z * x2_log[i_1, 
+            1] * z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x2_log_z ~ dnorm(0, sd = 1000)
+  })
+  )
+  expect_equivalent(
+    mod$getConstants()$x2_log,
+    log(constants$x2)
+  )
+
+  # Scale with brackets on the other interaction term
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~log(x2[1:n,1]):z2[1:n,1])
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x2_log_z2 * x2_log[i_1, 
+            1] * z2[i_1, 1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x2_log_z2 ~ dnorm(0, sd = 1000)
+  })
+  )
+
+  # Error if covariate is not in constants
+  code <- quote(mu[1:n] <- LINPRED(~log(test)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "Covariate inside"
+  )
+
+  # Error if expression inside scale
+  code <- quote(mu[1:n] <- LINPRED(~log(x*x)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "expression"
+  )
+
+  # Error if multiple types of functions in an interaction
+  code <- quote(mu[1:n] <- LINPRED(~log(x):scale(z)))
+  expect_error(
+    LINPRED$process(code, list(constants=constants), environment()),
+    "multiple different formula functions"
+  )
+
+  nimbleOptions(enableMacroComments=TRUE)
+})

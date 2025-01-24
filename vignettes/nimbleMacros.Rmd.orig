@@ -58,7 +58,7 @@ summary(rmod)
 To fit this model with the `LM` macro, we'll start by organizing the data and constants into a list.
 
 ```{r}
-const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
+const <- mtcars[c("am", "mpg")]
 ```
 
 Next we'll specify the prior distributions we want to use for the intercept and the slope coefficient(s).
@@ -72,20 +72,20 @@ pr <- setPriors(intercept=quote(dunif(-10,10)),
 ```
 
 Finally, we specify the NIMBLE code, which is a single call to the `LM` macro that should look familiar to our call to `glm` above.
+
 Two things to note:
-1. We don't include a call to `scale` in the formula (`LM` does not support this). Instead we standardized the `mpg` values when we put them into our list `const`.
+1. We include a call to `scale` in the formula as with `glm()`; `LM` will do the scaling automatically.
 2. You don't need to specify dimensions of the variables with `LM`, as this is handled automatically, as `LM` assumes all data and constants are vectors of the same length. In more complex situations you can use the `LINPRED` macro; see the next section.
 
 ```{r}
 code <- nimbleCode({
-  LM(am ~ mpg, family = binomial, priorSpecs=pr)
+  LM(am ~ scale(mpg), family = binomial, priorSpecs=pr)
 })
 ```
 
 Finally, we'll fit the model which yields similar results to `glm`.
 
 ```{r}
-
 samples <- nimbleMCMC(code, constants=const, nchain=1, niter=3000, nburnin=2000,
                       samplesAsCodaMCMC = TRUE)
 summary(samples)
@@ -281,7 +281,7 @@ mod$getCode()
 
 ## Functions in formulas
 
-The `LINPRED` macro supports a handful of functions commonly included in formulas: `offset()`, `scale()`, and `I()`.
+The `LINPRED` macro supports a handful of functions commonly included in formulas: `offset()`, `scale()`, `log()`, and `I()`.
 For example, to build a linear predictor with the `Time` covariate scaled to have mean 0 and SD 1:
 
 ```{r}

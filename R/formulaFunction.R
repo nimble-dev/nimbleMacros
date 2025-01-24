@@ -242,3 +242,85 @@ IFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo,
   x
 }
 class(IFormulaFunction) <- c(class(IFormulaFunction), "formulaFunction")
+
+
+#' Function to handle log() in LINPRED
+#'
+#' Translates log() in an R formula passed to LINPRED into corresponding
+#' NIMBLE code (and new constant) for a log-transformed covariate. This is used internally
+#' by \code{LINPRED} and should not be called directly. New formula functions
+#' should have the same arguments, naming structure, class (\code{formulaFunction}) 
+#' and return object class (\code{formulaComponent}).
+#'
+#' @param x A formulaComponentFunction object created from a log() term
+#' @param defaultBracket The bracket from the LHS of LINPRED
+#' @param coefPrefix The prefix to use for any new linear predictor parameters created
+#' @param sdPrefix The prefix to use for any new standard deviation parameters created
+#' @param modelInfo Named list containing model information including constants
+#' @param env Environment in which the LINPRED macro was called
+#' @param ... Not currently used
+#'
+#' @return An object of class \code{formulaComponentFixed}.
+#'
+#' @export
+logFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+
+  # Identify which interaction terms involve scale
+  trms <- splitInteractionTerms(x$lang)
+  has_log <- !sapply(trms, is.name)
+
+  bracks <- extractAllBrackets(x$lang)
+
+  for (i in 1:length(trms)){
+    if(!has_log[i]){
+      trm_idx <- safeDeparse(trms[[i]])
+      if(trm_idx %in% names(bracks)){
+        brack <- bracks[[trm_idx]]
+      } else {
+        brack <- defaultBracket
+      }
+      trms[[i]] <- str2lang(paste0(safeDeparse(trms[[i]]), brack))
+    } else {
+      interior <- trms[[i]][[2]]
+      if(!is.name(interior)) stop("Can't handle expression inside log()", call.=FALSE)
+
+      # Extract any brackets
+      trm_idx <- safeDeparse(interior)
+      if(trm_idx %in% names(bracks)){
+        brack <- bracks[[trm_idx]]
+      } else {
+        brack <- defaultBracket
+      }
+
+      # Remove brackets from code
+      interior <- removeSquareBrackets(interior)
+  
+      # New term
+      new_term <- paste0(safeDeparse(interior), "_log")
+
+      # Get constant
+      const <- modelInfo$constants[[safeDeparse(interior)]]
+      if(is.null(const)) stop("Covariate inside log() is missing from constants", call.=FALSE)
+      if(!is.numeric(const)) stop("Covariate inside log() must be numeric", call.=FALSE)
+
+      out <- log(const)
+
+      add_const <- list(out)
+      names(add_const) <- new_term 
+
+      # Add the new constant to the object
+      if(is.null(x$constants)) x$constants <- list()
+      x$constants <- utils::modifyList(x$constants, add_const)
+      trms[[i]] <- str2lang(paste0(new_term, brack))
+    }
+  }
+
+  # Updated interaction
+  x$lang <- str2lang(paste(sapply(trms, safeDeparse), collapse=":"))
+
+  # Update class
+  class(x)[1] <- "formulaComponentFixed"
+  
+  x
+}
+class(logFormulaFunction) <- c(class(logFormulaFunction), "formulaFunction")
