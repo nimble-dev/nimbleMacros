@@ -37,5 +37,7 @@ Translates scale() in an R formula passed to LINPRED into corresponding
 NIMBLE code (and new constant) for a scaled covariate. This is used internally
 by \code{LINPRED} and should not be called directly. New formula functions
 should have the same arguments, naming structure, class (\code{formulaFunction}) 
-and return object class (\code{formulaComponent}).
+and return object class (\code{formulaComponent}). Note: when applied to a
+matrix or array covariate, scale() will calculate mean/SD relative to the entire
+matrix/array, NOT column-wise as is the case if you use scale() in base R.
 }

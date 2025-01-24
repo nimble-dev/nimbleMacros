@@ -111,7 +111,8 @@ test_that("scale formula function works", {
   nimbleOptions(enableMacroComments=FALSE)
   set.seed(123)
   constants <- list(y=rnorm(3), x = runif(3, 5, 10), z = rnorm(3), n=3, 
-                    x2=matrix(runif(3,5,10), 3, 1), z2=matrix(rnorm(3), 3, 1))
+                    x2=matrix(runif(3,5,10), 3, 1), z2=matrix(rnorm(3), 3, 1),
+                    x3 = matrix(runif(9,5,10), 3, 3))
 
   # Basic scale
   code <- nimbleCode({
@@ -140,6 +141,29 @@ test_that("scale formula function works", {
     mod$getConstants()$x,
     constants$x
   )
+
+  # Scale with non-vectors
+  code <- nimbleCode({
+    mu[1:n,1:3] <- LINPRED(~scale(x3[1:n,1:3])) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        for (i_2 in 1:3) {
+            mu[i_1, i_2] <- beta_Intercept + beta_x3_scaled * 
+                x3_scaled[i_1, i_2]
+        }
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x3_scaled ~ dnorm(0, sd = 1000)
+    })
+  )
+  x3_scale <- mod$getConstants()$x3_scale
+  expect_equal(dim(x3_scale), dim(constants$x3))
+  expect_equal(mean(x3_scale), 0, tol=1e-6)
+  expect_equal(sd(x3_scale), 1, tol=1e-6)
 
   # Interaction with non-scaled term
   code <- nimbleCode({

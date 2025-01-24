@@ -79,7 +79,9 @@ get_all_names_recursive <- function(code){
 #' NIMBLE code (and new constant) for a scaled covariate. This is used internally
 #' by \code{LINPRED} and should not be called directly. New formula functions
 #' should have the same arguments, naming structure, class (\code{formulaFunction}) 
-#' and return object class (\code{formulaComponent}).
+#' and return object class (\code{formulaComponent}). Note: when applied to a
+#' matrix or array covariate, scale() will calculate mean/SD relative to the entire
+#' matrix/array, NOT column-wise as is the case if you use scale() in base R.
 #'
 #' @param x A formulaComponentFunction object created from a scale() term
 #' @param defaultBracket The bracket from the LHS of LINPRED
@@ -133,7 +135,8 @@ scaleFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelI
       if(!is.numeric(const)) stop("Covariate inside scale() must be numeric", call.=FALSE)
 
       # Make sure constant retains dimensions after being scaled
-      out <- as.numeric(scale(const))
+      # Note: this scales across the entire constant, not by column!
+      out <- as.numeric(scale(as.numeric(const)))
       if(!is.null(dim(const))){
         out <- array(out, dim=dim(const))
       }
