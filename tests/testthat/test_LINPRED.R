@@ -1366,24 +1366,6 @@ test_that("LINPRED with factor array covariate", {
 })
 
 
-test_that("LINPRED errors when there are functions in the formula", {
-  set.seed(123)
-  modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
-                    x2=factor(sample(letters[4:5], 10, replace=T)),
-                    x3=round(rnorm(10),3)))
-
-  code <- quote(y[1:n] <- LINPRED(~scale(x), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL), "Functions")
-
-  code <- quote(y[1:n] <- LINPRED(~scale(x) + (1|x2), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL), "Functions")
-
-  code <- quote(y[1:n] <- LINPRED(~x3 + I(x[1:10]), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=NULL), "Functions")
-
-})
-
-
 test_that("Nested random effects", {
   nimbleOptions(enableMacroComments = FALSE)
   set.seed(123)

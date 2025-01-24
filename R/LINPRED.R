@@ -50,7 +50,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Split formula into components and process the components
     components <- buildLP(formula, defaultBracket = LHS_ind, 
                     coefPrefix = safeDeparse(coefPrefix), sdPrefix=sdPrefix,
-                    modelInfo = modelInfo, centerVar = centerVar)
+                    modelInfo = modelInfo, centerVar = centerVar, env=.env)
     
     # Update modelInfo
     modelInfo <- updateModelInfo(modelInfo, components)
@@ -138,7 +138,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
   # Split formula into components and process the components
   components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
                     coefPrefix = safeDeparse(coefPrefix), sdPrefix=sdPrefix,
-                    modelInfo = modelInfo, centerVar = centerVar)
+                    modelInfo = modelInfo, centerVar = centerVar, env=.env)
     
   # Update constants in modelInfo
   modelInfo <- updateModelInfo(modelInfo, components)
@@ -169,11 +169,11 @@ unpackArgs=TRUE
 # Splits the formula into separate components (terms)
 # Then iteratively adds information to each component until eventually
 # the linear predictor code for the components can be added
-buildLP <- function(formula, defaultBracket, coefPrefix="beta_", sdPrefix=NULL, modelInfo, centerVar=NULL){
+buildLP <- function(formula, defaultBracket, coefPrefix="beta_", sdPrefix=NULL, modelInfo, centerVar=NULL, env){
   comps <- separateFormulaComponents(formula)
-  # Functions will be handled here; for now an error
-  is_function <- sapply(comps, function(x) inherits(x, "formulaComponentFunction"))
-  if(any(is_function)) stop("Functions in formulas not yet supported", call.=FALSE)
+  # Process formula functions, erroring if an unsupported one is found
+  comps <- lapply(comps, processFormulaFunction, defaultBracket = defaultBracket,
+                  coefPrefix=coefPrefix, sdPrefix=sdPrefix, modelInfo = modelInfo, env = env)
   comps <- lapply(comps, addTermsAndBrackets, defaultBracket = defaultBracket, constants = modelInfo$constants)
   # Update constants in modelInfo with any new constants before moving on
   # constants may have been created by addTermsAndBrackets if there were nested random effects
@@ -294,7 +294,16 @@ createInterceptComponent <- function(formula){
 # presence of (), e.g. scale(), I()
 createFixedComponents <- function(formula){
   fixed <- reformulas::nobars(formula) # remove random terms first
-  fixed_terms <- attr(stats::terms(fixed), "term.labels")
+  trms <- stats::terms(fixed)
+  fixed_terms <- attr(trms, "term.labels")
+  
+  # Handle offset special case
+  off <- attr(trms, "offset")
+  if(!is.null(off)){
+    off <- rownames(attr(trms, "factors"))[off]
+    fixed_terms <- c(fixed_terms, off)
+  }
+
   if(length(fixed_terms) == 0) return(NULL)
   components <- lapply(fixed_terms, function(x){
     if(grepl("(", x, fixed=TRUE)){ # is this a function component?
@@ -321,6 +330,59 @@ createRandomComponents <- function(formula){
   components
 }
 
+
+# processFormulaFunctions------------------------------------------------------
+# For formulaComponentFunction objects
+# If the formula component is FUN(), then this function looks for
+# a corresponding formulaFunction class object in the environment called 
+# "FUNFormulaFunction". This function is then run on the component, which
+# should return a component with updated linear predictor and priors slots
+# to be used in final code compilation.
+# It is also possible that the processing function could do some work and
+# then change the class of the output component to formulaComponentFixed so
+# that it will be further processed in later steps.
+processFormulaFunction <- function(x, defaultBracket, coefPrefix="beta_", 
+                                    sdPrefix=NULL, modelInfo, env, ...){
+
+  if(!inherits(x, "formulaComponentFunction")) return(x)
+
+  # Identify the first function that appears in the term (in case it's an interaction)
+  trms <- splitInteractionTerms(x$lang)
+  trms <- trms[!sapply(trms, is.name)]
+  funcs <- sapply(trms, function(x) x[[1]])
+
+  if(any(funcs[[1]] != funcs)){
+    stop("Interactions with multiple different formula functions not supported", call.=FALSE)
+  }
+
+  func <- safeDeparse(funcs[[1]])
+
+  cand <- paste0(func, "FormulaFunction")
+  
+  processor_available <- FALSE
+  if(exists(cand, envir = env)){
+    processor <- get(cand, envir = env)
+    if(inherits(processor, "formulaFunction")){
+      processor_available <- TRUE
+      out <- processor(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...)
+      if(!inherits(out, "formulaComponent")){
+        stop("Processing function doesn't return formulaComponent object", call.=FALSE)
+      }
+    }
+  }
+  if(!processor_available){
+    stop("No processing function for ", func, "() available", call.=FALSE)
+  }
+
+  out
+}
+
+splitInteractionTerms <- function(code){
+  out <- removeSquareBrackets(code)
+  out <- safeDeparse(out)
+  out <- strsplit(out, ":")[[1]]
+  lapply(out, str2lang)
+}
 
 # addTermsAndBrackets----------------------------------------------------------
 # Takes formula component, adds formula terms to term slot and splits out brackets into bracket slot

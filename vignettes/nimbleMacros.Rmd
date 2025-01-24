@@ -78,7 +78,7 @@ To fit this model with the `LM` macro, we'll start by organizing the data and co
 
 
 ``` r
-const <- list(mpg = as.numeric(scale(mtcars$mpg)), am = mtcars$am)
+const <- mtcars[c("am", "mpg")]
 ```
 
 Next we'll specify the prior distributions we want to use for the intercept and the slope coefficient(s).
@@ -93,14 +93,15 @@ pr <- setPriors(intercept=quote(dunif(-10,10)),
 ```
 
 Finally, we specify the NIMBLE code, which is a single call to the `LM` macro that should look familiar to our call to `glm` above.
+
 Two things to note:
-1. We don't include a call to `scale` in the formula (`LM` does not support this). Instead we standardized the `mpg` values when we put them into our list `const`.
+1. We include a call to `scale` in the formula as with `glm()`; `LM` will do the scaling automatically.
 2. You don't need to specify dimensions of the variables with `LM`, as this is handled automatically, as `LM` assumes all data and constants are vectors of the same length. In more complex situations you can use the `LINPRED` macro; see the next section.
 
 
 ``` r
 code <- nimbleCode({
-  LM(am ~ mpg, family = binomial, priorSpecs=pr)
+  LM(am ~ scale(mpg), family = binomial, priorSpecs=pr)
 })
 ```
 
@@ -131,15 +132,15 @@ summary(samples)
 ## 1. Empirical mean and standard deviation for each variable,
 ##    plus standard error of the mean:
 ## 
-##                   Mean     SD Naive SE Time-series SE
-## beta_Intercept -0.4651 0.4693  0.01484        0.03274
-## beta_mpg        2.0391 0.7063  0.02234        0.04881
+##                    Mean     SD Naive SE Time-series SE
+## beta_Intercept  -0.4651 0.4693  0.01484        0.03274
+## beta_mpg_scaled  2.0391 0.7063  0.02234        0.04881
 ## 
 ## 2. Quantiles for each variable:
 ## 
-##                   2.5%     25%     50%    75%  97.5%
-## beta_Intercept -1.4296 -0.7595 -0.4548 -0.134 0.4101
-## beta_mpg        0.7872  1.5560  2.0039  2.464 3.5055
+##                    2.5%     25%     50%    75%  97.5%
+## beta_Intercept  -1.4296 -0.7595 -0.4548 -0.134 0.4101
+## beta_mpg_scaled  0.7872  1.5560  2.0039  2.464 3.5055
 ```
 
 ## Example linear mixed model using `ChickWeights`
@@ -489,6 +490,49 @@ mod$getCode()
 ##     "# ----"
 ## }
 ```
+
+
+## Functions in formulas
+
+The `LINPRED` macro supports a handful of functions commonly included in formulas: `offset()`, `scale()`, `log()`, and `I()`.
+For example, to build a linear predictor with the `Time` covariate scaled to have mean 0 and SD 1:
+
+
+``` r
+code <- nimbleCode({
+  mu[1:N] <- LINPRED(~scale(Time[1:N]), priorSpecs = NULL, link = log)
+})
+mod <- nimbleModel(code, chick_const)
+mod$getCode()
+```
+
+```
+## {
+##     "# LINPRED"
+##     "  ## nimbleMacros::FORLOOP"
+##     for (i_1 in 1:N) {
+##         log(mu[i_1]) <- beta_Intercept + beta_Time_scaled * Time_scaled[i_1]
+##     }
+##     "  ## ----"
+##     "# ----"
+## }
+```
+
+This adds a new constant `Time_scaled` to the constants:
+
+
+``` r
+head(mod$getConstants()$Time_scaled)
+```
+
+```
+## [1] -1.5858774 -1.2899493 -0.9940213 -0.6980932 -0.4021652 -0.1062371
+```
+
+`LINPRED` uses a modular system to handle formula functions.
+You can add support for additional functions in `LINPRED` formulas by writing a function with a specific name, class, and output.
+See the source code of the package, specifically the file `formulaFunction.R`, for examples of how to create these functions.
+
 
 ## Get default priors
 
