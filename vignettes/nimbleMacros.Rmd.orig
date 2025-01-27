@@ -83,10 +83,17 @@ code <- nimbleCode({
 })
 ```
 
+We create a NIMBLE model with this input code, and show what the final code looks like after macro expansion.
+
+```{r}
+mod <- nimbleModel(code = code, constants = const)
+mod$getCode()
+```
+
 Finally, we'll fit the model which yields similar results to `glm`.
 
 ```{r}
-samples <- nimbleMCMC(code, constants=const, nchain=1, niter=3000, nburnin=2000,
+samples <- nimbleMCMC(mod, nchain=1, niter=3000, nburnin=2000,
                       samplesAsCodaMCMC = TRUE)
 summary(samples)
 ```
@@ -144,10 +151,17 @@ code <- nimbleCode({
 })
 ```
 
+Next we create the model object and show the expanded code.
+
+```{r}
+mod <- nimbleModel(code = code, constants = chick_const)
+mod$getCode()
+```
+
 Fit the model:
 
 ```{r}
-samples <- nimbleMCMC(code, constants=chick_const, nchain=1, niter=3000, nburnin=2000,
+samples <- nimbleMCMC(mod, nchain=1, niter=3000, nburnin=2000,
                       samplesAsCodaMCMC = TRUE)
 summary(samples)
 ```

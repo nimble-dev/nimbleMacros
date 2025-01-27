@@ -105,11 +105,43 @@ code <- nimbleCode({
 })
 ```
 
+We create a NIMBLE model with this input code, and show what the final code looks like after macro expansion.
+
+
+``` r
+mod <- nimbleModel(code = code, constants = const)
+mod$getCode()
+```
+
+```
+## {
+##     "# LM"
+##     "  ## FORLOOP"
+##     for (i_1 in 1:32) {
+##         am[i_1] ~ dbinom(mu_[i_1], size = 1)
+##     }
+##     "  ## ----"
+##     "  ## LINPRED"
+##     "    ### nimbleMacros::FORLOOP"
+##     for (i_2 in 1:32) {
+##         logit(mu_[i_2]) <- beta_Intercept + beta_mpg_scaled * 
+##             mpg_scaled[i_2]
+##     }
+##     "    ### ----"
+##     "    ### nimbleMacros::LINPRED_PRIORS"
+##     beta_Intercept ~ dunif(-10, 10)
+##     beta_mpg_scaled ~ dnorm(0, 0.1)
+##     "    ### ----"
+##     "  ## ----"
+##     "# ----"
+## }
+```
+
 Finally, we'll fit the model which yields similar results to `glm`.
 
 
 ``` r
-samples <- nimbleMCMC(code, constants=const, nchain=1, niter=3000, nburnin=2000,
+samples <- nimbleMCMC(mod, nchain=1, niter=3000, nburnin=2000,
                       samplesAsCodaMCMC = TRUE)
 ```
 
@@ -198,11 +230,50 @@ code <- nimbleCode({
 })
 ```
 
+Next we create the model object and show the expanded code.
+
+
+``` r
+mod <- nimbleModel(code = code, constants = chick_const)
+mod$getCode()
+```
+
+```
+## {
+##     "# LM"
+##     "  ## FORLOOP"
+##     for (i_1 in 1:578) {
+##         weight[i_1] ~ dnorm(mu_[i_1], sd = sd_residual)
+##     }
+##     "  ## ----"
+##     "  ## LINPRED"
+##     "    ### nimbleMacros::FORLOOP"
+##     for (i_2 in 1:578) {
+##         mu_[i_2] <- beta_Intercept + beta_Time * Time[i_2] + 
+##             beta_Chick[Chick[i_2]]
+##     }
+##     "    ### ----"
+##     "    ### nimbleMacros::LINPRED_PRIORS"
+##     beta_Intercept ~ dnorm(0, sd = 1000)
+##     beta_Time ~ dnorm(0, sd = 1000)
+##     sd_Chick ~ dunif(0, 100)
+##     "      #### nimbleMacros::FORLOOP"
+##     for (i_3 in 1:50) {
+##         beta_Chick[i_3] ~ dnorm(0, sd = sd_Chick)
+##     }
+##     "      #### ----"
+##     "    ### ----"
+##     "  ## ----"
+##     sd_residual ~ dunif(0, 100)
+##     "# ----"
+## }
+```
+
 Fit the model:
 
 
 ``` r
-samples <- nimbleMCMC(code, constants=chick_const, nchain=1, niter=3000, nburnin=2000,
+samples <- nimbleMCMC(mod, nchain=1, niter=3000, nburnin=2000,
                       samplesAsCodaMCMC = TRUE)
 ```
 
