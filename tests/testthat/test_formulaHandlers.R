@@ -1,23 +1,23 @@
-context("formulaFunctions")
+context("nimbleFormulaHandlers")
 
-test_that("Error when function formula is unsupported", {
+test_that("Error when function in formula is unsupported", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
   code <- quote(y[1:n] <- LINPRED(~test(x), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No processing")
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
   code <- quote(y[1:n] <- LINPRED(~test(x) + (1|x2), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No processing")
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
   code <- quote(y[1:n] <- LINPRED(~x3 + test(x[1:10]), priorSpecs=NULL))
-  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No processing")
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
 })
 
-test_that("offset formula function works", {
+test_that("offset formula handler works", {
   nimbleOptions(enableMacroComments=FALSE)
   set.seed(123)
   constants <- list(y = rnorm(5), x = rnorm(5), z = runif(5, 0, 1), 
@@ -107,7 +107,7 @@ test_that("offset formula function works", {
   nimbleOptions(enableMacroComments=TRUE)
 })
 
-test_that("scale formula function works", {
+test_that("scale formula handler works", {
   nimbleOptions(enableMacroComments=FALSE)
   set.seed(123)
   constants <- list(y=rnorm(3), x = runif(3, 5, 10), z = rnorm(3), n=3, 
@@ -317,7 +317,7 @@ test_that("scale formula function works", {
   nimbleOptions(enableMacroComments=TRUE)
 })
 
-test_that("I() formula function works", {
+test_that("I() formula handler works", {
   nimbleOptions(enableMacroComments=FALSE)
   set.seed(123)
   constants <- list(x=rnorm(3), z=rnorm(3), a=matrix(rnorm(3), 3, 1), n=3)
@@ -441,7 +441,7 @@ test_that("I() formula function works", {
   nimbleOptions(enableMacroComments=TRUE)
 })
 
-test_that("log formula function works", {
+test_that("log formula handler works", {
   nimbleOptions(enableMacroComments=FALSE)
   set.seed(123)
   constants <- list(y=rnorm(3), x = runif(3, 5, 10), z = rnorm(3), n=3, 

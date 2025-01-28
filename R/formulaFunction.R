@@ -3,7 +3,7 @@
 #' Translates offset() in an R formula passed to LINPRED into corresponding
 #' NIMBLE code for an offset in the linear predictor. This is used internally
 #' by \code{LINPRED} and should not be called directly. New formula functions
-#' should have the same arguments, naming structure, class (\code{formulaFunction}) 
+#' should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
 #' and return object class (\code{formulaComponent}).
 #'
 #' @param x A \code{formulaComponentFunction} object created from an offset() term
@@ -17,7 +17,7 @@
 #' @return An object of class \code{formulaComponent}.
 #'
 #' @export
-offsetFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+formulaHandler_offset <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
  
   # Get the code inside offset()
   interior <- x$lang[[2]]
@@ -58,7 +58,7 @@ offsetFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, model
   x$priorCode <- NULL   # no prior code for an offset
   x
 }
-class(offsetFormulaFunction) <- c(class(offsetFormulaFunction), "formulaFunction")
+class(formulaHandler_offset) <- c(class(formulaHandler_offset), "nimbleFormulaHandler")
 
 # Extract all 'names' from a call
 # So qnorm(log(x)) would yield qnorm, log, x
@@ -78,7 +78,7 @@ get_all_names_recursive <- function(code){
 #' Translates scale() in an R formula passed to LINPRED into corresponding
 #' NIMBLE code (and new constant) for a scaled covariate. This is used internally
 #' by \code{LINPRED} and should not be called directly. New formula functions
-#' should have the same arguments, naming structure, class (\code{formulaFunction}) 
+#' should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
 #' and return object class (\code{formulaComponent}). Note: when applied to a
 #' matrix or array covariate, scale() will calculate mean/SD relative to the entire
 #' matrix/array, NOT column-wise as is the case if you use scale() in base R.
@@ -94,7 +94,7 @@ get_all_names_recursive <- function(code){
 #' @return An object of class \code{formulaComponentFixed}.
 #'
 #' @export
-scaleFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+formulaHandler_scale <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
   trms <- splitInteractionTerms(x$lang)
@@ -159,7 +159,7 @@ scaleFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelI
   
   x
 }
-class(scaleFormulaFunction) <- c(class(scaleFormulaFunction), "formulaFunction")
+class(formulaHandler_scale) <- c(class(formulaHandler_scale), "nimbleFormulaHandler")
 
 
 #' Function to handle I() in LINPRED
@@ -169,7 +169,7 @@ class(scaleFormulaFunction) <- c(class(scaleFormulaFunction), "formulaFunction")
 #' Only allows for expressions involving one covariate (not functions of covariates).
 #' This is used internally by \code{LINPRED} and should not be called directly. 
 #' New formula functions should have the same arguments, naming structure, class 
-#' (\code{formulaFunction}) and return object class (\code{formulaComponent}).
+#' (\code{nimbleFormulaHandler}) and return object class (\code{formulaComponent}).
 #'
 #' @param x A formulaComponentFunction object created from an I() term
 #' @param defaultBracket The bracket from the LHS of LINPRED
@@ -182,7 +182,7 @@ class(scaleFormulaFunction) <- c(class(scaleFormulaFunction), "formulaFunction")
 #' @return An object of class \code{formulaComponentFixed}.
 #'
 #' @export
-IFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+formulaHandler_I <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
   trms <- splitInteractionTerms(x$lang)
@@ -241,7 +241,7 @@ IFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo,
   
   x
 }
-class(IFormulaFunction) <- c(class(IFormulaFunction), "formulaFunction")
+class(formulaHandler_I) <- c(class(formulaHandler_I), "nimbleFormulaHandler")
 
 
 #' Function to handle log() in LINPRED
@@ -249,7 +249,7 @@ class(IFormulaFunction) <- c(class(IFormulaFunction), "formulaFunction")
 #' Translates log() in an R formula passed to LINPRED into corresponding
 #' NIMBLE code (and new constant) for a log-transformed covariate. This is used internally
 #' by \code{LINPRED} and should not be called directly. New formula functions
-#' should have the same arguments, naming structure, class (\code{formulaFunction}) 
+#' should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
 #' and return object class (\code{formulaComponent}).
 #'
 #' @param x A formulaComponentFunction object created from a log() term
@@ -263,7 +263,7 @@ class(IFormulaFunction) <- c(class(IFormulaFunction), "formulaFunction")
 #' @return An object of class \code{formulaComponentFixed}.
 #'
 #' @export
-logFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
+formulaHandler_log <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
   trms <- splitInteractionTerms(x$lang)
@@ -323,4 +323,4 @@ logFormulaFunction <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInf
   
   x
 }
-class(logFormulaFunction) <- c(class(logFormulaFunction), "formulaFunction")
+class(formulaHandler_log) <- c(class(formulaHandler_log), "nimbleFormulaHandler")

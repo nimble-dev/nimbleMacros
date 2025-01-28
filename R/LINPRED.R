@@ -171,8 +171,8 @@ unpackArgs=TRUE
 # the linear predictor code for the components can be added
 buildLP <- function(formula, defaultBracket, coefPrefix="beta_", sdPrefix=NULL, modelInfo, centerVar=NULL, env){
   comps <- separateFormulaComponents(formula)
-  # Process formula functions, erroring if an unsupported one is found
-  comps <- lapply(comps, processFormulaFunction, defaultBracket = defaultBracket,
+  # Process formula handlers, erroring if an unsupported one is found
+  comps <- lapply(comps, processFormulaHandler, defaultBracket = defaultBracket,
                   coefPrefix=coefPrefix, sdPrefix=sdPrefix, modelInfo = modelInfo, env = env)
   comps <- lapply(comps, addTermsAndBrackets, defaultBracket = defaultBracket, constants = modelInfo$constants)
   # Update constants in modelInfo with any new constants before moving on
@@ -331,17 +331,17 @@ createRandomComponents <- function(formula){
 }
 
 
-# processFormulaFunctions------------------------------------------------------
+# processFormulaHandler--------------------------------------------------------
 # For formulaComponentFunction objects
 # If the formula component is FUN(), then this function looks for
-# a corresponding formulaFunction class object in the environment called 
-# "FUNFormulaFunction". This function is then run on the component, which
+# a corresponding nimbleFormulaHandler class object in the environment called 
+# "formulaHandler_FUN". This function is then run on the component, which
 # should return a component with updated linear predictor and priors slots
 # to be used in final code compilation.
 # It is also possible that the processing function could do some work and
 # then change the class of the output component to formulaComponentFixed so
 # that it will be further processed in later steps.
-processFormulaFunction <- function(x, defaultBracket, coefPrefix="beta_", 
+processFormulaHandler <- function(x, defaultBracket, coefPrefix="beta_", 
                                     sdPrefix=NULL, modelInfo, env, ...){
 
   if(!inherits(x, "formulaComponentFunction")) return(x)
@@ -357,21 +357,21 @@ processFormulaFunction <- function(x, defaultBracket, coefPrefix="beta_",
 
   func <- safeDeparse(funcs[[1]])
 
-  cand <- paste0(func, "FormulaFunction")
+  cand <- paste0("formulaHandler_", func)
   
   processor_available <- FALSE
   if(exists(cand, envir = env)){
     processor <- get(cand, envir = env)
-    if(inherits(processor, "formulaFunction")){
+    if(inherits(processor, "nimbleFormulaHandler")){
       processor_available <- TRUE
       out <- processor(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...)
       if(!inherits(out, "formulaComponent")){
-        stop("Processing function doesn't return formulaComponent object", call.=FALSE)
+        stop("Formula handler doesn't return formulaComponent object", call.=FALSE)
       }
     }
   }
   if(!processor_available){
-    stop("No processing function for ", func, "() available", call.=FALSE)
+    stop("No formula handler for ", func, "() available", call.=FALSE)
   }
 
   out
