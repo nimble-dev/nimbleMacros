@@ -39,3 +39,6 @@ by \code{LINPRED} and should not be called directly. New formula functions
 should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
 and return object class (\code{formulaComponent}).
 }
+\author{
+Ken Kellner
+}

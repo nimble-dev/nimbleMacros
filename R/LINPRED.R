@@ -24,7 +24,9 @@
 #' @param noncenter Logical; use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
-#' 
+#'
+#' @author Ken Kellner
+#'
 #' @examples
 #' constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))
 #' code <- nimbleCode({
@@ -112,6 +114,8 @@ unpackArgs=TRUE
 #' @param noncenter Logical, use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
+#'
+#' @author Ken Kellner
 #'
 #' @examples
 #' constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))

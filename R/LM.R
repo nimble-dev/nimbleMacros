@@ -24,6 +24,8 @@
 #' @param modMatNames Logical, should parameters be named so they match the
 #'  names you would get from R's model.matrix function?
 #'
+#' @author Ken Kellner
+#'
 #' @examples
 #' constants <- list(y = rnorm(10),
 #'                   x = rnorm(10), 

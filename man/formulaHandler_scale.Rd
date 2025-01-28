@@ -41,3 +41,6 @@ and return object class (\code{formulaComponent}). Note: when applied to a
 matrix or array covariate, scale() will calculate mean/SD relative to the entire
 matrix/array, NOT column-wise as is the case if you use scale() in base R.
 }
+\author{
+Ken Kellner
+}

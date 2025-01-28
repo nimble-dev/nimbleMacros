@@ -22,5 +22,5 @@ mod <- nimbleModel(code, constants=list(n=10))
 mod$getCode()
 }
 \author{
-Ken Kellner
+Ken Kellner and Perry de Valpine
 }

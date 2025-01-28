@@ -1,3 +1,80 @@
+#' Macro to build for loop(s) from code with index ranges in brackets
+#'
+#' This macro takes a line of NIMBLE model code with index ranges inside brackets
+#' on either the left-hand side of a declaration or both the left- and
+#' right-hand sides of a declaration and constructs a corresponding
+#' for loop or series of nested for loops.
+#'
+#' @name FORLOOP
+#'
+#' @author Ken Kellner and Perry de Valpine
+#'
+#' @param code The right-hand side of a parameter declaration
+#'
+#' @examples
+#' code <- nimbleCode({
+#'    y[1:n, 1:2, 1] ~ FORLOOP(dnorm(mu[1:n], sigma))
+#'    mu[1:n] <- FORLOOP(beta[1] + beta[2]*x[1:n])
+#' })
+#'
+#' mod <- nimbleModel(code, constants=list(n=10))
+#' mod$getCode()
+NULL
+
+#' @export
+FORLOOP <- nimble::buildMacro(
+function(code, modelInfo, .env){
+  # Remove FORLOOP from the code line
+  code <- removeMacroCall(code)
+  LHS <- getLHS(code)
+  # Stop if there are no brackets, we can't do a for loop in that case
+  if(!hasBracket(LHS)) return(list(code=code, modelInfo = modelInfo))
+  # Check if there are duplicate index ranges in bracket on LHS
+  # If there are give an error
+  checkDuplicateBracketComponents(LHS)
+  # Extract indices from brackets
+  idx <- extractIndices(LHS)
+  # Check if they are index ranges
+  has_range <- isIndexRange(idx)
+  # Stop if none of the indices are ranges
+  if(all(!has_range)) return(list(code=code, modelInfo = modelInfo))
+
+  # Subset only indexes with ranges
+  idx_sub <- idx[has_range]
+  # Create new index letters to represent those ranges in the for loops
+  idx_letters <- lapply(1:length(idx_sub), function(i) modelInfo$indexCreator())
+  idx_letters <- lapply(idx_letters, as.name)
+  # Replace the ranges with the new corresponding letters
+  code <- replaceDeclarationIndexRanges(code, idx_letters)
+  # Then insert the ranges into the for loop structure
+  idx_sub <- replaceRanges(idx_sub, idx_letters)
+  # So e.g.
+  # FORLOOP(quote(x[1:10] <- y[1:10])) would be
+  # for (i_1 in 1:10){ # <- index range inserted here
+  #   x[i_1] <- y[i_1] # <- index range replaced with index letter
+  # }
+
+  # Create for loop structure of arbitrary nestedness
+  # substituting in info from above
+  for(i in length(idx_sub):1) {
+    newForLoop <-
+      substitute(
+        for(NEWINDEX_ in RANGE_){
+          INNERCODE
+        },
+        list(NEWINDEX_ = idx_letters[[i]],
+              RANGE_ = idx_sub[[i]],
+              INNERCODE = code))
+    code <- newForLoop
+  }
+
+  return(list(code=code, modelInfo=modelInfo))
+},
+use3pieces=FALSE,
+unpackArgs=FALSE
+)
+
+
 # Check if code chunk has bracket
 hasBracket <- function(code, recursive=TRUE){
   if (length(code) < 2) return(FALSE)
@@ -191,79 +268,3 @@ checkDuplicateBracketComponents <- function(code){
   }
   invisible()
 }
-
-#' Macro to build for loop(s) from code with index ranges in brackets
-#'
-#' This macro takes a line of NIMBLE model code with index ranges inside brackets
-#' on either the left-hand side of a declaration or both the left- and
-#' right-hand sides of a declaration and constructs a corresponding
-#' for loop or series of nested for loops.
-#'
-#' @name FORLOOP
-#'
-#' @author Ken Kellner
-#'
-#' @param code The right-hand side of a parameter declaration
-#'
-#' @examples
-#' code <- nimbleCode({
-#'    y[1:n, 1:2, 1] ~ FORLOOP(dnorm(mu[1:n], sigma))
-#'    mu[1:n] <- FORLOOP(beta[1] + beta[2]*x[1:n])
-#' })
-#'
-#' mod <- nimbleModel(code, constants=list(n=10))
-#' mod$getCode()
-NULL
-
-#' @export
-FORLOOP <- nimble::buildMacro(
-function(code, modelInfo, .env){
-  # Remove FORLOOP from the code line
-  code <- removeMacroCall(code)
-  LHS <- getLHS(code)
-  # Stop if there are no brackets, we can't do a for loop in that case
-  if(!hasBracket(LHS)) return(list(code=code, modelInfo = modelInfo))
-  # Check if there are duplicate index ranges in bracket on LHS
-  # If there are give an error
-  checkDuplicateBracketComponents(LHS)
-  # Extract indices from brackets
-  idx <- extractIndices(LHS)
-  # Check if they are index ranges
-  has_range <- isIndexRange(idx)
-  # Stop if none of the indices are ranges
-  if(all(!has_range)) return(list(code=code, modelInfo = modelInfo))
-
-  # Subset only indexes with ranges
-  idx_sub <- idx[has_range]
-  # Create new index letters to represent those ranges in the for loops
-  idx_letters <- lapply(1:length(idx_sub), function(i) modelInfo$indexCreator())
-  idx_letters <- lapply(idx_letters, as.name)
-  # Replace the ranges with the new corresponding letters
-  code <- replaceDeclarationIndexRanges(code, idx_letters)
-  # Then insert the ranges into the for loop structure
-  idx_sub <- replaceRanges(idx_sub, idx_letters)
-  # So e.g.
-  # FORLOOP(quote(x[1:10] <- y[1:10])) would be
-  # for (i_1 in 1:10){ # <- index range inserted here
-  #   x[i_1] <- y[i_1] # <- index range replaced with index letter
-  # }
-
-  # Create for loop structure of arbitrary nestedness
-  # substituting in info from above
-  for(i in length(idx_sub):1) {
-    newForLoop <-
-      substitute(
-        for(NEWINDEX_ in RANGE_){
-          INNERCODE
-        },
-        list(NEWINDEX_ = idx_letters[[i]],
-              RANGE_ = idx_sub[[i]],
-              INNERCODE = code))
-    code <- newForLoop
-  }
-
-  return(list(code=code, modelInfo=modelInfo))
-},
-use3pieces=FALSE,
-unpackArgs=FALSE
-)

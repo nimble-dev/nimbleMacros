@@ -16,6 +16,8 @@
 #'
 #' @return An object of class \code{formulaComponent}.
 #'
+#' @author Ken Kellner
+#'
 #' @export
 formulaHandler_offset <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
  
@@ -92,6 +94,8 @@ get_all_names_recursive <- function(code){
 #' @param ... Not currently used
 #'
 #' @return An object of class \code{formulaComponentFixed}.
+#'
+#' @author Ken Kellner
 #'
 #' @export
 formulaHandler_scale <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
@@ -181,6 +185,8 @@ class(formulaHandler_scale) <- c(class(formulaHandler_scale), "nimbleFormulaHand
 #'
 #' @return An object of class \code{formulaComponentFixed}.
 #'
+#' @author Ken Kellner
+#'
 #' @export
 formulaHandler_I <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
@@ -261,6 +267,8 @@ class(formulaHandler_I) <- c(class(formulaHandler_I), "nimbleFormulaHandler")
 #' @param ... Not currently used
 #'
 #' @return An object of class \code{formulaComponentFixed}.
+#'
+#' @author Ken Kellner
 #'
 #' @export
 formulaHandler_log <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
