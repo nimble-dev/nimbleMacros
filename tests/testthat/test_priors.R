@@ -1,5 +1,7 @@
 context("setting and choosing priors")
 
+skip_on_cran()
+
 test_that("setPriors",{
 
   # Defaults

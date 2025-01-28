@@ -1,5 +1,7 @@
 context("FORLOOP and related functions")
 
+skip_on_cran()
+
 test_that("extractIndices", {
   expect_equal(
     extractIndices(quote(beta[1:10])),

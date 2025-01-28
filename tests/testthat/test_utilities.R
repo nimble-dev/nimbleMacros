@@ -1,5 +1,7 @@
 context("utility functions")
 
+skip_on_cran()
+
 test_that("hasBracket", {
   expect_true(hasBracket(quote(beta[1])))
   expect_false(hasBracket(quote(beta)))

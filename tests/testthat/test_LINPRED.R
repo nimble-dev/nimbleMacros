@@ -1,5 +1,7 @@
 context("LINPRED and related functions")
 
+skip_on_cran()
+
 test_that("LINPRED basic fixed effects models", {
   nimbleOptions(enableMacroComments = FALSE)
   set.seed(123)

@@ -1,5 +1,7 @@
 context("LM and related functions")
 
+skip_on_cran()
+
 test_that("LM for linear regression", {
   nimbleOptions(enableMacroComments = FALSE)
   dat <- list(x = rnorm(3), x2 = factor(c("a","b","c")), y = rnorm(3))

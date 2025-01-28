@@ -1,5 +1,7 @@
 context("nimbleFormulaHandlers")
 
+skip_on_cran()
+
 test_that("Error when function in formula is unsupported", {
   set.seed(123)
   modInfo <- list(constants=list(y = rnorm(10), x=factor(sample(letters[1:3], 10, replace=T)),
