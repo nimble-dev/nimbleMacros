@@ -23,6 +23,9 @@ names you would get from R's model.matrix function?}
 
 \item{centerVar}{Grouping covariate to 'center' on in parameterization. By
 default all random effects have mean 0 as with lme4.}
+
+\item{defaultBracket}{Default bracket/index to use with parameters if
+it is not provided in the formula. Only needed by certain formulaHandlers.}
 }
 \description{
 Generates appropriate priors for a linear predictor derived from an 

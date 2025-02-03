@@ -77,10 +77,11 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     if(!is.null(priorSpecs)){
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSpecs=PRIORSET, modMatNames=MODMAT,
-                                     noncenter = UNCENTER, centerVar=CENTERVAR),
+                                     noncenter = UNCENTER, centerVar=CENTERVAR,
+                                     defaultBracket = BRACK),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
                                    PRIORSET=priorSpecs, MODMAT=modMatNames, 
-                                   UNCENTER = noncenter, CENTERVAR=centerVar))
+                                   UNCENTER = noncenter, CENTERVAR=centerVar, BRACK=LHS_ind))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -114,6 +115,8 @@ unpackArgs=TRUE
 #' @param noncenter Logical, use noncentered parameterization?
 #' @param centerVar Grouping covariate to 'center' on in parameterization. By
 #'  default all random effects have mean 0 as with lme4.
+#' @param defaultBracket Default bracket/index to use with parameters if
+#'  it is not provided in the formula. Only needed by certain formulaHandlers.
 #'
 #' @author Ken Kellner
 #'
@@ -130,7 +133,8 @@ NULL
 #' @export
 LINPRED_PRIORS <- nimble::buildMacro(
 function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
-         modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+         modMatNames=FALSE, noncenter = FALSE, centerVar=NULL,
+         defaultBracket = "[]", modelInfo, .env){
 
   # Make sure formula is in correct format
   if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
@@ -140,7 +144,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
   priorSpecs <- eval(priorSpecs, envir=.env) 
 
   # Split formula into components and process the components
-  components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
+  components <- buildLP(formula, defaultBracket = defaultBracket,
                     coefPrefix = safeDeparse(coefPrefix), sdPrefix=sdPrefix,
                     modelInfo = modelInfo, centerVar = centerVar, env=.env)
     
