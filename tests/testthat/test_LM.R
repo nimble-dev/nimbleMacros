@@ -379,7 +379,7 @@ test_that("Run lme4::lmer() example", {
     sd_Days_Subject ~ dunif(0, 100)
     re_sds_Subject[1] <- sd_Subject
     re_sds_Subject[2] <- sd_Days_Subject
-    Ustar_Subject[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_Subject[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_Subject[1:2, 1:2] <- uppertri_mult_diag(Ustar_Subject[1:2, 
         1:2], re_sds_Subject[1:2])
     re_means_Subject[1] <- 0

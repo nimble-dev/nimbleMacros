@@ -1031,7 +1031,7 @@ test_that("correlated random effects", {
     sd_x_group ~ dunif(0, 100)
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
-    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
         1:2], re_sds_group[1:2])
     re_means_group[1] <- 0
@@ -1106,7 +1106,7 @@ test_that("correlated random effects", {
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
     re_sds_group[3] <- sd_x3_group
-    Ustar_group[1:3, 1:3] ~ dlkj_corr_cholesky(1.3, 3)
+    Ustar_group[1:3, 1:3] ~ dlkj_corr_cholesky(1, 3)
     U_group[1:3, 1:3] <- uppertri_mult_diag(Ustar_group[1:3, 
         1:3], re_sds_group[1:3])
     re_means_group[1] <- 0
@@ -1161,7 +1161,7 @@ test_that("Centering with correlated random effects", {
     sd_x_group ~ dunif(0, 100)
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
-    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
         1:2], re_sds_group[1:2])
     re_means_group[1] <- beta_Intercept
@@ -1198,7 +1198,7 @@ test_that("Centering with correlated random effects", {
     sd_x_group ~ dunif(0, 100)
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
-    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
         1:2], re_sds_group[1:2])
     re_means_group[1] <- 0
