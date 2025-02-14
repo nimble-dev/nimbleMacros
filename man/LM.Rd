@@ -7,28 +7,29 @@
 \item{formula}{An R formula, possibly with the parameters followed by 
 brackets containing indices. If there are no indices, the macro attempts
 to guess the correct indices from the context. Formulas can include
-random effects via lme4-style notation (e.g. ~ x + (1|group))}
+random effects via lme4-style notation (e.g., \code{~ x + (1|group)})}
 
 \item{family}{A description of the error distribution and link function to
 be used in the model. This can be a character string naming a family function, 
-a family function or the result of a call to a family function. See ?family.
-Supported families are gaussian (default), binomial, and poisson.}
+a family function or the result of a call to a family function. See \code{?family}.
+Supported families are \code{gaussian} (default), \code{binomial}, and \code{poisson}.}
 
-\item{coefPrefix}{All model coefficient names will begin with this prefix.
-default is beta_ (so x becomes beta_x, etc.)}
+\item{coefPrefix}{Character. All model coefficient names will begin with this prefix.
+default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)}
 
-\item{sdPrefix}{All dispersion parameters will begin with this prefix.
+\item{sdPrefix}{Character. All dispersion parameters will begin with this prefix.
 default is no prefix.}
 
-\item{priorSpecs}{List of prior specifications, should be generated using 
-setPriors()}
+\item{priorSpecs}{List of prior specifications, generated using 
+\code{setPriors()}.}
 
-\item{modMatNames}{Logical, should parameters be named so they match the
-names you would get from R's model.matrix function?}
+\item{modMatNames}{Logical indicating if parameters be named so they match the
+names one would get from R's \code{model.matrix}.}
 }
 \description{
 This macro generates code for LMs, GLMs, and GLMMs using formula notation 
-and arguments similar to R functions such as lm(), glm(), and lmer()/glmer(). 
+and arguments similar to R functions such as \code{lm()}, \code{glm()},
+and \code{lmer()}/\code{glmer()}. 
 Currently only normal, Poisson, and binomial models are supported.
 }
 \examples{
@@ -40,7 +41,7 @@ code <- nimbleCode({
    LM(y ~ x + x2)
 })
 
-mod <- nimbleModel(code, constants=constants)
+mod <- nimbleModel(code, constants = constants)
 mod$getCode()
 }
 \author{

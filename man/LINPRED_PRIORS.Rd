@@ -2,32 +2,33 @@
 % Please edit documentation in R/LINPRED.R
 \name{LINPRED_PRIORS}
 \alias{LINPRED_PRIORS}
-\title{Macro to build code for priors on a linear predictor from R formula}
+\title{Macro to build code for priors on a linear predictor from an R formula}
 \arguments{
-\item{formula}{An R formula The formula must be right-hand side only (e.g. ~x). 
-This must always be the first argument supplied to LINPRED_PRIORS}
+\item{formula}{An R formula The formula must be right-hand side only (e.g., \code{~x}). 
+This must always be the first argument supplied to \code{LINPRED_PRIORS}.}
 
 \item{coefPrefix}{All model coefficient names will begin with this prefix.
-default is beta_ (so x becomes beta_x, etc.)}
+default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)}
 
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
-default is no prefix.}
+Default is no prefix.}
 
-\item{priorSpecs}{List of prior specifications, should be generated using 
+\item{priorSpecs}{List of prior specifications, generated using \code{setPriors}.
 setPriors()}
 
-\item{modMatNames}{Logical, should parameters be named so they match the
-names you would get from R's model.matrix function?}
+\item{modMatNames}{Logical indicating if parameters should be named so they match the
+names one would get from R's \code{model.matrix}. Default is \code{FALSE}.}
 
-\item{noncenter}{Logical, use noncentered parameterization?}
+\item{noncenter}{Logical indicating whether to use noncentered parameterization.
+Default is \code{FALSE}.}
 
-\item{centerVar}{Grouping covariate to 'center' on in parameterization. By
-default all random effects have mean 0 as with lme4.}
+\item{centerVar}{Grouping variable (covariate) to 'center' the random effects on. By
+default all random effects have mean 0 as with \code{lme4}.}
 }
 \description{
 Generates appropriate priors for a linear predictor derived from an 
 R formula. As such it makes the most sense to use this macro together with
-the LINPRED macro which takes similar arguments.
+the LINPRED macro, which takes similar arguments.
 }
 \examples{
 constants <- list(x = rnorm(3), x2 = factor(letters[1:3]))

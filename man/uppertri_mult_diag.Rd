@@ -7,14 +7,14 @@
 uppertri_mult_diag(mat, vec)
 }
 \arguments{
-\item{mat}{upper triangular Cholesky factor of correlation matrix (Ustar)}
+\item{mat}{upper triangular Cholesky factor of correlation matrix ("Ustar")}
 
 \item{vec}{vector of standard deviations for individual random effects}
 }
 \description{
 nimbleFunction needed when fitting correlated random effects.
-Generates upper triangular Cholesky factor of covariance matrix (U in code)
-from upper tri Cholesky factor of correlation matrix (Ustar in code)
+Generates upper triangular Cholesky factor of covariance matrix ("U" in code)
+from upper triangular Cholesky factor of correlation matrix ("Ustar" in code)
 and vector of standard deviations. Taken from the NIMBLE manual, 
-section 5.2.4.1.2 LKJ distribution for correlation matrices.
+section 5.2.4.1.2 (LKJ Distribution for Correlation Matrices).
 }

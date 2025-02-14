@@ -7,27 +7,28 @@
 \item{formula}{An R formula, possibly with the parameters followed by 
 brackets containing indices. If there are no indices, the macro attempts
 to guess the correct indices from the context. The formula must be 
-right-hand side only (e.g. ~x). This must always be the first argument supplied
-to LINPRED.}
+right-hand side only (e.g. \code{~x}). This must always be the first argument supplied
+to \code{LINPRED}.}
 
-\item{link}{A link function which will be applied to the 
+\item{link}{A link function that will be applied to the 
 left-hand-side (the response) in the final linear predictor. Default is none.}
 
 \item{coefPrefix}{All model coefficient names will begin with this prefix.
-default is beta_ (so x becomes beta_x, etc.)}
+default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)}
 
 \item{sdPrefix}{All dispersion parameters will begin with this prefix.
-default is no prefix.}
+Default is no prefix.}
 
-\item{priorSpecs}{Prior specifications, should be generated with setPrior()}
+\item{priorSpecs}{Prior specifications, generated with \code{setPrior()}}
 
-\item{modMatNames}{Logical, should parameters be named so they match the
-names you would get from R's model.matrix function?}
+\item{modMatNames}{Logical indicating if parameters should be named so they match the
+names one would get from R's \code{model.matrix}. Default is \code{FALSE}.}
 
-\item{noncenter}{Logical; use noncentered parameterization?}
+\item{noncenter}{Logical indicating whether to use noncentered parameterization.
+Default is \code{FALSE}.}
 
-\item{centerVar}{Grouping covariate to 'center' on in parameterization. By
-default all random effects have mean 0 as with lme4.}
+\item{centerVar}{Grouping variable (covariate) to 'center' the random effects on. By
+default all random effects have mean 0 as with \code{lme4}.}
 }
 \description{
 Converts an R formula into corresponding code for a linear predictor in NIMBLE model code.
@@ -40,7 +41,7 @@ code <- nimbleCode({
   mu[1:3] <- LINPRED(~x + x2)
 })
 
-mod <- nimbleModel(code, constants=constants)
+mod <- nimbleModel(code, constants = constants)
 mod$getCode()
 }
 \author{

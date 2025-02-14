@@ -10,7 +10,7 @@ setPriors(
   sd = quote(dunif(0, 100)),
   factor = NULL,
   continuous = NULL,
-  eta = 1.3,
+  eta = 1,
   ...
 )
 }
@@ -34,9 +34,11 @@ correlation matrix in correlated random slope and intercept models}
 }
 \description{
 Generates a list of custom specifications of priors for parameters in the model.
-It is possible to set priors for a category of parameters (e.g. intercept,
+It is possible to set priors for a category of parameters (e.g., intercept,
 coefficient, sd, factor, continuous) or to set a prior for a specific
 parameter name (optionally including brackets with indices).
+}
+\details{
 Exact name matches including brackets/indices are used first, followed by
 name matches without indices, followed by data type (factor/continuous)
 followed by parameter type (intercept/coefficient/sd).

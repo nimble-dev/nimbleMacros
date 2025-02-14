@@ -1,7 +1,7 @@
 Package: nimbleMacros
 Version: 0.1.0
 Date: 2025-01-28
-Title: Macros Generating 'nimble' Code for Linear Models. 
+Title: Macros Generating 'nimble' Code for Linear Models
 Authors@R: c(person("Ken", "Kellner", email="contact@kenkellner.com", 
                     role=c("cre","aut")),
              person("Perry", "de Valpine", role = "aut"),

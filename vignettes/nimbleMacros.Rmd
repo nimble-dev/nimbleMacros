@@ -935,7 +935,7 @@ Note that one can use vectorization in NIMBLE model code directly, such as
 mu[1:N] <- alpha + beta * X[1:N]
 ```
 
-The distinction is that that creates a single multivariate node, `mu[1:N]`, while the loop creates `N` separate sclar nodes. Which is best will depend on the model structure and the algorithm used with the model [as discussed in the NIMBLE user manual](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:vectorized-versus-scalar-declarations). 
+The distinction is that that creates a single multivariate node, `mu[1:N]`, while the loop creates `N` separate scalar nodes. Which is best will depend on the model structure and the algorithm used with the model [as discussed in the NIMBLE user manual](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:vectorized-versus-scalar-declarations). 
 
 It may seem a bit trivial to make a macro for such a simple chunk of code.
 However it can be nice to use this when you have nested for loops, which are a bit more complicated.
