@@ -74,7 +74,7 @@ summary(rmod)
 ## Number of Fisher Scoring iterations: 5
 ```
 
-To fit this model with the `LM` macro, we'll start by organizing the data and constants into a list.
+To create this model with the `LM` macro, we'll start by organizing the data and constants into a list.
 
 
 ``` r
@@ -96,7 +96,7 @@ Finally, we specify the NIMBLE code, which is a single call to the `LM` macro th
 
 Two things to note:
 1. We include a call to `scale` in the formula as with `glm()`; `LM` will do the scaling automatically.
-2. You don't need to specify dimensions of the variables with `LM`, as this is handled automatically, as `LM` assumes all data and constants are vectors of the same length. In more complex situations you can use the `LINPRED` macro; see the next section.
+2. You don't need to specify dimensions of the variables with `LM`, as this is handled automatically, with `LM` assuming all data and constants are vectors of the same length. In more complex situations you can use the `LINPRED` macro; see the next section.
 
 
 ``` r
@@ -137,11 +137,11 @@ mod$getCode()
 ## }
 ```
 
-Finally, we'll fit the model which yields similar results to `glm`.
+Finally, we'll fit the model using MCMC, which yields similar results to `glm`.
 
 
 ``` r
-samples <- nimbleMCMC(mod, nchain=1, niter=3000, nburnin=2000,
+samples <- nimbleMCMC(mod, nchain = 1, niter = 3000, nburnin = 2000,
                       samplesAsCodaMCMC = TRUE)
 ```
 
@@ -178,7 +178,7 @@ summary(samples)
 ## Example linear mixed model using `ChickWeights`
 
 The `LM` macro can also generate code for random effects models.
-To illustrate this we will use the built-in `ChickWeight` dataset which contains repeated measurements of chick weights over time.
+To illustrate this we will use the built-in `ChickWeight` dataset, which contains repeated measurements of chick weights over time.
 First, fit the model in R using the `lme4` package:
 
 ```r
@@ -214,14 +214,14 @@ summary(rmod)
 ## Time -0.422
 ```
 
-To fit this model with `LM`, we'll first organize the `ChickWeight` data into a list of constants and data for NIMBLE.
+To fit this model with NIMBLE based on using `LM`, we'll first organize the `ChickWeight` data into a list of constants and data for NIMBLE.
 
 
 ``` r
 chick_const <- list(weight = ChickWeight$weight, Time = ChickWeight$Time, Chick = ChickWeight$Chick)
 ```
 
-We can fit this model with `LM` using the same formula notation as `lme4` with the `(1|Chick)` part of the formula indicating random intercepts by chick.
+We can create the model with `LM` using the same formula notation as `lme4` with the `(1|Chick)` part of the formula indicating random intercepts by chick.
 
 
 ``` r
@@ -273,7 +273,7 @@ Fit the model:
 
 
 ``` r
-samples <- nimbleMCMC(mod, nchain=1, niter=3000, nburnin=2000,
+samples <- nimbleMCMC(mod, nchain = 1, niter = 3000, nburnin = 2000,
                       samplesAsCodaMCMC = TRUE)
 ```
 
@@ -372,7 +372,7 @@ Notice that unlike with `LM`, we explicitly define the dimensions of `mu` and `T
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N], priorSpecs=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N], priorSpecs = NULL)
 })
 ```
 
@@ -423,7 +423,7 @@ When all the data and constants used by `LINPRED` have the same dimensions, you 
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSpecs=NULL)
+  mu[1:N] <- LINPRED(~Time, priorSpecs = NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -447,7 +447,7 @@ For example, we'll convert `Time` into a one-column matrix, but keep `mu` as a v
 
 ``` r
 chick_const2 <- chick_const
-chick_const2$Time <- matrix(chick_const2$Time, ncol=1)
+chick_const2$Time <- matrix(chick_const2$Time, ncol = 1)
 str(chick_const2)
 ```
 
@@ -464,7 +464,7 @@ To handle this we just need to specify different dimensions for each in the call
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N,1], priorSpecs=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N,1], priorSpecs = NULL)
 })
 mod <- nimbleModel(code, chick_const2)
 mod$getCode()
@@ -512,7 +512,7 @@ chick_const$Diet <- ChickWeight$Diet
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSpecs=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSpecs = NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -642,6 +642,8 @@ mod$getCode()
 We now have priors for each parameter.
 Note that as mentioned previously, the first value of the `beta_Diet` vector is fixed at 0, serving as the reference level.
 
+Warning: one should check the default priors carefully to make sure that they make sense for your problem. In particular, if the values in your data are of magnitudes such that parameters of the linear predictor could be large in magnitude, the default priors could have a strong influence on your results. 
+
 ## Suppress the macro comments
 
 We can also suppress the added macro comments to make things a little more concise.
@@ -736,7 +738,7 @@ mod$getCode()
 ## }
 ```
 
-The correlated random effects model here uses an LKJ distribution prior; read more about this prior [here](https://r-nimble.org/html_manual/cha-writing-models.html#lkj-distribution-for-correlation-matrices).
+The correlated random effects model here uses an [LKJ distribution prior](https://r-nimble.org/html_manual/cha-writing-models.html#lkj-distribution-for-correlation-matrices).
 
 As with `lme4` we can also specify uncorrelated random slopes and intercepts using `||` instead of `|`.
 
@@ -884,7 +886,7 @@ mod$getCode()
 ## }
 ```
 
-With this option set a few extra lines of NIMBLE model code are added to yield parameter names that match `model.matrix`.
+When this option is set, a few extra lines of NIMBLE model code are added to yield parameter names that match `model.matrix`.
 
 # `FORLOOP`
 
@@ -926,6 +928,14 @@ mod$getCode()
 ##     }
 ## }
 ```
+
+Note that one can use vectorization in NIMBLE model code directly, such as
+
+```
+mu[1:N] <- alpha + beta * X[1:N]
+```
+
+The distinction is that that creates a single multivariate node, `mu[1:N]`, while the loop creates `N` separate sclar nodes. Which is best will depend on the model structure and the algorithm used with the model [as discussed in the NIMBLE user manual](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:vectorized-versus-scalar-declarations). 
 
 It may seem a bit trivial to make a macro for such a simple chunk of code.
 However it can be nice to use this when you have nested for loops, which are a bit more complicated.
@@ -1025,15 +1035,15 @@ For example:
 
 ``` r
 fun <- function(input){
-  LHS <- input[[2]]
+  lhs <- input[[2]]
   sdev <- input[[3]]$sdev
   output <- substitute(LHS ~ dnorm(0, sd = SDEV),
-                       list(LHS = LHS, SDEV = sdev))
+                       list(LHS = lhs, SDEV = sdev))
   output
 }
 ```
 
-Note that we have to do a bit of clunky code-processing to extract the left-hand-side of the assignment and the argument value.
+Note that we have to do a bit of clunky code processing to extract the left-hand-side of the assignment and the argument value. (The use of the `[[` extraction with a code object extracts information from the abstract syntax tree representation of an R expression.)
 
 
 ``` r
@@ -1045,12 +1055,12 @@ fun(input)
 ## y ~ dnorm(0, sd = 2)
 ```
 
-In practice, `nimble` expects this function to have two additional arguments: `modelInfo` and `.env`.
+In practice, `nimble` expects the macro function converter (`fun` in the example above) to have two additional arguments: `modelInfo` and `.env`.
 When processing a macro, `nimble` will provide a named list to the `modelInfo` argument which contains some additional model information.
 Most importantly, this list includes `constants`, which can be used and/or changed by the macro.
-As you can probably guess, `nimble` provides the R environment in which `nimbleModel` was called to the `.env` argument, to help with scoping issues.
+And, as you can probably guess, `nimble` provides the R environment in which `nimbleModel` was called to the `.env` argument, to help with scoping issues.
 
-In addition to these two arguments, the function also needs a bit more structure in the output.
+In addition to these two arguments, the function also needs to return a particular structure in the output.
 The output should be a named list with two elements: `code`, which contains the output code (as in the original function above), and `modelInfo` which is the list of model information, which we could modify or leave as-is.
 
 
@@ -1085,7 +1095,7 @@ fun(input, modelInfo = list(constants=NULL), .env = environment())
 ```
 
 Finally, `nimble` needs a way to know that this function is intended to be a macro, and that it is called `MYDIST`.
-The final step then is to create a wrapper `list` with our function inserted as an element called `process`, and assign the class `"model_macro"`.
+The final step then is to create a wrapper `list` with our function inserted as an element called `process`, and assign the class `"model_macro"`. (In the next section we'll see that the helper function `buildMacro` will create this wrapper list for us.
 
 
 ``` r
@@ -1112,8 +1122,8 @@ mod$getCode()
 
 ## Using `buildMacro` to create the macro
 
-Manually creating the macro is fine, but gets complicated if we want to extract a lot of separate pieces of information from the code line, e.g. if our macro has many arguments.
-As an alternative, we can use the `buildMacro` function included with `nimble` which handles some of this code processing for us.
+Manually creating the macro is fine, but it gets complicated if we want to extract a lot of separate pieces of information from the code line, e.g., if our macro has many arguments.
+As an alternative, we can use the `buildMacro` function included with `nimble`, which handles some of this code processing for us.
 The first argument to `buildMacro`, is a function structured like the one we wrote above `fun`.
 The other two arguments `use3pieces` and `unpackArgs` determine how the arguments of `fun` should be structured.
 
@@ -1124,7 +1134,7 @@ In this case, all `buildMacro` will do is create the required macro list structu
 
 
 ``` r
-MYDIST2 <- buildMacro(fun, use3pieces=FALSE, unpackArgs = FALSE)
+MYDIST2 <- buildMacro(fun, use3pieces = FALSE, unpackArgs = FALSE)
 ```
 
 
@@ -1149,10 +1159,10 @@ With these settings, our function's first three arguments need to be `stoch`, `L
 
 
 ``` r
-fun3 <- function(stoch, LHS, RHS, modelInfo, .env){
-  sdev <- RHS$sdev
+fun3 <- function(stoch, lhs, rhs, modelInfo, .env){
+  sdev <- rhs$sdev
   output_code <- substitute(LHS ~ dnorm(0, sd = SDEV),
-                       list(LHS = LHS, SDEV = sdev))
+                       list(LHS = lhs, SDEV = sdev))
 
   # Modify the constants
   modelInfo$constants$new <- 1
@@ -1166,7 +1176,7 @@ Note that in this simple example we aren't using `stoch` because we want our out
 
 
 ``` r
-MYDIST3 <- buildMacro(fun3, use3pieces=TRUE, unpackArgs = FALSE)
+MYDIST3 <- buildMacro(fun3, use3pieces = TRUE, unpackArgs = FALSE)
 ```
 
 
@@ -1190,11 +1200,11 @@ Thus, we need to include all these arguments explicitly as arguments in our func
 
 
 ``` r
-fun4 <- function(stoch, LHS, sdev, modelInfo, .env){
+fun4 <- function(stoch, lhs, sdev, modelInfo, .env){
   output_code <- substitute(LHS ~ dnorm(0, sd = SDEV),
-                       list(LHS = LHS, SDEV = sdev))
+                       list(LHS = lhs, SDEV = sdev))
 
-  # Modify the constants
+  # Modify the constants.
   modelInfo$constants$new <- 1
     
   list(code = output_code, modelInfo = modelInfo)
@@ -1205,7 +1215,7 @@ Even less code processing is required in this case, since `buildMacro` will spli
 
 
 ``` r
-MYDIST4 <- buildMacro(fun4, use3pieces=TRUE, unpackArgs = TRUE)
+MYDIST4 <- buildMacro(fun4, use3pieces = TRUE, unpackArgs = TRUE)
 ```
 
 

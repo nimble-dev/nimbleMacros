@@ -17,7 +17,7 @@
 #'    mu[1:n] <- FORLOOP(beta[1] + beta[2]*x[1:n])
 #' })
 #'
-#' mod <- nimbleModel(code, constants=list(n=10))
+#' mod <- nimbleModel(code, constants = list(n=10))
 #' mod$getCode()
 NULL
 

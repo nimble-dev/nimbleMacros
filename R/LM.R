@@ -1,7 +1,8 @@
 #' Macro for fitting linear models, GLMs, and GLMMs
 #'
 #' This macro generates code for LMs, GLMs, and GLMMs using formula notation 
-#' and arguments similar to R functions such as lm(), glm(), and lmer()/glmer(). 
+#' and arguments similar to R functions such as \code{lm()}, \code{glm()},
+#' and \code{lmer()}/\code{glmer()}. 
 #' Currently only normal, Poisson, and binomial models are supported.
 #'
 #' @name LM
@@ -10,19 +11,19 @@
 #' @param formula An R formula, possibly with the parameters followed by 
 #'  brackets containing indices. If there are no indices, the macro attempts
 #'  to guess the correct indices from the context. Formulas can include
-#'  random effects via lme4-style notation (e.g. ~ x + (1|group))
+#'  random effects via lme4-style notation (e.g., \code{~ x + (1|group)})
 #' @param family A description of the error distribution and link function to
 #'  be used in the model. This can be a character string naming a family function, 
-#'  a family function or the result of a call to a family function. See ?family.
-#'  Supported families are gaussian (default), binomial, and poisson.
-#' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta_ (so x becomes beta_x, etc.)
-#' @param sdPrefix All dispersion parameters will begin with this prefix.
+#'  a family function or the result of a call to a family function. See \code{?family}.
+#'  Supported families are \code{gaussian} (default), \code{binomial}, and \code{poisson}.
+#' @param coefPrefix Character. All model coefficient names will begin with this prefix.
+#'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
+#' @param sdPrefix Character. All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param priorSpecs List of prior specifications, should be generated using 
-#'  setPriors()
-#' @param modMatNames Logical, should parameters be named so they match the
-#'  names you would get from R's model.matrix function?
+#' @param priorSpecs List of prior specifications, generated using 
+#'  \code{setPriors()}.
+#' @param modMatNames Logical indicating if parameters be named so they match the
+#'  names one would get from R's \code{model.matrix}.
 #'
 #' @author Ken Kellner
 #'
@@ -35,7 +36,7 @@
 #'    LM(y ~ x + x2)
 #' })
 #' 
-#' mod <- nimbleModel(code, constants=constants)
+#' mod <- nimbleModel(code, constants = constants)
 #' mod$getCode()
 NULL
 
@@ -81,7 +82,7 @@ LM <- list(process = function(code, modelInfo, .env){
     # Check that LHS is in the constants, otherwise this won't work
     LHS_name <- safeDeparse(LHS)
     if(! LHS_name %in% names(modelInfo$constants)){
-      stop(paste0("If you don't provide dimensions for the data ", LHS_name, 
+      stop(paste0("LM: If you don't provide dimensions for the data ", LHS_name, 
                   ", you must include ", LHS_name, " in the constants instead."), call.=FALSE)
     }
     idx <- substitute(1:LEN, list(LEN=as.numeric(length(modelInfo$constants[[LHS_name]]))))
@@ -145,10 +146,10 @@ processFamily <- function(fam){
   }
   
   if(is.null(fam$family)){
-    stop("'family' not recognized")
+    stop("processFamily: 'family' not recognized: ", fam, call. = FALSE)
   }
   if(!fam$link %in% c("log", "identity","logit","probit","cloglog")){
-    stop("Unsupported link function", call.=FALSE)
+    stop("processFamily: Unsupported link function: ", fam$link, call.=FALSE)
   }
   fam
 }
@@ -167,7 +168,7 @@ getDataDistCode <- function(family, response, idx, dispParName){
     out <- substitute(DAT ~ FORLOOP(DIST(mu_[IDX], size=N)),
                       list(DAT=response, DIST=quote(dbinom), N=dispParName, IDX=idx))
   } else {
-    stop("Family not supported", call.=FALSE)
+    stop("getDataDistCode: Family not supported: ", family, call.=FALSE)
   }
   out
 }

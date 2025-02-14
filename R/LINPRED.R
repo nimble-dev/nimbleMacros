@@ -10,20 +10,21 @@
 #' @param formula An R formula, possibly with the parameters followed by 
 #'  brackets containing indices. If there are no indices, the macro attempts
 #'  to guess the correct indices from the context. The formula must be 
-#'  right-hand side only (e.g. ~x). This must always be the first argument supplied
-#'  to LINPRED.
-#' @param link A link function which will be applied to the 
+#'  right-hand side only (e.g. \code{~x}). This must always be the first argument supplied
+#'  to \code{LINPRED}.
+#' @param link A link function that will be applied to the 
 #'  left-hand-side (the response) in the final linear predictor. Default is none.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta_ (so x becomes beta_x, etc.)
+#'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
-#'  default is no prefix.
-#' @param priorSpecs Prior specifications, should be generated with setPrior()
-#' @param modMatNames Logical, should parameters be named so they match the
-#'  names you would get from R's model.matrix function?
-#' @param noncenter Logical; use noncentered parameterization?
-#' @param centerVar Grouping covariate to 'center' on in parameterization. By
-#'  default all random effects have mean 0 as with lme4.
+#'  Default is no prefix.
+#' @param priorSpecs Prior specifications, generated with \code{setPrior()}
+#' @param modMatNames Logical indicating if parameters should be named so they match the
+#'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
+#' @param noncenter Logical indicating whether to use noncentered parameterization.
+#'  Default is \code{FALSE}.
+#' @param centerVar Grouping variable (covariate) to 'center' the random effects on. By
+#'  default all random effects have mean 0 as with \code{lme4}.
 #'
 #' @author Ken Kellner
 #'
@@ -33,7 +34,7 @@
 #'   mu[1:3] <- LINPRED(~x + x2)
 #' })
 #'
-#' mod <- nimbleModel(code, constants=constants)
+#' mod <- nimbleModel(code, constants = constants)
 #' mod$getCode()
 NULL
 
@@ -92,29 +93,31 @@ unpackArgs=TRUE
 )
 
 
-#' Macro to build code for priors on a linear predictor from R formula
+#' Macro to build code for priors on a linear predictor from an R formula
 #'
 #' Generates appropriate priors for a linear predictor derived from an 
 #' R formula. As such it makes the most sense to use this macro together with
-#' the LINPRED macro which takes similar arguments.
+#' the LINPRED macro, which takes similar arguments.
 #'
 #' @name LINPRED_PRIORS
 #' @author Ken Kellner
 #'
-#' @param formula An R formula The formula must be right-hand side only (e.g. ~x). 
-#'  This must always be the first argument supplied to LINPRED_PRIORS
+#' @param formula An R formula The formula must be right-hand side only (e.g., \code{~x}). 
+#'  This must always be the first argument supplied to \code{LINPRED_PRIORS}.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta_ (so x becomes beta_x, etc.)
+#'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
-#'  default is no prefix.
-#' @param priorSpecs List of prior specifications, should be generated using 
+#'  Default is no prefix.
+#' @param priorSpecs List of prior specifications, generated using \code{setPriors}.
 #'  setPriors()
-#' @param modMatNames Logical, should parameters be named so they match the
-#'  names you would get from R's model.matrix function?
-#' @param noncenter Logical, use noncentered parameterization?
-#' @param centerVar Grouping covariate to 'center' on in parameterization. By
-#'  default all random effects have mean 0 as with lme4.
+#' @param modMatNames Logical indicating if parameters should be named so they match the
+#'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
+#' @param noncenter Logical indicating whether to use noncentered parameterization.
+#'  Default is \code{FALSE}.
+#' @param centerVar Grouping variable (covariate) to 'center' the random effects on. By
+#'  default all random effects have mean 0 as with \code{lme4}.
 #'
+#' 
 #' @author Ken Kellner
 #'
 #' @examples
@@ -1378,12 +1381,12 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
 #' uppertri_mult_diag
 #' 
 #' nimbleFunction needed when fitting correlated random effects.
-#' Generates upper triangular Cholesky factor of covariance matrix (U in code)
-#' from upper tri Cholesky factor of correlation matrix (Ustar in code)
+#' Generates upper triangular Cholesky factor of covariance matrix ("U" in code)
+#' from upper triangular Cholesky factor of correlation matrix ("Ustar" in code)
 #' and vector of standard deviations. Taken from the NIMBLE manual, 
-#' section 5.2.4.1.2 LKJ distribution for correlation matrices.
+#' section 5.2.4.1.2 (LKJ Distribution for Correlation Matrices).
 #' 
-#' @param mat upper triangular Cholesky factor of correlation matrix (Ustar)
+#' @param mat upper triangular Cholesky factor of correlation matrix ("Ustar")
 #' @param vec vector of standard deviations for individual random effects
 #'
 #' @name uppertri_mult_diag
