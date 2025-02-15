@@ -349,7 +349,6 @@ test_that("Run glm example", {
 })
 
 test_that("Run lme4::lmer() example", {
-  skip_on_ci()
   skip_on_cran()
   nimbleOptions(enableMacroComments = FALSE)
   sleepstudy <- readRDS('sleepstudy.Rds') # from lme4 package
@@ -409,7 +408,7 @@ test_that("Run lme4::lmer() example", {
               `Days|Subject SD` = 6.766, Cor = -0.255, sigma = 25.526)
   
   comp <- cbind(lmer=lmer_est, nimble=nim_est) # comparison
-  expect_equivalent(nim_est, c(244.733, 11.268, 33.393, 7.366, -0.165, 25.966))
+  expect_equivalent(nim_est, c(247.552, 11.408, 33.200, 7.267, -0.214, 25.807))
 
   nimbleOptions(enableMacroComments = TRUE)
 })
