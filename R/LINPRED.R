@@ -366,9 +366,17 @@ processFormulaHandler <- function(x, defaultBracket, coefPrefix="beta_",
 
   cand <- paste0("formulaHandler_", func)
   
+  # Look for formula handler
+  # First look in user's environment, then look in nimbleMacros
   processor_available <- FALSE
-  if(exists(cand, envir = env)){
-    processor <- get(cand, envir = env)
+  in_nimbleMacros <- exists(cand, envir = environment())
+  in_user_env <- exists(cand, envir = env)
+  if(in_nimbleMacros | in_user_env){
+    if(in_user_env){
+      processor <- get(cand, envir = env)
+    } else {
+      processor <- get(cand, envir = environment()) # fallback to nimbleMacros
+    }
     if(inherits(processor, "nimbleFormulaHandler")){
       processor_available <- TRUE
       out <- processor(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...)
