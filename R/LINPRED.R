@@ -45,7 +45,7 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          noncenter = FALSE, centerVar=NULL, modelInfo, .env){
     
     # Make sure formula is in correct format
-    formula <- stats::as.formula(formula)
+    formula <- check_formula(formula)
     
     # Get index range on LHS to use if the RHS formulas do not specify them
     LHS_ind <- extractBracket(LHS)
@@ -136,8 +136,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
          modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
 
   # Make sure formula is in correct format
-  if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
-  formula <- stats::as.formula(formula)
+  formula <- check_formula(formula)
 
   # Evaluate prior settings
   priorSpecs <- eval(priorSpecs, envir=.env) 
@@ -171,6 +170,16 @@ use3pieces=FALSE,
 unpackArgs=TRUE
 )
 
+# Check validity of formula
+check_formula <- function(formula){
+  if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
+  formula <- stats::as.formula(formula)
+  if(length(formula) > 2){
+    stop("check_formula: Formula should be RHS-only, such as ~1 or ~x, but not y~x",
+         call.=FALSE)
+  }
+  formula
+}
 
 # This function starts with a formula plus options
 # Splits the formula into separate components (terms)

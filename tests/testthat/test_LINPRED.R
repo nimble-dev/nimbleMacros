@@ -386,6 +386,22 @@ test_that("LINPRED basic fixed effects models", {
   nimbleOptions(enableMacroComments = TRUE)
 })
 
+test_that("LINPRED error traps LHS in formula", {
+  nimbleOptions(enableMacroComments = FALSE)
+  set.seed(123)
+  modInfo <- list(constants=list(y = rnorm(10), x=round(rnorm(10), 3), n = 10))
+
+  # Missing LHS error trapping must be handled by buildMacro() in nimble
+
+  # LHS in formula
+  code <- quote(mu[1:n] <- LINPRED(y~1))
+  
+  expect_error(
+    LINPRED$process(code, modelInfo=modInfo, environment()),
+    "Formula should be RHS-only"
+  )
+
+})
 
 test_that("LINPRED with uncorrelated random effects", {
   nimbleOptions(enableMacroComments = FALSE)
