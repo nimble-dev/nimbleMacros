@@ -256,6 +256,7 @@ mod$getCode()
 ## Factor/categorical covariates
 
 The `LINPRED` macro can automatically handle categorical covariates (what R calls factors).
+A categorical covariate can be provided in the constants as either an R factor, or as a character vector/matrix/array (which will be converted automatically to a factor).
 For example, suppose we included a covariate for diet type (`Diet`) in the model. 
 The `Diet` covariate is already coded as an R factor:
 
@@ -407,6 +408,9 @@ mod$getCode()
 # `LINPRED_PRIORS`
 
 This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
+In most cases, we won't use this macro directly; rather it will be called automatically when we use `LINPRED` (see discussion of `priorSpecs` argument above).
+However, if for some reason we want to generate code for only the priors, and not the corresponding linear predictor, we can use `LINPRED_PRIORS` separately as we show below.
+
 The formula `~Time` implies two parameters as we described above, and `LINPRED_PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
 It is not necessary to specify the dimensions in the formula when using `LINPRED_PRIORS` directly.
 
