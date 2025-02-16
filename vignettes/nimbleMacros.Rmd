@@ -214,7 +214,7 @@ summary(rmod)
 ## Time -0.422
 ```
 
-To fit this model with NIMBLE based on using `LM`, we'll first organize the `ChickWeight` data into a list of constants and data for NIMBLE.
+To fit this model with NIMBLE using `LM`, we'll first organize the `ChickWeight` data into a list of constants and data for NIMBLE.
 
 
 ``` r
@@ -423,7 +423,7 @@ When all the data and constants used by `LINPRED` have the same dimensions, you 
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSpecs = NULL)
+  mu[1:N] <- LINPRED(~Time, priorSpecs=NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -512,7 +512,7 @@ chick_const$Diet <- ChickWeight$Diet
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSpecs = NULL)
+  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSpecs=NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -642,7 +642,8 @@ mod$getCode()
 We now have priors for each parameter.
 Note that as mentioned previously, the first value of the `beta_Diet` vector is fixed at 0, serving as the reference level.
 
-Warning: one should check the default priors carefully to make sure that they make sense for your problem. In particular, if the values in your data are of magnitudes such that parameters of the linear predictor could be large in magnitude, the default priors could have a strong influence on your results. 
+Warning: one should check the default priors carefully to make sure that they make sense for your problem.
+In particular, if the values in your data are of magnitudes such that parameters of the linear predictor could be large in magnitude, the default priors could have a strong influence on your results.
 
 ## Suppress the macro comments
 
@@ -724,7 +725,7 @@ mod$getCode()
 ##     sd_Time_Chick ~ dunif(0, 100)
 ##     re_sds_Chick[1] <- sd_Chick
 ##     re_sds_Chick[2] <- sd_Time_Chick
-##     Ustar_Chick[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+##     Ustar_Chick[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
 ##     U_Chick[1:2, 1:2] <- uppertri_mult_diag(Ustar_Chick[1:2, 
 ##         1:2], re_sds_Chick[1:2])
 ##     re_means_Chick[1] <- 0
@@ -935,7 +936,8 @@ Note that one can use vectorization in NIMBLE model code directly, such as
 mu[1:N] <- alpha + beta * X[1:N]
 ```
 
-The distinction is that that creates a single multivariate node, `mu[1:N]`, while the loop creates `N` separate scalar nodes. Which is best will depend on the model structure and the algorithm used with the model [as discussed in the NIMBLE user manual](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:vectorized-versus-scalar-declarations). 
+The distinction is that that creates a single multivariate node, `mu[1:N]`, while the loop creates `N` separate scalar nodes.
+Which is best will depend on the model structure and the algorithm used with the model [as discussed in the NIMBLE user manual](https://r-nimble.org/html_manual/cha-writing-models.html#subsec:vectorized-versus-scalar-declarations). 
 
 It may seem a bit trivial to make a macro for such a simple chunk of code.
 However it can be nice to use this when you have nested for loops, which are a bit more complicated.
@@ -1043,7 +1045,8 @@ fun <- function(input){
 }
 ```
 
-Note that we have to do a bit of clunky code processing to extract the left-hand-side of the assignment and the argument value. (The use of the `[[` extraction with a code object extracts information from the abstract syntax tree representation of an R expression.)
+Note that we have to do a bit of clunky code-processing to extract the left-hand-side of the assignment and the argument value.
+(The use of the `[[` extraction with a code object extracts information from the abstract syntax tree representation of an R expression.)
 
 
 ``` r
@@ -1095,7 +1098,8 @@ fun(input, modelInfo = list(constants=NULL), .env = environment())
 ```
 
 Finally, `nimble` needs a way to know that this function is intended to be a macro, and that it is called `MYDIST`.
-The final step then is to create a wrapper `list` with our function inserted as an element called `process`, and assign the class `"model_macro"`. (In the next section we'll see that the helper function `buildMacro` will create this wrapper list for us.
+The final step then is to create a wrapper `list` with our function inserted as an element called `process`, and assign the class `"model_macro"`.
+(In the next section we'll see that the helper function `buildMacro` will create this wrapper list for us.)
 
 
 ``` r
@@ -1185,6 +1189,18 @@ code <- nimbleCode({
   y ~ MYDIST3(sdev = 2)
 })
 mod <- nimbleModel(code = code, data = list(y = 1))
+```
+
+```
+## Error in (function (stoch, lhs, rhs, modelInfo, .env)  : 
+##   unused arguments (LHS = quote(y), RHS = quote(MYDIST3(sdev = 2)))
+```
+
+```
+## Error: Model macro MYDIST3 failed.
+```
+
+``` r
 mod$getCode()
 ```
 
@@ -1204,7 +1220,7 @@ fun4 <- function(stoch, lhs, sdev, modelInfo, .env){
   output_code <- substitute(LHS ~ dnorm(0, sd = SDEV),
                        list(LHS = lhs, SDEV = sdev))
 
-  # Modify the constants.
+  # Modify the constants
   modelInfo$constants$new <- 1
     
   list(code = output_code, modelInfo = modelInfo)
@@ -1224,6 +1240,18 @@ code <- nimbleCode({
   y ~ MYDIST4(sdev = 2)
 })
 mod <- nimbleModel(code = code, data = list(y = 1))
+```
+
+```
+## Error in (function (stoch, lhs, sdev, modelInfo, .env)  : 
+##   unused argument (LHS = quote(y))
+```
+
+```
+## Error: Model macro MYDIST4 failed.
+```
+
+``` r
 mod$getCode()
 ```
 
