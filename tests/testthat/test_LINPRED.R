@@ -392,6 +392,13 @@ test_that("LINPRED error traps LHS in formula", {
   modInfo <- list(constants=list(y = rnorm(10), x=round(rnorm(10), 3), n = 10))
 
   # Missing LHS error trapping must be handled by buildMacro() in nimble
+  # Enable the test below when the use3pieces error trap PR in nimble is merged
+  #code <- quote(LINPRED(~1))
+  
+  #expect_error(
+  #  LINPRED$process(code, modelInfo=modInfo, environment()),
+  #  "This macro must be used as part of an assignment"
+  #)
 
   # LHS in formula
   code <- quote(mu[1:n] <- LINPRED(y~1))
