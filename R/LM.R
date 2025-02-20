@@ -22,7 +22,7 @@
 #'  default is no prefix.
 #' @param priorSpecs List of prior specifications, generated using 
 #'  \code{setPriors()}.
-#' @param modMatNames Logical indicating if parameters be named so they match the
+#' @param modelMatrixNames Logical indicating if parameters be named so they match the
 #'  names one would get from R's \code{model.matrix}.
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
@@ -63,7 +63,7 @@ LM <- list(process = function(code, modelInfo, .env){
   link <- if(family$link == "identity") NULL else as.name(family$link)
 
   # Get modMatNames
-  modMatNames <- RHS$modMatNames
+  modMatNames <- RHS$modelMatrixNames
   if(is.null(modMatNames)) modMatNames <- FALSE
 
   # Create binomial sample size
@@ -114,7 +114,7 @@ LM <- list(process = function(code, modelInfo, .env){
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- LINPRED(FORM, link=LINK, coefPrefix=COEFPREFIX,
                                        sdPrefix=SDPREFIX, priorSpecs=PRIORS, 
-                                       modMatNames=MODMAT),
+                                       modelMatrixNames=MODMAT),
                    list(IDX=idx, FORM=form, COEFPREFIX=coefPrefix, SDPREFIX=sdPrefix,
                         PRIORS=priorSpecs, LINK=link, MODMAT=modMatNames))
   pars_added <- list(quote(mu_))

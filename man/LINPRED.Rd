@@ -21,7 +21,7 @@ Default is no prefix.}
 
 \item{priorSpecs}{Prior specifications, generated with \code{setPrior()}}
 
-\item{modMatNames}{Logical indicating if parameters should be named so they match the
+\item{modelMatrixNames}{Logical indicating if parameters should be named so they match the
 names one would get from R's \code{model.matrix}. Default is \code{FALSE}.}
 
 \item{noncentered}{Logical indicating whether to use noncentered parameterization

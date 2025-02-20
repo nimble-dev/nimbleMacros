@@ -150,7 +150,7 @@ test_that("LINPRED basic fixed effects models", {
 
   # Modmatnames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + x3, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x + x3, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -223,9 +223,9 @@ test_that("LINPRED basic fixed effects models", {
     beta_x3 = 0, beta_x_x3 = c(0, 0, 0))
   )
 
-  # continuous-factor interaction with modMatNames = TRUE
+  # continuous-factor interaction with modelMatrixNames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x*x3, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x*x3, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -274,9 +274,9 @@ test_that("LINPRED basic fixed effects models", {
     list(beta_x3 = 0, beta_x_x3 = c(0, 0, 0))
   )
 
-  # continuous-factor interaction with modMatNames = TRUE
+  # continuous-factor interaction with modelMatrixNames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x*x3, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x*x3, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -340,9 +340,9 @@ test_that("LINPRED basic fixed effects models", {
       0, 0, 0, 0, 0), dim = 3:2))
   )
 
-  # Factor-factor interaction with modMatNames = TRUE
+  # Factor-factor interaction with modelMatrixNames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x*x2, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x*x2, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -378,7 +378,7 @@ test_that("LINPRED basic fixed effects models", {
 
   # Covariate not in constants works (but is assumed to be continuous)
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x5, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x5, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
   mod$getCode()

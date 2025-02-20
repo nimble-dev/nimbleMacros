@@ -36,11 +36,11 @@ test_that("LM for linear regression", {
   expect_equal(mod$getConstants()$x2, c(1,2,3))
 
   # With model matrix names
-  code <- quote(LM(y ~ x + x2, priorSpecs=setPriors(sd="dunif(0, 5)"), modMatNames=TRUE))
+  code <- quote(LM(y ~ x + x2, priorSpecs=setPriors(sd="dunif(0, 5)"), modelMatrixNames=TRUE))
   out <- LM$process(code, modelInfo, environment())
 
   code <- nimbleCode({
-    LM(y ~ x + x2, modMatNames = TRUE)
+    LM(y ~ x + x2, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants=dat)
 
@@ -234,7 +234,7 @@ test_that("Run lm example", {
   lm.D9 <- stats::lm(weight ~ group)
 
   code.D9 <- nimbleCode({
-    LM(weight ~ group, modMatNames = TRUE)
+    LM(weight ~ group, modelMatrixNames = TRUE)
   })
   constants=data.frame(weight=weight, group=group)
   mod.D9 <- nimbleModel(code.D9, constants=constants)
@@ -264,7 +264,7 @@ test_that("Run lm example", {
 
   lm.D90 <- stats::lm(weight ~ group - 1) # omitting intercept
   code.D90 <- nimbleCode({
-    LM(weight ~ group - 1, modMatNames = TRUE)
+    LM(weight ~ group - 1, modelMatrixNames = TRUE)
   })
   mod.D90 <- nimbleModel(code.D90, constants=constants)
   expect_equal(
@@ -309,7 +309,7 @@ test_that("Run glm example", {
   pr <- setPriors(intercept="dnorm(0, sd=10)", coefficient="dnorm(0, sd = 10)")
   code.D93 <- nimbleCode({
     LM(counts ~ outcome + treatment, family = poisson(), 
-       modMatNames=TRUE, priorSpecs=pr)
+       modelMatrixNames=TRUE, priorSpecs=pr)
   })
   mod.D93 <- nimbleModel(code.D93, constants=constants)
 
@@ -428,7 +428,7 @@ test_that("Run lme4::glmer() example", {
   pr <- setPriors(intercept="dnorm(0, sd=10)", coefficient="dnorm(0, sd=10)")
   code_gm1 <- nimbleCode({
     LM(cbind(incidence, noncase) ~ period + (1 | herd), priorSpecs=pr, 
-       family=binomial, modMatNames=TRUE)
+       family=binomial, modelMatrixNames=TRUE)
   })
   mod_gm1 <- nimbleModel(code_gm1, constants=constants)
   

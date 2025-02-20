@@ -443,11 +443,11 @@ colnames(model.matrix(~Time + Diet, ChickWeight))
 ```
 
 Here `model.matrix` has created several separate parameters `Diet2`, `Diet3`, and `Diet4` rather than a vector.
-We can replicate this structure in NIMBLE model code by setting the `LINPRED_PRIORS` option `modMatNames = TRUE`.
+We can replicate this structure in NIMBLE model code by setting the `LINPRED_PRIORS` option `modelMatrixNames = TRUE`.
 
 ```{r}
 code <- nimbleCode({
-  LINPRED_PRIORS(~Time + Diet, priorSpecs = pr, modMatNames = TRUE)
+  LINPRED_PRIORS(~Time + Diet, priorSpecs = pr, modelMatrixNames = TRUE)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()

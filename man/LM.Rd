@@ -23,7 +23,7 @@ default is no prefix.}
 \item{priorSpecs}{List of prior specifications, generated using 
 \code{setPriors()}.}
 
-\item{modMatNames}{Logical indicating if parameters be named so they match the
+\item{modelMatrixNames}{Logical indicating if parameters be named so they match the
 names one would get from R's \code{model.matrix}.}
 
 \item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}

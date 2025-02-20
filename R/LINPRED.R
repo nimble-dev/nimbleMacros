@@ -19,7 +19,7 @@
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  Default is no prefix.
 #' @param priorSpecs Prior specifications, generated with \code{setPrior()}
-#' @param modMatNames Logical indicating if parameters should be named so they match the
+#' @param modelMatrixNames Logical indicating if parameters should be named so they match the
 #'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
 #' @param noncentered Logical indicating whether to use noncentered parameterization
 #'  for random effects. Default is \code{FALSE}. Under the noncentered parameterization, 
@@ -55,7 +55,7 @@ NULL
 #' @export
 LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
+         sdPrefix=NULL, priorSpecs=setPriors(), modelMatrixNames = FALSE, 
          noncentered = FALSE, centerVar=NULL, modelInfo, .env){
     
     # Make sure formula is in correct format
@@ -91,10 +91,10 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     # Add code for priors to output if needed
     if(!is.null(priorSpecs)){
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSpecs=PRIORSET, modMatNames=MODMAT,
+                                     priorSpecs=PRIORSET, modelMatrixNames=MODMAT,
                                      noncentered = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSpecs, MODMAT=modMatNames, 
+                                   PRIORSET=priorSpecs, MODMAT=modelMatrixNames, 
                                    UNCENTER = noncentered, CENTERVAR=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
@@ -124,7 +124,7 @@ unpackArgs=TRUE
 #'  Default is no prefix.
 #' @param priorSpecs List of prior specifications, generated using \code{setPriors}.
 #'  setPriors()
-#' @param modMatNames Logical indicating if parameters should be named so they match the
+#' @param modelMatrixNames Logical indicating if parameters should be named so they match the
 #'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
 #' @param noncentered Logical indicating whether to use noncentered parameterization
 #'  for random effects. Default is \code{FALSE}. Under the noncentered parameterization, 
@@ -160,7 +160,7 @@ NULL
 #' @export
 LINPRED_PRIORS <- nimble::buildMacro(
 function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
-         modMatNames=FALSE, noncentered = FALSE, centerVar=NULL, modelInfo, .env){
+         modelMatrixNames=FALSE, noncentered = FALSE, centerVar=NULL, modelInfo, .env){
 
   # Make sure formula is in correct format
   formula <- check_formula(formula)
@@ -179,7 +179,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
   components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
                             priorSpecs=priorSpecs,
-                            modMatNames = modMatNames, noncenter=noncentered)
+                            modMatNames = modelMatrixNames, noncenter=noncentered)
 
   # Get complete prior code
   code <- getPriors(components)
