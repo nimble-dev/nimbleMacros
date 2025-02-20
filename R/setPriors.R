@@ -15,7 +15,7 @@
 #'  to factor data
 #' @param continuous Prior specifications for slope coefficients corresponding
 #'  to continuous data
-#' @param eta Value of shape parameter for LKJ distribution prior, used for
+#' @param lkjShape Value of shape parameter for LKJ distribution prior, used for
 #'  correlation matrix in correlated random slope and intercept models 
 #' @param ... Specific parameters, optionally with brackets/indices
 #'
@@ -49,7 +49,7 @@ setPriors <- function(intercept = quote(dnorm(0, sd = 1000)),
                       sd = quote(dunif(0, 100)),
                       factor = NULL,
                       continuous = NULL,
-                      eta = 1,
+                      lkjShape = 1,
                       ...){
   # Get specific prior names
   extra <- list(...)
@@ -75,7 +75,7 @@ setPriors <- function(intercept = quote(dnorm(0, sd = 1000)),
                       })
 
   # Add eta/shape parameter (adding here because we don't want to check it above)
-  out$eta <- eta
+  out$lkjShape <- lkjShape
 
   out
 }

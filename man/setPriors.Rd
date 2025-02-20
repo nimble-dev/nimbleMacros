@@ -10,7 +10,7 @@ setPriors(
   sd = quote(dunif(0, 100)),
   factor = NULL,
   continuous = NULL,
-  eta = 1,
+  lkjShape = 1,
   ...
 )
 }
@@ -27,7 +27,7 @@ to factor data}
 \item{continuous}{Prior specifications for slope coefficients corresponding
 to continuous data}
 
-\item{eta}{Value of shape parameter for LKJ distribution prior, used for
+\item{lkjShape}{Value of shape parameter for LKJ distribution prior, used for
 correlation matrix in correlated random slope and intercept models}
 
 \item{...}{Specific parameters, optionally with brackets/indices}

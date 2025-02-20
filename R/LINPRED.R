@@ -1355,12 +1355,12 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   Ustar_name <- as.name(paste0("Ustar_", rfact))
   U_name <- as.name(paste0("U_", rfact))
   # LKJ distribution shape parameter
-  eta <- priorSpecs$eta
-  if(is.null(eta)) eta <- 1.3
+  lkj_shape <- priorSpecs$lkjShape
+  if(is.null(lkj_shape)) lkj_shape <- 1
   u <- substitute({
     USTAR[1:NP, 1:NP] ~ dlkj_corr_cholesky(ETA, NP)
     U[1:NP, 1:NP] <- uppertri_mult_diag(USTAR[1:NP, 1:NP], SDS[1:NP])
-    }, list(USTAR=Ustar_name, U=U_name, NP=as.numeric(np), SDS=str2lang(sd_vec), ETA=eta)
+    }, list(USTAR=Ustar_name, U=U_name, NP=as.numeric(np), SDS=str2lang(sd_vec), ETA=lkj_shape)
   )
 
   # Get means for each random effect, default to 0

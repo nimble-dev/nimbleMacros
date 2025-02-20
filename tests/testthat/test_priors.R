@@ -8,7 +8,7 @@ test_that("setPriors",{
   expect_equal(setPriors(),
                 list(intercept=quote(dnorm(0, sd = 1000)),
                     coefficient=quote(dnorm(0, sd = 1000)),
-                    sd=quote(dunif(0, 100)), eta=1)
+                    sd=quote(dunif(0, 100)), lkjShape=1)
                )
 
   expect_equal(
@@ -16,7 +16,7 @@ test_that("setPriors",{
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         factor=quote(dnorm(0, 1)), eta=1)
+         factor=quote(dnorm(0, 1)), lkjShape=1)
   )
 
   expect_equal(
@@ -24,7 +24,7 @@ test_that("setPriors",{
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         continuous=quote(dnorm(0, 1)), eta=1)
+         continuous=quote(dnorm(0, 1)), lkjShape=1)
   )
 
   expect_equal(
@@ -32,20 +32,20 @@ test_that("setPriors",{
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         "alpha[1]"=quote(dnorm(0, 1)), eta=1)
+         "alpha[1]"=quote(dnorm(0, 1)), lkjShape=1)
   )
   expect_equal(
     setPriors("alpha[1]" = "dnorm(0, 1)"),
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         "alpha[1]"=quote(dnorm(0, 1)), eta=1)
+         "alpha[1]"=quote(dnorm(0, 1)), lkjShape=1)
   )
   expect_equal(
     setPriors(sd = list("dnorm", 0, sd = 3)),
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
-         sd=quote(dnorm(0, sd = 3)), eta=1)
+         sd=quote(dnorm(0, sd = 3)), lkjShape=1)
   )
 
   # Prior not quoted should error

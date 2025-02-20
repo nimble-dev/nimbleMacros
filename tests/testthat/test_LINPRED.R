@@ -1073,8 +1073,8 @@ test_that("correlated random effects", {
          beta_x_group = c(0, 0, 0), sd_group = 1, sd_x_group = 1)
   )
 
-  # Set eta value
-  pr <- setPriors(eta=3)
+  # Set LKJ shape value
+  pr <- setPriors(lkjShape=3)
   code <- nimbleCode({
     mu[1:n] <- LINPRED(~x + (x|group), priorSpecs=pr)
   })
