@@ -21,10 +21,22 @@
 #' @param priorSpecs Prior specifications, generated with \code{setPrior()}
 #' @param modMatNames Logical indicating if parameters should be named so they match the
 #'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
-#' @param noncenter Logical indicating whether to use noncentered parameterization.
-#'  Default is \code{FALSE}.
-#' @param centerVar Grouping variable (covariate) to 'center' the random effects on. By
-#'  default all random effects have mean 0 as with \code{lme4}.
+#' @param noncentered Logical indicating whether to use noncentered parameterization
+#'  for random effects. Default is \code{FALSE}. Under the noncentered parameterization, 
+#'  random effects have a standard normal prior (\code{beta_x_raw ~ dnorm(0, sd = 1)}) 
+#'  and are then scaled by the hyperparameters (mean and SD), i.e., 
+#'  \code{beta_x = mu_beta + sd_beta * beta_x_raw}. This parameterization can improve 
+#'  mixing in some cases.
+#' @param centerVar Grouping variable (covariate) to 'center' the random effects on.
+#'  By default (when NULL), random effects come from normal distributions with mean 0 
+#'  as with \code{lme4}. For example, for random intercepts by grouping variable \code{x},
+#'  the linear predictor would be \code{beta_Intercept + beta_x[x[i]]} and the
+#'  prior for the random effects would be \code{beta_x ~ dnorm(0, sd_x)}. When
+#'  \code{centerVar = x}, the linear predictor would be \code{beta_x[x[i]]}
+#'  and the random effect prior would be \code{beta_x ~ dnorm(beta_Intercept, sd = sd_x)}.
+#'  That is, the mean of the random effects is now \code{beta_Intercept}.
+#'  These two formulations should yield the same results. Note that this option
+#'  is unrelated to the \code{noncentered} argument despite the similar names.
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
@@ -44,7 +56,7 @@ NULL
 LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
          sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
-         noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+         noncentered = FALSE, centerVar=NULL, modelInfo, .env){
     
     # Make sure formula is in correct format
     formula <- check_formula(formula)
@@ -80,10 +92,10 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     if(!is.null(priorSpecs)){
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
                                      priorSpecs=PRIORSET, modMatNames=MODMAT,
-                                     noncenter = UNCENTER, centerVar=CENTERVAR),
+                                     noncentered = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
                                    PRIORSET=priorSpecs, MODMAT=modMatNames, 
-                                   UNCENTER = noncenter, CENTERVAR=centerVar))
+                                   UNCENTER = noncentered, CENTERVAR=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -114,10 +126,22 @@ unpackArgs=TRUE
 #'  setPriors()
 #' @param modMatNames Logical indicating if parameters should be named so they match the
 #'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
-#' @param noncenter Logical indicating whether to use noncentered parameterization.
-#'  Default is \code{FALSE}.
-#' @param centerVar Grouping variable (covariate) to 'center' the random effects on. By
-#'  default all random effects have mean 0 as with \code{lme4}.
+#' @param noncentered Logical indicating whether to use noncentered parameterization
+#'  for random effects. Default is \code{FALSE}. Under the noncentered parameterization, 
+#'  random effects have a standard normal prior (\code{beta_x_raw ~ dnorm(0, sd = 1)}) 
+#'  and are then scaled by the hyperparameters (mean and SD), i.e., 
+#'  \code{beta_x = mu_beta + sd_beta * beta_x_raw}. This parameterization can improve 
+#'  mixing in some cases.
+#' @param centerVar Grouping variable (covariate) to 'center' the random effects on.
+#'  By default (when NULL), random effects come from normal distributions with mean 0 
+#'  as with \code{lme4}. For example, for random intercepts by grouping variable \code{x},
+#'  the linear predictor would be \code{beta_Intercept + beta_x[x[i]]} and the
+#'  prior for the random effects would be \code{beta_x ~ dnorm(0, sd_x)}. When
+#'  \code{centerVar = x}, the linear predictor would be \code{beta_x[x[i]]}
+#'  and the random effect prior would be \code{beta_x ~ dnorm(beta_Intercept, sd = sd_x)}.
+#'  That is, the mean of the random effects is now \code{beta_Intercept}.
+#'  These two formulations should yield the same results. Note that this option
+#'  is unrelated to the \code{noncentered} argument despite the similar names.
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
 #' 
@@ -136,7 +160,7 @@ NULL
 #' @export
 LINPRED_PRIORS <- nimble::buildMacro(
 function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
-         modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+         modMatNames=FALSE, noncentered = FALSE, centerVar=NULL, modelInfo, .env){
 
   # Make sure formula is in correct format
   formula <- check_formula(formula)
@@ -155,7 +179,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
   components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
                             priorSpecs=priorSpecs,
-                            modMatNames = modMatNames, noncenter=noncenter)
+                            modMatNames = modMatNames, noncenter=noncentered)
 
   # Get complete prior code
   code <- getPriors(components)

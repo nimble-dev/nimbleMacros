@@ -903,7 +903,7 @@ test_that("noncentered parameterization with uncorrelated random effects", {
                     x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
 
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x||group), noncenter=TRUE)
+    mu[1:n] <- LINPRED(~x + (x||group), noncentered=TRUE)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -941,7 +941,7 @@ test_that("noncentered parameterization with uncorrelated random effects", {
 
   # With centering variable also
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x||group), noncenter=TRUE, centerVar=group)
+    mu[1:n] <- LINPRED(~x + (x||group), noncentered=TRUE, centerVar=group)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -979,7 +979,7 @@ test_that("noncentered parameterization with uncorrelated random effects", {
 
   # Factor slope
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x2||group), noncenter=TRUE)
+    mu[1:n] <- LINPRED(~x + (x2||group), noncentered=TRUE)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -1251,7 +1251,7 @@ test_that("Noncentered parameterization doesn't work with correlated random effe
                     x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
                     x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
   # Noncentered doesn't work with correlated random effects  
-  code <- quote(LINPRED_PRIORS(~x + (x|group), noncenter=TRUE))
+  code <- quote(LINPRED_PRIORS(~x + (x|group), noncentered=TRUE))
   expect_error(LINPRED_PRIORS$process(code, modInfo, NULL)$code, "Noncentered")
 
   nimbleOptions(enableMacroComments = TRUE)
