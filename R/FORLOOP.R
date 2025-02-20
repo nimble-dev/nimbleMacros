@@ -10,6 +10,8 @@
 #' @author Ken Kellner and Perry de Valpine
 #'
 #' @param code The right-hand side of a parameter declaration
+#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
 #' @examples
 #' code <- nimbleCode({

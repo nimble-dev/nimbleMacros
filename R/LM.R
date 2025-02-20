@@ -24,6 +24,8 @@
 #'  \code{setPriors()}.
 #' @param modMatNames Logical indicating if parameters be named so they match the
 #'  names one would get from R's \code{model.matrix}.
+#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
 #' @author Ken Kellner
 #'

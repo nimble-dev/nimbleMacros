@@ -25,6 +25,8 @@
 #'  Default is \code{FALSE}.
 #' @param centerVar Grouping variable (covariate) to 'center' the random effects on. By
 #'  default all random effects have mean 0 as with \code{lme4}.
+#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
 #' @author Ken Kellner
 #'
@@ -116,7 +118,8 @@ unpackArgs=TRUE
 #'  Default is \code{FALSE}.
 #' @param centerVar Grouping variable (covariate) to 'center' the random effects on. By
 #'  default all random effects have mean 0 as with \code{lme4}.
-#'
+#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param .env Used internally by nimbleMacros; the environment where the model was created
 #' 
 #' @author Ken Kellner
 #'

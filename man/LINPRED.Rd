@@ -29,6 +29,10 @@ Default is \code{FALSE}.}
 
 \item{centerVar}{Grouping variable (covariate) to 'center' the random effects on. By
 default all random effects have mean 0 as with \code{lme4}.}
+
+\item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
+
+\item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
 \description{
 Converts an R formula into corresponding code for a linear predictor in NIMBLE model code.

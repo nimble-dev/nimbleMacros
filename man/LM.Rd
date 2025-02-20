@@ -25,6 +25,10 @@ default is no prefix.}
 
 \item{modMatNames}{Logical indicating if parameters be named so they match the
 names one would get from R's \code{model.matrix}.}
+
+\item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
+
+\item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
 \description{
 This macro generates code for LMs, GLMs, and GLMMs using formula notation 
