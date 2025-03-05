@@ -8,13 +8,13 @@ test_that("Error when function in formula is unsupported", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] <- LINPRED(~test(x), priorSpecs=NULL))
+  code <- quote(y[1:n] <- LINPRED(~test(x), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
-  code <- quote(y[1:n] <- LINPRED(~test(x) + (1|x2), priorSpecs=NULL))
+  code <- quote(y[1:n] <- LINPRED(~test(x) + (1|x2), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
-  code <- quote(y[1:n] <- LINPRED(~x3 + test(x[1:10]), priorSpecs=NULL))
+  code <- quote(y[1:n] <- LINPRED(~x3 + test(x[1:10]), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
 })
@@ -620,4 +620,56 @@ test_that("log formula handler works", {
   )
 
   nimbleOptions(enableMacroComments=TRUE)
+})
+
+test_that("Can overwrite existing formulaHandler", {
+
+  # Create new version of scale() that just returns vector of 1s
+  formulaHandler_scale <- function(x, defaultBracket, coefPrefix, 
+                                   sdPrefix, modelInfo, env, ...){
+    
+    const <- modelInfo$constants[[deparse(x$lang[[2]])]]
+    const <- rep(1, length(const))
+    add_const <- list(x_test = const)
+    # Add the new constant to the object
+    if(is.null(x$constants)) x$constants <- list()
+    x$constants <- utils::modifyList(x$constants, add_const)
+    x$lang <- quote(x_test)
+    # Update class
+    class(x)[1] <- "formulaComponentFixed"
+  
+    x
+  }
+  class(formulaHandler_scale) <- c(class(formulaHandler_scale), "nimbleFormulaHandler")
+
+
+  nimbleOptions(enableMacroComments=FALSE)
+  set.seed(123)
+  constants <- list(y=rnorm(3), x = runif(3, 5, 10), z = rnorm(3), n=3, 
+                    x2=matrix(runif(3,5,10), 3, 1), z2=matrix(rnorm(3), 3, 1),
+                    x3 = matrix(runif(9,5,10), 3, 3))
+
+  # Make sure the new scale is being used instead of the default one
+  code <- nimbleCode({
+    mu[1:n] <- LINPRED(~scale(x) + z) 
+  })
+  mod <- nimbleModel(code, constants=constants)
+  
+  expect_equal(
+    mod$getCode(),
+    quote({
+    for (i_1 in 1:n) {
+        mu[i_1] <- beta_Intercept + beta_x_test * x_test[i_1] + 
+            beta_z * z[i_1]
+    }
+    beta_Intercept ~ dnorm(0, sd = 1000)
+    beta_x_test ~ dnorm(0, sd = 1000)
+    beta_z ~ dnorm(0, sd = 1000)
+    })
+  )
+  expect_equivalent(
+    mod$getConstants()$x_test,
+    rep(1, length(constants$x))
+  )
+
 })

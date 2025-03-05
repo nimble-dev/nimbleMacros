@@ -16,8 +16,8 @@ Suggests:
     knitr,
     markdown,
     testthat
-Description: Macros to generate 'nimble' code from a concise syntax. Included are macros for generating linear modeling code using a formula-based syntax, and for 'for' loops. (de Valpine et al. (2015) <doi:10.1080/10618600.2016.1172487>).
-License: GPL-3
+Description: Macros to generate 'nimble' code from a concise syntax. Included are macros for generating linear modeling code using a formula-based syntax and for 'for' loops.
+License: BSD_3_clause + file LICENSE | GPL (>= 2)
 NeedsCompilation: no
 Encoding: UTF-8
 VignetteBuilder: knitr

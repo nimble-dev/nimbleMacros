@@ -1,24 +1,23 @@
-#' Function to handle offset() in LINPRED
-#'
-#' Translates offset() in an R formula passed to LINPRED into corresponding
-#' NIMBLE code for an offset in the linear predictor. This is used internally
-#' by \code{LINPRED} and should not be called directly. New formula functions
-#' should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
-#' and return object class (\code{formulaComponent}).
-#'
-#' @param x A \code{formulaComponentFunction} object created from an offset() term
-#' @param defaultBracket The bracket from the LHS of LINPRED
-#' @param coefPrefix The prefix to use for any new linear predictor parameters created
-#' @param sdPrefix The prefix to use for any new standard deviation parameters created
-#' @param modelInfo Named list containing model information including constants
-#' @param env Environment in which the LINPRED macro was called
-#' @param ... Not currently used
-#'
-#' @return An object of class \code{formulaComponent}.
-#'
-#' @author Ken Kellner
-#'
-#' @export
+# Function to handle offset() in LINPRED
+#
+# Translates offset() in an R formula passed to LINPRED into corresponding
+# NIMBLE code for an offset in the linear predictor. This is used internally
+# by \code{LINPRED} and should not be called directly. New formula functions
+# should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
+# and return object class (\code{formulaComponent}).
+#
+# @param x A \code{formulaComponentFunction} object created from an offset() term
+# @param defaultBracket The bracket from the LHS of LINPRED
+# @param coefPrefix The prefix to use for any new linear predictor parameters created
+# @param sdPrefix The prefix to use for any new standard deviation parameters created
+# @param modelInfo Named list containing model information including constants
+# @param env Environment in which the LINPRED macro was called
+# @param ... Not currently used
+#
+# @return An object of class \code{formulaComponent}.
+#
+# @author Ken Kellner
+#
 formulaHandler_offset <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
  
   # Get the code inside offset()
@@ -75,29 +74,28 @@ get_all_names_recursive <- function(code){
   NULL
 }
 
-#' Function to handle scale() in LINPRED
-#'
-#' Translates scale() in an R formula passed to LINPRED into corresponding
-#' NIMBLE code (and new constant) for a scaled covariate. This is used internally
-#' by \code{LINPRED} and should not be called directly. New formula functions
-#' should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
-#' and return object class (\code{formulaComponent}). Note: when applied to a
-#' matrix or array covariate, scale() will calculate mean/SD relative to the entire
-#' matrix/array, NOT column-wise as is the case if you use scale() in base R.
-#'
-#' @param x A formulaComponentFunction object created from a scale() term
-#' @param defaultBracket The bracket from the LHS of LINPRED
-#' @param coefPrefix The prefix to use for any new linear predictor parameters created
-#' @param sdPrefix The prefix to use for any new standard deviation parameters created
-#' @param modelInfo Named list containing model information including constants
-#' @param env Environment in which the LINPRED macro was called
-#' @param ... Not currently used
-#'
-#' @return An object of class \code{formulaComponentFixed}.
-#'
-#' @author Ken Kellner
-#'
-#' @export
+# Function to handle scale() in LINPRED
+#
+# Translates scale() in an R formula passed to LINPRED into corresponding
+# NIMBLE code (and new constant) for a scaled covariate. This is used internally
+# by \code{LINPRED} and should not be called directly. New formula functions
+# should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
+# and return object class (\code{formulaComponent}). Note: when applied to a
+# matrix or array covariate, scale() will calculate mean/SD relative to the entire
+# matrix/array, NOT column-wise as is the case if you use scale() in base R.
+#
+# @param x A formulaComponentFunction object created from a scale() term
+# @param defaultBracket The bracket from the LHS of LINPRED
+# @param coefPrefix The prefix to use for any new linear predictor parameters created
+# @param sdPrefix The prefix to use for any new standard deviation parameters created
+# @param modelInfo Named list containing model information including constants
+# @param env Environment in which the LINPRED macro was called
+# @param ... Not currently used
+#
+# @return An object of class \code{formulaComponentFixed}.
+#
+# @author Ken Kellner
+#
 formulaHandler_scale <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
@@ -166,28 +164,27 @@ formulaHandler_scale <- function(x, defaultBracket, coefPrefix, sdPrefix, modelI
 class(formulaHandler_scale) <- c(class(formulaHandler_scale), "nimbleFormulaHandler")
 
 
-#' Function to handle I() in LINPRED
-#'
-#' Translates I() in an R formula passed to LINPRED into corresponding
-#' NIMBLE code (and new constant) for a scaled covariate.
-#' Only allows for expressions involving one covariate (not functions of covariates).
-#' This is used internally by \code{LINPRED} and should not be called directly. 
-#' New formula functions should have the same arguments, naming structure, class 
-#' (\code{nimbleFormulaHandler}) and return object class (\code{formulaComponent}).
-#'
-#' @param x A formulaComponentFunction object created from an I() term
-#' @param defaultBracket The bracket from the LHS of LINPRED
-#' @param coefPrefix The prefix to use for any new linear predictor parameters created
-#' @param sdPrefix The prefix to use for any new standard deviation parameters created
-#' @param modelInfo Named list containing model information including constants
-#' @param env Environment in which the LINPRED macro was called
-#' @param ... Not currently used
-#'
-#' @return An object of class \code{formulaComponentFixed}.
-#'
-#' @author Ken Kellner
-#'
-#' @export
+# Function to handle I() in LINPRED
+#
+# Translates I() in an R formula passed to LINPRED into corresponding
+# NIMBLE code (and new constant) for a scaled covariate.
+# Only allows for expressions involving one covariate (not functions of covariates).
+# This is used internally by \code{LINPRED} and should not be called directly. 
+# New formula functions should have the same arguments, naming structure, class 
+# (\code{nimbleFormulaHandler}) and return object class (\code{formulaComponent}).
+#
+# @param x A formulaComponentFunction object created from an I() term
+# @param defaultBracket The bracket from the LHS of LINPRED
+# @param coefPrefix The prefix to use for any new linear predictor parameters created
+# @param sdPrefix The prefix to use for any new standard deviation parameters created
+# @param modelInfo Named list containing model information including constants
+# @param env Environment in which the LINPRED macro was called
+# @param ... Not currently used
+#
+# @return An object of class \code{formulaComponentFixed}.
+#
+# @author Ken Kellner
+#
 formulaHandler_I <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale
@@ -250,27 +247,26 @@ formulaHandler_I <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo,
 class(formulaHandler_I) <- c(class(formulaHandler_I), "nimbleFormulaHandler")
 
 
-#' Function to handle log() in LINPRED
-#'
-#' Translates log() in an R formula passed to LINPRED into corresponding
-#' NIMBLE code (and new constant) for a log-transformed covariate. This is used internally
-#' by \code{LINPRED} and should not be called directly. New formula functions
-#' should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
-#' and return object class (\code{formulaComponent}).
-#'
-#' @param x A formulaComponentFunction object created from a log() term
-#' @param defaultBracket The bracket from the LHS of LINPRED
-#' @param coefPrefix The prefix to use for any new linear predictor parameters created
-#' @param sdPrefix The prefix to use for any new standard deviation parameters created
-#' @param modelInfo Named list containing model information including constants
-#' @param env Environment in which the LINPRED macro was called
-#' @param ... Not currently used
-#'
-#' @return An object of class \code{formulaComponentFixed}.
-#'
-#' @author Ken Kellner
-#'
-#' @export
+# Function to handle log() in LINPRED
+#
+# Translates log() in an R formula passed to LINPRED into corresponding
+# NIMBLE code (and new constant) for a log-transformed covariate. This is used internally
+# by \code{LINPRED} and should not be called directly. New formula functions
+# should have the same arguments, naming structure, class (\code{nimbleFormulaHandler}) 
+# and return object class (\code{formulaComponent}).
+#
+# @param x A formulaComponentFunction object created from a log() term
+# @param defaultBracket The bracket from the LHS of LINPRED
+# @param coefPrefix The prefix to use for any new linear predictor parameters created
+# @param sdPrefix The prefix to use for any new standard deviation parameters created
+# @param modelInfo Named list containing model information including constants
+# @param env Environment in which the LINPRED macro was called
+# @param ... Not currently used
+#
+# @return An object of class \code{formulaComponentFixed}.
+#
+# @author Ken Kellner
+#
 formulaHandler_log <- function(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...){
 
   # Identify which interaction terms involve scale

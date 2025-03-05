@@ -8,7 +8,7 @@ test_that("setPriors",{
   expect_equal(setPriors(),
                 list(intercept=quote(dnorm(0, sd = 1000)),
                     coefficient=quote(dnorm(0, sd = 1000)),
-                    sd=quote(dunif(0, 100)), eta=1.3)
+                    sd=quote(dunif(0, 100)), lkjShape=1)
                )
 
   expect_equal(
@@ -16,7 +16,7 @@ test_that("setPriors",{
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         factor=quote(dnorm(0, 1)), eta=1.3)
+         factor=quote(dnorm(0, 1)), lkjShape=1)
   )
 
   expect_equal(
@@ -24,7 +24,7 @@ test_that("setPriors",{
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         continuous=quote(dnorm(0, 1)), eta=1.3)
+         continuous=quote(dnorm(0, 1)), lkjShape=1)
   )
 
   expect_equal(
@@ -32,20 +32,20 @@ test_that("setPriors",{
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         "alpha[1]"=quote(dnorm(0, 1)), eta=1.3)
+         "alpha[1]"=quote(dnorm(0, 1)), lkjShape=1)
   )
   expect_equal(
     setPriors("alpha[1]" = "dnorm(0, 1)"),
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
          sd=quote(dunif(0, 100)),
-         "alpha[1]"=quote(dnorm(0, 1)), eta=1.3)
+         "alpha[1]"=quote(dnorm(0, 1)), lkjShape=1)
   )
   expect_equal(
     setPriors(sd = list("dnorm", 0, sd = 3)),
     list(intercept=quote(dnorm(0, sd = 1000)),
          coefficient=quote(dnorm(0, sd = 1000)),
-         sd=quote(dnorm(0, sd = 3)), eta=1.3)
+         sd=quote(dnorm(0, sd = 3)), lkjShape=1)
   )
 
   # Prior not quoted should error
@@ -89,32 +89,32 @@ test_that("matchPrior", {
                       alpha = quote(dnorm(0, 5)),
                       "alpha[1]" = quote(dnorm(0, 6)))
   
-  expect_equal(matchPrior(quote(beta), "intercept", priorSpecs=priors),
+  expect_equal(matchPrior(quote(beta), "intercept", priors=priors),
                quote(dnorm(0,1)))
 
-  expect_equal(matchPrior(quote(beta), "coefficient", priorSpecs=priors),
+  expect_equal(matchPrior(quote(beta), "coefficient", priors=priors),
                quote(dnorm(0,2)))
 
-  expect_equal(matchPrior(quote(beta), "continuous", "coefficient", priorSpecs=priors),
+  expect_equal(matchPrior(quote(beta), "continuous", "coefficient", priors=priors),
                quote(dnorm(0,3)))
 
-  expect_equal(matchPrior(quote(beta), "factor", "coefficient", priorSpecs=priors),
+  expect_equal(matchPrior(quote(beta), "factor", "coefficient", priors=priors),
                quote(dnorm(0,4)))
 
-  expect_equal(matchPrior(quote(alpha), "coefficient", priorSpecs=priors),
+  expect_equal(matchPrior(quote(alpha), "coefficient", priors=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(matchPrior(quote(alpha[2]), "coefficient", priorSpecs=priors),
+  expect_equal(matchPrior(quote(alpha[2]), "coefficient", priors=priors),
                quote(dnorm(0,5)))
 
-  expect_equal(matchPrior(quote(alpha[1]), "coefficient", priorSpecs=priors),
+  expect_equal(matchPrior(quote(alpha[1]), "coefficient", priors=priors),
                quote(dnorm(0,6)))
   
   # Possible errors
-  expect_error(matchPrior(quote(beta), "fake", priorSpecs=priors))
+  expect_error(matchPrior(quote(beta), "fake", priors=priors))
 
   priors$bad <- "dnorm(0, 1)"
-  expect_error(matchPrior(quote(beta), "bad", priorSpecs=priors))
+  expect_error(matchPrior(quote(beta), "bad", priors=priors))
 })
 
 test_that("spaces in factor levels are handled", {
@@ -125,7 +125,7 @@ test_that("spaces in factor levels are handled", {
   dat <- list(y=y, x=x, z=z, n=3)
 
   code <- nimbleCode({
-    LINPRED_PRIORS(~x + z, modMatNames=TRUE) 
+    LINPRED_PRIORS(~x + z, modelMatrixNames=TRUE) 
   })
   
   nimbleOptions(enableMacroComments=FALSE)

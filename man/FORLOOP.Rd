@@ -5,6 +5,10 @@
 \title{Macro to build for loop(s) from code with index ranges in brackets}
 \arguments{
 \item{code}{The right-hand side of a parameter declaration}
+
+\item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
+
+\item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
 \description{
 This macro takes a line of NIMBLE model code with index ranges inside brackets
@@ -18,7 +22,7 @@ code <- nimbleCode({
    mu[1:n] <- FORLOOP(beta[1] + beta[2]*x[1:n])
 })
 
-mod <- nimbleModel(code, constants=list(n=10))
+mod <- nimbleModel(code, constants = list(n=10))
 mod$getCode()
 }
 \author{

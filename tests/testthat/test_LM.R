@@ -8,7 +8,7 @@ test_that("LM for linear regression", {
   modelInfo <- list(constants=dat)
   
   code <- nimbleCode({
-    LM(y ~ x + x2, priorSpecs=setPriors(sd="dunif(0, 5)"))
+    LM(y ~ x + x2, priors=setPriors(sd="dunif(0, 5)"))
   })
   mod <- nimbleModel(code, constants=dat)
 
@@ -36,11 +36,11 @@ test_that("LM for linear regression", {
   expect_equal(mod$getConstants()$x2, c(1,2,3))
 
   # With model matrix names
-  code <- quote(LM(y ~ x + x2, priorSpecs=setPriors(sd="dunif(0, 5)"), modMatNames=TRUE))
+  code <- quote(LM(y ~ x + x2, priors=setPriors(sd="dunif(0, 5)"), modelMatrixNames=TRUE))
   out <- LM$process(code, modelInfo, environment())
 
   code <- nimbleCode({
-    LM(y ~ x + x2, modMatNames = TRUE)
+    LM(y ~ x + x2, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants=dat)
 
@@ -234,7 +234,7 @@ test_that("Run lm example", {
   lm.D9 <- stats::lm(weight ~ group)
 
   code.D9 <- nimbleCode({
-    LM(weight ~ group, modMatNames = TRUE)
+    LM(weight ~ group, modelMatrixNames = TRUE)
   })
   constants=data.frame(weight=weight, group=group)
   mod.D9 <- nimbleModel(code.D9, constants=constants)
@@ -264,7 +264,7 @@ test_that("Run lm example", {
 
   lm.D90 <- stats::lm(weight ~ group - 1) # omitting intercept
   code.D90 <- nimbleCode({
-    LM(weight ~ group - 1, modMatNames = TRUE)
+    LM(weight ~ group - 1, modelMatrixNames = TRUE)
   })
   mod.D90 <- nimbleModel(code.D90, constants=constants)
   expect_equal(
@@ -309,7 +309,7 @@ test_that("Run glm example", {
   pr <- setPriors(intercept="dnorm(0, sd=10)", coefficient="dnorm(0, sd = 10)")
   code.D93 <- nimbleCode({
     LM(counts ~ outcome + treatment, family = poisson(), 
-       modMatNames=TRUE, priorSpecs=pr)
+       modelMatrixNames=TRUE, priors=pr)
   })
   mod.D93 <- nimbleModel(code.D93, constants=constants)
 
@@ -349,7 +349,6 @@ test_that("Run glm example", {
 })
 
 test_that("Run lme4::lmer() example", {
-  skip_on_ci()
   skip_on_cran()
   nimbleOptions(enableMacroComments = FALSE)
   sleepstudy <- readRDS('sleepstudy.Rds') # from lme4 package
@@ -379,7 +378,7 @@ test_that("Run lme4::lmer() example", {
     sd_Days_Subject ~ dunif(0, 100)
     re_sds_Subject[1] <- sd_Subject
     re_sds_Subject[2] <- sd_Days_Subject
-    Ustar_Subject[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_Subject[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_Subject[1:2, 1:2] <- uppertri_mult_diag(Ustar_Subject[1:2, 
         1:2], re_sds_Subject[1:2])
     re_means_Subject[1] <- 0
@@ -409,7 +408,7 @@ test_that("Run lme4::lmer() example", {
               `Days|Subject SD` = 6.766, Cor = -0.255, sigma = 25.526)
   
   comp <- cbind(lmer=lmer_est, nimble=nim_est) # comparison
-  expect_equivalent(nim_est, c(244.733, 11.268, 33.393, 7.366, -0.165, 25.966))
+  expect_equivalent(nim_est, c(247.552, 11.408, 33.200, 7.267, -0.214, 25.807))
 
   nimbleOptions(enableMacroComments = TRUE)
 })
@@ -428,8 +427,8 @@ test_that("Run lme4::glmer() example", {
   constants$noncase <- constants$size - constants$incidence
   pr <- setPriors(intercept="dnorm(0, sd=10)", coefficient="dnorm(0, sd=10)")
   code_gm1 <- nimbleCode({
-    LM(cbind(incidence, noncase) ~ period + (1 | herd), priorSpecs=pr, 
-       family=binomial, modMatNames=TRUE)
+    LM(cbind(incidence, noncase) ~ period + (1 | herd), priors=pr, 
+       family=binomial, modelMatrixNames=TRUE)
   })
   mod_gm1 <- nimbleModel(code_gm1, constants=constants)
   

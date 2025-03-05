@@ -4,7 +4,7 @@
 status](https://github.com/nimble-dev/nimbleMacros/workflows/R-CMD-check/badge.svg)](https://github.com/nimble-dev/nimbleMacros/actions)
 
 `nimbleMacros` is an R package that extends [NIMBLE](https://r-nimble.org/), an R package for hierarchical statistical modeling.
-The package provides a set of model macros, which are special code chunks which NIMBLE automatically expands into larger blocks of valid NIMBLE model code.
+The package provides a set of model macros, which are special code chunks that NIMBLE automatically expands into larger blocks of valid NIMBLE model code.
 
 For example, the following NIMBLE model code contains a macro called `LINPRED`, and the objective is to create a linear predictor containing an intercept and a slope for one covariate, `x`.
 

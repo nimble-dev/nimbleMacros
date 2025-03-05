@@ -10,20 +10,35 @@
 #' @param formula An R formula, possibly with the parameters followed by 
 #'  brackets containing indices. If there are no indices, the macro attempts
 #'  to guess the correct indices from the context. The formula must be 
-#'  right-hand side only (e.g. ~x). This must always be the first argument supplied
-#'  to LINPRED.
-#' @param link A link function which will be applied to the 
+#'  right-hand side only (e.g. \code{~x}). This must always be the first argument supplied
+#'  to \code{LINPRED}.
+#' @param link A link function that will be applied to the 
 #'  left-hand-side (the response) in the final linear predictor. Default is none.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta_ (so x becomes beta_x, etc.)
+#'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
-#'  default is no prefix.
-#' @param priorSpecs Prior specifications, should be generated with setPrior()
-#' @param modMatNames Logical, should parameters be named so they match the
-#'  names you would get from R's model.matrix function?
-#' @param noncenter Logical; use noncentered parameterization?
-#' @param centerVar Grouping covariate to 'center' on in parameterization. By
-#'  default all random effects have mean 0 as with lme4.
+#'  Default is no prefix.
+#' @param priors Prior specifications, generated with \code{setPrior()}
+#' @param modelMatrixNames Logical indicating if parameters should be named so they match the
+#'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
+#' @param noncentered Logical indicating whether to use noncentered parameterization
+#'  for random effects. Default is \code{FALSE}. Under the noncentered parameterization, 
+#'  random effects have a standard normal prior (\code{beta_x_raw ~ dnorm(0, sd = 1)}) 
+#'  and are then scaled by the hyperparameters (mean and SD), i.e., 
+#'  \code{beta_x = mu_beta + sd_beta * beta_x_raw}. This parameterization can improve 
+#'  mixing in some cases.
+#' @param centerVar Grouping variable (covariate) to 'center' the random effects on.
+#'  By default (when NULL), random effects come from normal distributions with mean 0 
+#'  as with \code{lme4}. For example, for random intercepts by grouping variable \code{x},
+#'  the linear predictor would be \code{beta_Intercept + beta_x[x[i]]} and the
+#'  prior for the random effects would be \code{beta_x ~ dnorm(0, sd_x)}. When
+#'  \code{centerVar = x}, the linear predictor would be \code{beta_x[x[i]]}
+#'  and the random effect prior would be \code{beta_x ~ dnorm(beta_Intercept, sd = sd_x)}.
+#'  That is, the mean of the random effects is now \code{beta_Intercept}.
+#'  These two formulations should yield the same results. Note that this option
+#'  is unrelated to the \code{noncentered} argument despite the similar names.
+#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
 #' @author Ken Kellner
 #'
@@ -33,18 +48,18 @@
 #'   mu[1:3] <- LINPRED(~x + x2)
 #' })
 #'
-#' mod <- nimbleModel(code, constants=constants)
+#' mod <- nimbleModel(code, constants = constants)
 #' mod$getCode()
 NULL
 
 #' @export
 LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSpecs=setPriors(), modMatNames = FALSE, 
-         noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+         sdPrefix=NULL, priors=setPriors(), modelMatrixNames = FALSE, 
+         noncentered = FALSE, centerVar=NULL, modelInfo, .env){
     
     # Make sure formula is in correct format
-    formula <- stats::as.formula(formula)
+    formula <- check_formula(formula)
     
     # Get index range on LHS to use if the RHS formulas do not specify them
     LHS_ind <- extractBracket(LHS)
@@ -74,13 +89,13 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     code <- substitute(LHS <- nimbleMacros::FORLOOP(RHS), list(LHS = LHS, RHS = RHS))
 
     # Add code for priors to output if needed
-    if(!is.null(priorSpecs)){
+    if(!is.null(priors)){
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSpecs=PRIORSET, modMatNames=MODMAT,
-                                     noncenter = UNCENTER, centerVar=CENTERVAR),
+                                     priors=PRIORSET, modelMatrixNames=MODMAT,
+                                     noncentered = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSpecs, MODMAT=modMatNames, 
-                                   UNCENTER = noncenter, CENTERVAR=centerVar))
+                                   PRIORSET=priors, MODMAT=modelMatrixNames, 
+                                   UNCENTER = noncentered, CENTERVAR=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
 
@@ -92,29 +107,44 @@ unpackArgs=TRUE
 )
 
 
-#' Macro to build code for priors on a linear predictor from R formula
+#' Macro to build code for priors on a linear predictor from an R formula
 #'
 #' Generates appropriate priors for a linear predictor derived from an 
 #' R formula. As such it makes the most sense to use this macro together with
-#' the LINPRED macro which takes similar arguments.
+#' the LINPRED macro, which takes similar arguments.
 #'
 #' @name LINPRED_PRIORS
 #' @author Ken Kellner
 #'
-#' @param formula An R formula The formula must be right-hand side only (e.g. ~x). 
-#'  This must always be the first argument supplied to LINPRED_PRIORS
+#' @param formula An R formula The formula must be right-hand side only (e.g., \code{~x}). 
+#'  This must always be the first argument supplied to \code{LINPRED_PRIORS}.
 #' @param coefPrefix All model coefficient names will begin with this prefix.
-#'  default is beta_ (so x becomes beta_x, etc.)
+#'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
-#'  default is no prefix.
-#' @param priorSpecs List of prior specifications, should be generated using 
+#'  Default is no prefix.
+#' @param priors List of prior specifications, generated using \code{setPriors}.
 #'  setPriors()
-#' @param modMatNames Logical, should parameters be named so they match the
-#'  names you would get from R's model.matrix function?
-#' @param noncenter Logical, use noncentered parameterization?
-#' @param centerVar Grouping covariate to 'center' on in parameterization. By
-#'  default all random effects have mean 0 as with lme4.
-#'
+#' @param modelMatrixNames Logical indicating if parameters should be named so they match the
+#'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
+#' @param noncentered Logical indicating whether to use noncentered parameterization
+#'  for random effects. Default is \code{FALSE}. Under the noncentered parameterization, 
+#'  random effects have a standard normal prior (\code{beta_x_raw ~ dnorm(0, sd = 1)}) 
+#'  and are then scaled by the hyperparameters (mean and SD), i.e., 
+#'  \code{beta_x = mu_beta + sd_beta * beta_x_raw}. This parameterization can improve 
+#'  mixing in some cases.
+#' @param centerVar Grouping variable (covariate) to 'center' the random effects on.
+#'  By default (when NULL), random effects come from normal distributions with mean 0 
+#'  as with \code{lme4}. For example, for random intercepts by grouping variable \code{x},
+#'  the linear predictor would be \code{beta_Intercept + beta_x[x[i]]} and the
+#'  prior for the random effects would be \code{beta_x ~ dnorm(0, sd_x)}. When
+#'  \code{centerVar = x}, the linear predictor would be \code{beta_x[x[i]]}
+#'  and the random effect prior would be \code{beta_x ~ dnorm(beta_Intercept, sd = sd_x)}.
+#'  That is, the mean of the random effects is now \code{beta_Intercept}.
+#'  These two formulations should yield the same results. Note that this option
+#'  is unrelated to the \code{noncentered} argument despite the similar names.
+#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param .env Used internally by nimbleMacros; the environment where the model was created
+#' 
 #' @author Ken Kellner
 #'
 #' @examples
@@ -129,15 +159,14 @@ NULL
 
 #' @export
 LINPRED_PRIORS <- nimble::buildMacro(
-function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
-         modMatNames=FALSE, noncenter = FALSE, centerVar=NULL, modelInfo, .env){
+function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priors=setPriors(), 
+         modelMatrixNames=FALSE, noncentered = FALSE, centerVar=NULL, modelInfo, .env){
 
   # Make sure formula is in correct format
-  if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
-  formula <- stats::as.formula(formula)
+  formula <- check_formula(formula)
 
   # Evaluate prior settings
-  priorSpecs <- eval(priorSpecs, envir=.env) 
+  priors <- eval(priors, envir=.env) 
 
   # Split formula into components and process the components
   components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
@@ -149,8 +178,8 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
 
   components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
-                            priorSpecs=priorSpecs,
-                            modMatNames = modMatNames, noncenter=noncenter)
+                            priorSpecs=priors,
+                            modMatNames = modelMatrixNames, noncenter=noncentered)
 
   # Get complete prior code
   code <- getPriors(components)
@@ -168,6 +197,16 @@ use3pieces=FALSE,
 unpackArgs=TRUE
 )
 
+# Check validity of formula
+check_formula <- function(formula){
+  if(formula[[1]] != quote(`~`)) formula <- c(quote(`~`),formula) 
+  formula <- stats::as.formula(formula)
+  if(length(formula) > 2){
+    stop("check_formula: Formula should be RHS-only, such as ~1 or ~x, but not y~x",
+         call.=FALSE)
+  }
+  formula
+}
 
 # This function starts with a formula plus options
 # Splits the formula into separate components (terms)
@@ -363,9 +402,17 @@ processFormulaHandler <- function(x, defaultBracket, coefPrefix="beta_",
 
   cand <- paste0("formulaHandler_", func)
   
+  # Look for formula handler
+  # First look in user's environment, then look in nimbleMacros
   processor_available <- FALSE
-  if(exists(cand, envir = env)){
-    processor <- get(cand, envir = env)
+  in_nimbleMacros <- exists(cand, envir = environment())
+  in_user_env <- exists(cand, envir = env)
+  if(in_nimbleMacros | in_user_env){
+    if(in_user_env){
+      processor <- get(cand, envir = env)
+    } else {
+      processor <- get(cand, envir = environment()) # fallback to nimbleMacros
+    }
     if(inherits(processor, "nimbleFormulaHandler")){
       processor_available <- TRUE
       out <- processor(x, defaultBracket, coefPrefix, sdPrefix, modelInfo, env, ...)
@@ -1046,7 +1093,7 @@ addPriorsCode.formulaComponentIntercept <- function(x, priorSpecs, ...){
   # Create prior code
   par <- str2lang(x$parameter)
   prior <- nimbleMacros::matchPrior(par, "intercept", 
-                                    priorSpecs = priorSpecs)
+                                    priors = priorSpecs)
   code <- substitute(PAR ~ PRIOR, list(PAR=par, PRIOR = prior))
   x$priorCode <- code
   x
@@ -1104,7 +1151,7 @@ addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMa
       # specifically we need to add a line equating the default and model matrix names (NODE<-MODPAR)
       if(modMatNames & !node_modpar_match){
         prior <- nimbleMacros::matchPrior(modmat_par, type, "coefficient", 
-                                          priorSpecs = priorSpecs)
+                                          priors = priorSpecs)
         code_part <- substitute({
           NODE <- MODPAR
           MODPAR ~ PRIOR
@@ -1113,7 +1160,7 @@ addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMa
         # Otherwise just use the original name and we can skip one line of BUGS
         # code equating to the model matrix and default names
         prior <- nimbleMacros::matchPrior(node, type, "coefficient", 
-                                          priorSpecs = priorSpecs)
+                                          priors = priorSpecs)
         code_part <- substitute(NODE ~ PRIOR, list(NODE = node, PRIOR=prior))
       }
       code_part
@@ -1154,7 +1201,7 @@ addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL,
   }
 
   code1 <- lapply(sd_names, function(z){
-    prior <- nimbleMacros::matchPrior(str2lang(z), "sd", priorSpecs = priorSpecs)
+    prior <- nimbleMacros::matchPrior(str2lang(z), "sd", priors = priorSpecs)
     substitute(SD ~ PRIOR,
                list(SD = str2lang(z), PRIOR = prior))
   })
@@ -1308,12 +1355,12 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
   Ustar_name <- as.name(paste0("Ustar_", rfact))
   U_name <- as.name(paste0("U_", rfact))
   # LKJ distribution shape parameter
-  eta <- priorSpecs$eta
-  if(is.null(eta)) eta <- 1.3
+  lkj_shape <- priorSpecs$lkjShape
+  if(is.null(lkj_shape)) lkj_shape <- 1
   u <- substitute({
     USTAR[1:NP, 1:NP] ~ dlkj_corr_cholesky(ETA, NP)
     U[1:NP, 1:NP] <- uppertri_mult_diag(USTAR[1:NP, 1:NP], SDS[1:NP])
-    }, list(USTAR=Ustar_name, U=U_name, NP=as.numeric(np), SDS=str2lang(sd_vec), ETA=eta)
+    }, list(USTAR=Ustar_name, U=U_name, NP=as.numeric(np), SDS=str2lang(sd_vec), ETA=lkj_shape)
   )
 
   # Get means for each random effect, default to 0
@@ -1378,12 +1425,12 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
 #' uppertri_mult_diag
 #' 
 #' nimbleFunction needed when fitting correlated random effects.
-#' Generates upper triangular Cholesky factor of covariance matrix (U in code)
-#' from upper tri Cholesky factor of correlation matrix (Ustar in code)
+#' Generates upper triangular Cholesky factor of covariance matrix ("U" in code)
+#' from upper triangular Cholesky factor of correlation matrix ("Ustar" in code)
 #' and vector of standard deviations. Taken from the NIMBLE manual, 
-#' section 5.2.4.1.2 LKJ distribution for correlation matrices.
+#' section 5.2.4.1.2 (LKJ Distribution for Correlation Matrices).
 #' 
-#' @param mat upper triangular Cholesky factor of correlation matrix (Ustar)
+#' @param mat upper triangular Cholesky factor of correlation matrix ("Ustar")
 #' @param vec vector of standard deviations for individual random effects
 #'
 #' @name uppertri_mult_diag

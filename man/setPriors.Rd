@@ -10,7 +10,7 @@ setPriors(
   sd = quote(dunif(0, 100)),
   factor = NULL,
   continuous = NULL,
-  eta = 1.3,
+  lkjShape = 1,
   ...
 )
 }
@@ -27,16 +27,18 @@ to factor data}
 \item{continuous}{Prior specifications for slope coefficients corresponding
 to continuous data}
 
-\item{eta}{Value of shape parameter for LKJ distribution prior, used for
+\item{lkjShape}{Value of shape parameter for LKJ distribution prior, used for
 correlation matrix in correlated random slope and intercept models}
 
 \item{...}{Specific parameters, optionally with brackets/indices}
 }
 \description{
 Generates a list of custom specifications of priors for parameters in the model.
-It is possible to set priors for a category of parameters (e.g. intercept,
+It is possible to set priors for a category of parameters (e.g., intercept,
 coefficient, sd, factor, continuous) or to set a prior for a specific
 parameter name (optionally including brackets with indices).
+}
+\details{
 Exact name matches including brackets/indices are used first, followed by
 name matches without indices, followed by data type (factor/continuous)
 followed by parameter type (intercept/coefficient/sd).

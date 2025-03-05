@@ -118,7 +118,7 @@ test_that("LINPRED basic fixed effects models", {
   # Set custom priors
   priors <- setPriors(intercept="dnorm(0, sd=1)", coefficient="dnorm(0, sd=2)")
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x3, priorSpecs=priors)
+    mu[1:n] <- LINPRED(~x3, priors=priors)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -135,7 +135,7 @@ test_that("LINPRED basic fixed effects models", {
 
   # No priors
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x3, priorSpecs=NULL)
+    mu[1:n] <- LINPRED(~x3, priors=NULL)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -150,7 +150,7 @@ test_that("LINPRED basic fixed effects models", {
 
   # Modmatnames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + x3, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x + x3, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -223,9 +223,9 @@ test_that("LINPRED basic fixed effects models", {
     beta_x3 = 0, beta_x_x3 = c(0, 0, 0))
   )
 
-  # continuous-factor interaction with modMatNames = TRUE
+  # continuous-factor interaction with modelMatrixNames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x*x3, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x*x3, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -274,9 +274,9 @@ test_that("LINPRED basic fixed effects models", {
     list(beta_x3 = 0, beta_x_x3 = c(0, 0, 0))
   )
 
-  # continuous-factor interaction with modMatNames = TRUE
+  # continuous-factor interaction with modelMatrixNames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x*x3, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x*x3, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -340,9 +340,9 @@ test_that("LINPRED basic fixed effects models", {
       0, 0, 0, 0, 0), dim = 3:2))
   )
 
-  # Factor-factor interaction with modMatNames = TRUE
+  # Factor-factor interaction with modelMatrixNames = TRUE
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x*x2, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x*x2, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -378,7 +378,7 @@ test_that("LINPRED basic fixed effects models", {
 
   # Covariate not in constants works (but is assumed to be continuous)
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x5, modMatNames = TRUE)
+    mu[1:n] <- LINPRED(~x5, modelMatrixNames = TRUE)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
   mod$getCode()
@@ -386,6 +386,29 @@ test_that("LINPRED basic fixed effects models", {
   nimbleOptions(enableMacroComments = TRUE)
 })
 
+test_that("LINPRED error traps LHS in formula", {
+  nimbleOptions(enableMacroComments = FALSE)
+  set.seed(123)
+  modInfo <- list(constants=list(y = rnorm(10), x=round(rnorm(10), 3), n = 10))
+
+  # Missing LHS error trapping must be handled by buildMacro() in nimble
+  # Enable the test below when the use3pieces error trap PR in nimble is merged
+  #code <- quote(LINPRED(~1))
+  
+  #expect_error(
+  #  LINPRED$process(code, modelInfo=modInfo, environment()),
+  #  "This macro must be used as part of an assignment"
+  #)
+
+  # LHS in formula
+  code <- quote(mu[1:n] <- LINPRED(y~1))
+  
+  expect_error(
+    LINPRED$process(code, modelInfo=modInfo, environment()),
+    "Formula should be RHS-only"
+  )
+
+})
 
 test_that("LINPRED with uncorrelated random effects", {
   nimbleOptions(enableMacroComments = FALSE)
@@ -450,7 +473,7 @@ test_that("LINPRED with uncorrelated random effects", {
   # Set custom priors
   pr <- setPriors(intercept="dnorm(0, sd=1)", sd="dunif(0, 1)")
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (1|group), priorSpecs=pr)
+    mu[1:n] <- LINPRED(~x + (1|group), priors=pr)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
   
@@ -880,7 +903,7 @@ test_that("noncentered parameterization with uncorrelated random effects", {
                     x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
 
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x||group), noncenter=TRUE)
+    mu[1:n] <- LINPRED(~x + (x||group), noncentered=TRUE)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -918,7 +941,7 @@ test_that("noncentered parameterization with uncorrelated random effects", {
 
   # With centering variable also
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x||group), noncenter=TRUE, centerVar=group)
+    mu[1:n] <- LINPRED(~x + (x||group), noncentered=TRUE, centerVar=group)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -956,7 +979,7 @@ test_that("noncentered parameterization with uncorrelated random effects", {
 
   # Factor slope
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x2||group), noncenter=TRUE)
+    mu[1:n] <- LINPRED(~x + (x2||group), noncentered=TRUE)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -1031,7 +1054,7 @@ test_that("correlated random effects", {
     sd_x_group ~ dunif(0, 100)
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
-    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
         1:2], re_sds_group[1:2])
     re_means_group[1] <- 0
@@ -1050,10 +1073,10 @@ test_that("correlated random effects", {
          beta_x_group = c(0, 0, 0), sd_group = 1, sd_x_group = 1)
   )
 
-  # Set eta value
-  pr <- setPriors(eta=3)
+  # Set LKJ shape value
+  pr <- setPriors(lkjShape=3)
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x|group), priorSpecs=pr)
+    mu[1:n] <- LINPRED(~x + (x|group), priors=pr)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -1106,7 +1129,7 @@ test_that("correlated random effects", {
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
     re_sds_group[3] <- sd_x3_group
-    Ustar_group[1:3, 1:3] ~ dlkj_corr_cholesky(1.3, 3)
+    Ustar_group[1:3, 1:3] ~ dlkj_corr_cholesky(1, 3)
     U_group[1:3, 1:3] <- uppertri_mult_diag(Ustar_group[1:3, 
         1:3], re_sds_group[1:3])
     re_means_group[1] <- 0
@@ -1161,7 +1184,7 @@ test_that("Centering with correlated random effects", {
     sd_x_group ~ dunif(0, 100)
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
-    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
         1:2], re_sds_group[1:2])
     re_means_group[1] <- beta_Intercept
@@ -1198,7 +1221,7 @@ test_that("Centering with correlated random effects", {
     sd_x_group ~ dunif(0, 100)
     re_sds_group[1] <- sd_group
     re_sds_group[2] <- sd_x_group
-    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1.3, 2)
+    Ustar_group[1:2, 1:2] ~ dlkj_corr_cholesky(1, 2)
     U_group[1:2, 1:2] <- uppertri_mult_diag(Ustar_group[1:2, 
         1:2], re_sds_group[1:2])
     re_means_group[1] <- 0
@@ -1228,7 +1251,7 @@ test_that("Noncentered parameterization doesn't work with correlated random effe
                     x=round(rnorm(10),3), x3=round(rnorm(10), 3), 
                     x4 = factor(sample(letters[6:8], 10, replace=T)), n=10))
   # Noncentered doesn't work with correlated random effects  
-  code <- quote(LINPRED_PRIORS(~x + (x|group), noncenter=TRUE))
+  code <- quote(LINPRED_PRIORS(~x + (x|group), noncentered=TRUE))
   expect_error(LINPRED_PRIORS$process(code, modInfo, NULL)$code, "Noncentered")
 
   nimbleOptions(enableMacroComments = TRUE)
@@ -1379,7 +1402,7 @@ test_that("Nested random effects", {
 
   # w:x notation
   # Linear predictor
-  code <- quote(mu[1:n] <- LINPRED(~x3 + (x3||x:w), priorSpecs=NULL))
+  code <- quote(mu[1:n] <- LINPRED(~x3 + (x3||x:w), priors=NULL))
   out <- LINPRED$process(code, modelInfo=modInfo, NULL)
   # Make sure new combined levels constant is added
   expect_equal(
