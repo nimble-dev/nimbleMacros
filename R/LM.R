@@ -20,7 +20,7 @@
 #'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix Character. All dispersion parameters will begin with this prefix.
 #'  default is no prefix.
-#' @param priorSpecs List of prior specifications, generated using 
+#' @param priors List of prior specifications, generated using 
 #'  \code{setPriors()}.
 #' @param modelMatrixNames Logical indicating if parameters be named so they match the
 #'  names one would get from R's \code{model.matrix}.
@@ -99,7 +99,7 @@ LM <- list(process = function(code, modelInfo, .env){
   # RHS formula
   form <- RHS[[2]]
 
-  priorSpecs <- if(is.null(RHS$priorSpecs)) quote(setPriors()) else RHS$priorSpecs
+  priors <- if(is.null(RHS$priors)) quote(setPriors()) else RHS$priors
   coefPrefix <- if(is.null(RHS$coefPrefix)) quote(beta_) else RHS$coefPrefix
   sdPrefix <- RHS$sdPrefix
   if(family$family == "gaussian"){
@@ -113,16 +113,16 @@ LM <- list(process = function(code, modelInfo, .env){
   dataDec <- getDataDistCode(family$family, LHS, idx, par2)
   # FIXME: LHS par should not be fixed at mu
   LP <- substitute(mu_[IDX] <- LINPRED(FORM, link=LINK, coefPrefix=COEFPREFIX,
-                                       sdPrefix=SDPREFIX, priorSpecs=PRIORS, 
+                                       sdPrefix=SDPREFIX, priors=PRIORS, 
                                        modelMatrixNames=MODMAT),
                    list(IDX=idx, FORM=form, COEFPREFIX=coefPrefix, SDPREFIX=sdPrefix,
-                        PRIORS=priorSpecs, LINK=link, MODMAT=modMatNames))
+                        PRIORS=priors, LINK=link, MODMAT=modMatNames))
   pars_added <- list(quote(mu_))
   out <- list(dataDec, LP)
 
   if (family$family == "gaussian"){
-    priorSpecs <- eval(priorSpecs, envir=.env)
-    sdPrior <- matchPrior(par2, "sd", priorSpecs = priorSpecs) 
+    priors <- eval(priors, envir=.env)
+    sdPrior <- matchPrior(par2, "sd", priors = priors) 
     sigprior <- substitute(SDRES ~ SDPRIOR, list(SDPRIOR=sdPrior, SDRES=par2))
     pars_added <- c(pars_added, list(par2))
     out <- c(out, list(sigprior))

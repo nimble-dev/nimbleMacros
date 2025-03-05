@@ -49,7 +49,7 @@ We'll model transmission type (`am`, where `am = 1` is manual transmission) as a
 
 
 ``` r
-rmod <- glm(am ~ scale(mpg), data = mtcars, family=binomial)
+rmod <- glm(am ~ scale(mpg), data = mtcars, family = binomial)
 summary(rmod)
 ```
 
@@ -88,7 +88,7 @@ Note that these distribution definitions are wrapped in `quote`; you can also su
 
 
 ``` r
-pr <- setPriors(intercept=quote(dunif(-10,10)), 
+pr <- setPriors(intercept = quote(dunif(-10,10)), 
                 coefficient = quote(dnorm(0, 0.1)))
 ```
 
@@ -101,7 +101,7 @@ Two things to note:
 
 ``` r
 code <- nimbleCode({
-  LM(am ~ scale(mpg), family = binomial, priorSpecs=pr)
+  LM(am ~ scale(mpg), family = binomial, priors = pr)
 })
 ```
 
@@ -366,13 +366,13 @@ chick_const$N <- nrow(ChickWeight)
 ```
 
 In the model code, we specify the parameter name for the linear predictor (`mu`) and calculate it with the `LINPRED` macro and the same formula as above.
-Here we also set an argument `priorSpecs = NULL`; we'll come back to this later.
+Here we also set an argument `priors = NULL`; we'll come back to this later.
 Notice that unlike with `LM`, we explicitly define the dimensions of `mu` and `Time`.
 
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N], priorSpecs = NULL)
+  mu[1:N] <- LINPRED(~Time[1:N], priors = NULL)
 })
 ```
 
@@ -423,7 +423,7 @@ When all the data and constants used by `LINPRED` have the same dimensions, you 
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time, priorSpecs=NULL)
+  mu[1:N] <- LINPRED(~Time, priors = NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -464,7 +464,7 @@ To handle this we just need to specify different dimensions for each in the call
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N,1], priorSpecs = NULL)
+  mu[1:N] <- LINPRED(~Time[1:N,1], priors = NULL)
 })
 mod <- nimbleModel(code, chick_const2)
 mod$getCode()
@@ -513,7 +513,7 @@ chick_const$Diet <- ChickWeight$Diet
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priorSpecs=NULL)
+  mu[1:N] <- LINPRED(~Time[1:N] + Diet[1:N], priors = NULL)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -545,7 +545,7 @@ Suppose we wanted to force `mu` to be positive; we could use a log link function
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~Time[1:N], priorSpecs = NULL, link = log)
+  mu[1:N] <- LINPRED(~Time[1:N], priors = NULL, link = log)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -572,7 +572,7 @@ For example, to build a linear predictor with the `Time` covariate scaled to hav
 
 ``` r
 code <- nimbleCode({
-  mu[1:N] <- LINPRED(~scale(Time[1:N]), priorSpecs = NULL, link = log)
+  mu[1:N] <- LINPRED(~scale(Time[1:N]), priors = NULL, link = log)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -608,7 +608,7 @@ See the source code of the package, specifically the file `formulaFunction.R`, f
 
 ## Get default priors
 
-If we do not manually set the `priorSpecs` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
+If we do not manually set the `priors` argument, `LINPRED` will automatically generate a default set of priors for the two parameters it created (`beta_Intercept` and `beta_Time`).
 Internally, `LINPRED` is calling the `LINPRED_PRIORS` macro (described below).
 
 
@@ -806,7 +806,7 @@ mod$getCode()
 # `LINPRED_PRIORS`
 
 This macro generates a set of priors for parameters of a linear predictor, also based on the R formula.
-In most cases, we won't use this macro directly; rather it will be called automatically when we use `LINPRED` (see discussion of `priorSpecs` argument above).
+In most cases, we won't use this macro directly; rather it will be called automatically when we use `LINPRED` (see discussion of `priors` argument above).
 However, if for some reason we want to generate code for only the priors, and not the corresponding linear predictor, we can use `LINPRED_PRIORS` separately as we show below.
 
 The formula `~Time` implies two parameters as we described above, and `LINPRED_PRIORS` will generate a prior for each depending on the type of the parameter (e.g. intercept vs. slope).
@@ -837,7 +837,7 @@ pr <- setPriors(intercept = quote(dnorm(-5, 5)),
                 coefficient = quote(dnorm(0, sd = 5)))
 
 code <- nimbleCode({
-  LINPRED_PRIORS(~Time + Diet, priorSpecs = pr)
+  LINPRED_PRIORS(~Time + Diet, priors = pr)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -871,7 +871,7 @@ We can replicate this structure in NIMBLE model code by setting the `LINPRED_PRI
 
 ``` r
 code <- nimbleCode({
-  LINPRED_PRIORS(~Time + Diet, priorSpecs = pr, modelMatrixNames = TRUE)
+  LINPRED_PRIORS(~Time + Diet, priors = pr, modelMatrixNames = TRUE)
 })
 mod <- nimbleModel(code, chick_const)
 mod$getCode()
@@ -1088,7 +1088,7 @@ fun <- function(input_code, modelInfo, .env){
 
 ``` r
 input <- quote(y ~ MYDIST(sdev = 2))
-fun(input, modelInfo = list(constants=NULL), .env = environment())
+fun(input, modelInfo = list(constants = NULL), .env = environment())
 ```
 
 ```

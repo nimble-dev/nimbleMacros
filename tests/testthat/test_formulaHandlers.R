@@ -8,13 +8,13 @@ test_that("Error when function in formula is unsupported", {
                     x2=factor(sample(letters[4:5], 10, replace=T)),
                     x3=round(rnorm(10),3)))
 
-  code <- quote(y[1:n] <- LINPRED(~test(x), priorSpecs=NULL))
+  code <- quote(y[1:n] <- LINPRED(~test(x), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
-  code <- quote(y[1:n] <- LINPRED(~test(x) + (1|x2), priorSpecs=NULL))
+  code <- quote(y[1:n] <- LINPRED(~test(x) + (1|x2), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
-  code <- quote(y[1:n] <- LINPRED(~x3 + test(x[1:10]), priorSpecs=NULL))
+  code <- quote(y[1:n] <- LINPRED(~x3 + test(x[1:10]), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
 })

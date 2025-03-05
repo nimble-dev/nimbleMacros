@@ -118,7 +118,7 @@ test_that("LINPRED basic fixed effects models", {
   # Set custom priors
   priors <- setPriors(intercept="dnorm(0, sd=1)", coefficient="dnorm(0, sd=2)")
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x3, priorSpecs=priors)
+    mu[1:n] <- LINPRED(~x3, priors=priors)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -135,7 +135,7 @@ test_that("LINPRED basic fixed effects models", {
 
   # No priors
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x3, priorSpecs=NULL)
+    mu[1:n] <- LINPRED(~x3, priors=NULL)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
 
@@ -473,7 +473,7 @@ test_that("LINPRED with uncorrelated random effects", {
   # Set custom priors
   pr <- setPriors(intercept="dnorm(0, sd=1)", sd="dunif(0, 1)")
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (1|group), priorSpecs=pr)
+    mu[1:n] <- LINPRED(~x + (1|group), priors=pr)
   })
   mod <- nimbleModel(code, constants = modInfo$constants)
   
@@ -1076,7 +1076,7 @@ test_that("correlated random effects", {
   # Set LKJ shape value
   pr <- setPriors(lkjShape=3)
   code <- nimbleCode({
-    mu[1:n] <- LINPRED(~x + (x|group), priorSpecs=pr)
+    mu[1:n] <- LINPRED(~x + (x|group), priors=pr)
   })
   mod <- nimbleModel(code, constants=modInfo$constants)
 
@@ -1402,7 +1402,7 @@ test_that("Nested random effects", {
 
   # w:x notation
   # Linear predictor
-  code <- quote(mu[1:n] <- LINPRED(~x3 + (x3||x:w), priorSpecs=NULL))
+  code <- quote(mu[1:n] <- LINPRED(~x3 + (x3||x:w), priors=NULL))
   out <- LINPRED$process(code, modelInfo=modInfo, NULL)
   # Make sure new combined levels constant is added
   expect_equal(

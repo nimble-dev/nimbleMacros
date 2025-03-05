@@ -20,7 +20,7 @@ default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)}
 \item{sdPrefix}{Character. All dispersion parameters will begin with this prefix.
 default is no prefix.}
 
-\item{priorSpecs}{List of prior specifications, generated using 
+\item{priors}{List of prior specifications, generated using 
 \code{setPriors()}.}
 
 \item{modelMatrixNames}{Logical indicating if parameters be named so they match the

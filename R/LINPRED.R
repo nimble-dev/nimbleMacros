@@ -18,7 +18,7 @@
 #'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  Default is no prefix.
-#' @param priorSpecs Prior specifications, generated with \code{setPrior()}
+#' @param priors Prior specifications, generated with \code{setPrior()}
 #' @param modelMatrixNames Logical indicating if parameters should be named so they match the
 #'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
 #' @param noncentered Logical indicating whether to use noncentered parameterization
@@ -55,7 +55,7 @@ NULL
 #' @export
 LINPRED <- nimble::buildMacro(
 function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
-         sdPrefix=NULL, priorSpecs=setPriors(), modelMatrixNames = FALSE, 
+         sdPrefix=NULL, priors=setPriors(), modelMatrixNames = FALSE, 
          noncentered = FALSE, centerVar=NULL, modelInfo, .env){
     
     # Make sure formula is in correct format
@@ -89,12 +89,12 @@ function(stoch, LHS, formula, link=NULL, coefPrefix=quote(beta_),
     code <- substitute(LHS <- nimbleMacros::FORLOOP(RHS), list(LHS = LHS, RHS = RHS))
 
     # Add code for priors to output if needed
-    if(!is.null(priorSpecs)){
+    if(!is.null(priors)){
       priorCode <- substitute(nimbleMacros::LINPRED_PRIORS(FORMULA, coefPrefix=COEFPREFIX, sdPrefix=SDPREFIX, 
-                                     priorSpecs=PRIORSET, modelMatrixNames=MODMAT,
+                                     priors=PRIORSET, modelMatrixNames=MODMAT,
                                      noncentered = UNCENTER, centerVar=CENTERVAR),
                               list(COEFPREFIX=coefPrefix, FORMULA=formula, SDPREFIX=sdPrefix,
-                                   PRIORSET=priorSpecs, MODMAT=modelMatrixNames, 
+                                   PRIORSET=priors, MODMAT=modelMatrixNames, 
                                    UNCENTER = noncentered, CENTERVAR=centerVar))
       code <- embedLinesInCurlyBrackets(list(code, priorCode))
     }
@@ -122,7 +122,7 @@ unpackArgs=TRUE
 #'  default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)
 #' @param sdPrefix All dispersion parameters will begin with this prefix.
 #'  Default is no prefix.
-#' @param priorSpecs List of prior specifications, generated using \code{setPriors}.
+#' @param priors List of prior specifications, generated using \code{setPriors}.
 #'  setPriors()
 #' @param modelMatrixNames Logical indicating if parameters should be named so they match the
 #'  names one would get from R's \code{model.matrix}. Default is \code{FALSE}.
@@ -159,14 +159,14 @@ NULL
 
 #' @export
 LINPRED_PRIORS <- nimble::buildMacro(
-function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors(), 
+function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priors=setPriors(), 
          modelMatrixNames=FALSE, noncentered = FALSE, centerVar=NULL, modelInfo, .env){
 
   # Make sure formula is in correct format
   formula <- check_formula(formula)
 
   # Evaluate prior settings
-  priorSpecs <- eval(priorSpecs, envir=.env) 
+  priors <- eval(priors, envir=.env) 
 
   # Split formula into components and process the components
   components <- buildLP(formula, defaultBracket = "[]", # default bracket not used below 
@@ -178,7 +178,7 @@ function(formula, coefPrefix=quote(beta_), sdPrefix=NULL, priorSpecs=setPriors()
 
   components <- buildPriors(components, coefPrefix=safeDeparse(coefPrefix), 
                             sdPrefix=sdPrefix, modelInfo = modelInfo, 
-                            priorSpecs=priorSpecs,
+                            priorSpecs=priors,
                             modMatNames = modelMatrixNames, noncenter=noncentered)
 
   # Get complete prior code
@@ -1093,7 +1093,7 @@ addPriorsCode.formulaComponentIntercept <- function(x, priorSpecs, ...){
   # Create prior code
   par <- str2lang(x$parameter)
   prior <- nimbleMacros::matchPrior(par, "intercept", 
-                                    priorSpecs = priorSpecs)
+                                    priors = priorSpecs)
   code <- substitute(PAR ~ PRIOR, list(PAR=par, PRIOR = prior))
   x$priorCode <- code
   x
@@ -1151,7 +1151,7 @@ addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMa
       # specifically we need to add a line equating the default and model matrix names (NODE<-MODPAR)
       if(modMatNames & !node_modpar_match){
         prior <- nimbleMacros::matchPrior(modmat_par, type, "coefficient", 
-                                          priorSpecs = priorSpecs)
+                                          priors = priorSpecs)
         code_part <- substitute({
           NODE <- MODPAR
           MODPAR ~ PRIOR
@@ -1160,7 +1160,7 @@ addPriorsCode.formulaComponentFixed <- function(x, priorSpecs, coefPrefix, modMa
         # Otherwise just use the original name and we can skip one line of BUGS
         # code equating to the model matrix and default names
         prior <- nimbleMacros::matchPrior(node, type, "coefficient", 
-                                          priorSpecs = priorSpecs)
+                                          priors = priorSpecs)
         code_part <- substitute(NODE ~ PRIOR, list(NODE = node, PRIOR=prior))
       }
       code_part
@@ -1201,7 +1201,7 @@ addPriorsCode.formulaComponentRandom <- function(x, priorSpecs, sdPrefix = NULL,
   }
 
   code1 <- lapply(sd_names, function(z){
-    prior <- nimbleMacros::matchPrior(str2lang(z), "sd", priorSpecs = priorSpecs)
+    prior <- nimbleMacros::matchPrior(str2lang(z), "sd", priors = priorSpecs)
     substitute(SD ~ PRIOR,
                list(SD = str2lang(z), PRIOR = prior))
   })
