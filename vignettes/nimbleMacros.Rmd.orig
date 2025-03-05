@@ -21,7 +21,7 @@ suppressMessages(library(nimbleMacros))
 The `nimbleMacros` package has two goals:
 
 1. Provide a set of macros for linear modeling that may be used by both end users and R package developers.
-2. Demonstrate the use of macros in [NIMBLE](https://r-nimble.org/) models; and
+2. Demonstrate the use of macros in [NIMBLE](https://r-nimble.org/) models.
 
 We intend the macros in this package to be widely useful, but also just a starting point and example for NIMBLE users to write their own macros.
 To begin, load the `nimbleMacros` package, which will also load the `NIMBLE` package:

@@ -1,7 +1,7 @@
 Package: nimbleMacros
 Version: 0.1.0
-Date: 2025-01-28
-Title: Macros Generating 'nimble' Code for Linear Models
+Date: 2025-03-05
+Title: Macros Generating 'nimble' Code
 Authors@R: c(person("Ken", "Kellner", email="contact@kenkellner.com", 
                     role=c("cre","aut")),
              person("Perry", "de Valpine", role = "aut"),
@@ -19,6 +19,8 @@ Suggests:
 Description: Macros to generate 'nimble' code from a concise syntax. Included are macros for generating linear modeling code using a formula-based syntax and for 'for' loops.
 License: BSD_3_clause + file LICENSE | GPL (>= 2)
 NeedsCompilation: no
+URL: https://r-nimble.org
+BugReports: https://github.com/nimble-dev/nimbleMacros/issues
 Encoding: UTF-8
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2
