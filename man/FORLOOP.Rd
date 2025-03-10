@@ -10,6 +10,9 @@
 
 \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
+\value{
+NIMBLE code for a for loop or series of nested for loops.
+}
 \description{
 This macro takes a line of NIMBLE model code with index ranges inside brackets
 on either the left-hand side of a declaration or both the left- and

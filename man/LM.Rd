@@ -30,6 +30,9 @@ names one would get from R's \code{model.matrix}.}
 
 \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
+\value{
+NIMBLE code for the linear model, GLM, or GLMM specified by the formula, including priors.
+}
 \description{
 This macro generates code for LMs, GLMs, and GLMMs using formula notation 
 and arguments similar to R functions such as \code{lm()}, \code{glm()},

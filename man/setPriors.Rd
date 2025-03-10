@@ -32,6 +32,10 @@ correlation matrix in correlated random slope and intercept models}
 
 \item{...}{Specific parameters, optionally with brackets/indices}
 }
+\value{
+A named list of prior specifications to be passed to the \code{priors}
+ argument of other macros in the package, such as \code{LINPRED}.
+}
 \description{
 Generates a list of custom specifications of priors for parameters in the model.
 It is possible to set priors for a category of parameters (e.g., intercept,

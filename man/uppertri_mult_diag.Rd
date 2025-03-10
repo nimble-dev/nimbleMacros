@@ -11,6 +11,9 @@ uppertri_mult_diag(mat, vec)
 
 \item{vec}{vector of standard deviations for individual random effects}
 }
+\value{
+The upper triangular Cholesky factor of the covariance matrix.
+}
 \description{
 nimbleFunction needed when fitting correlated random effects.
 Generates upper triangular Cholesky factor of covariance matrix ("U" in code)

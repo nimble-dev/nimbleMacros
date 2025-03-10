@@ -27,6 +27,8 @@
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
+#' @return NIMBLE code for the linear model, GLM, or GLMM specified by the formula, including priors.
+#'
 #' @author Ken Kellner
 #'
 #' @examples

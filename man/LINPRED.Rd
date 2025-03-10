@@ -46,6 +46,9 @@ is unrelated to the \code{noncentered} argument despite the similar names.}
 
 \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
+\value{
+NIMBLE code for the linear predictor specified by the formula, and optionally the associated priors.
+}
 \description{
 Converts an R formula into corresponding code for a linear predictor in NIMBLE model code.
 Options are available to specify a link function and to also generate

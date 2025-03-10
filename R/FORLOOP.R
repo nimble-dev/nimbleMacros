@@ -13,6 +13,8 @@
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
+#' @return NIMBLE code for a for loop or series of nested for loops.
+#'
 #' @examples
 #' code <- nimbleCode({
 #'    y[1:n, 1:2, 1] ~ FORLOOP(dnorm(mu[1:n], sigma))

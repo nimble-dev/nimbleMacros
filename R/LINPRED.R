@@ -40,6 +40,8 @@
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
+#' @return NIMBLE code for the linear predictor specified by the formula, and optionally the associated priors.
+#'
 #' @author Ken Kellner
 #'
 #' @examples
@@ -144,7 +146,9 @@ unpackArgs=TRUE
 #'  is unrelated to the \code{noncentered} argument despite the similar names.
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
-#' 
+#'
+#' @return NIMBLE code for the priors specified by the formula.
+#'
 #' @author Ken Kellner
 #'
 #' @examples
@@ -1433,8 +1437,10 @@ correlatedRandomPrior <- function(x, priorSpecs, sdPrefix, sd_name, modelInfo, c
 #' @param mat upper triangular Cholesky factor of correlation matrix ("Ustar")
 #' @param vec vector of standard deviations for individual random effects
 #'
+#' @return The upper triangular Cholesky factor of the covariance matrix.
+#'
 #' @name uppertri_mult_diag
-
+#'
 #' @importFrom nimble nimMatrix
 #' @export
 uppertri_mult_diag <- nimbleFunction(

@@ -41,6 +41,9 @@ is unrelated to the \code{noncentered} argument despite the similar names.}
 
 \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
+\value{
+NIMBLE code for the priors specified by the formula.
+}
 \description{
 Generates appropriate priors for a linear predictor derived from an 
 R formula. As such it makes the most sense to use this macro together with
