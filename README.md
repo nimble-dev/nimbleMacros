@@ -1,7 +1,8 @@
 # nimbleMacros
 
-[![R build
-status](https://github.com/nimble-dev/nimbleMacros/workflows/R-CMD-check/badge.svg)](https://github.com/nimble-dev/nimbleMacros/actions)
+[![R build status](https://github.com/nimble-dev/nimbleMacros/workflows/R-CMD-check/badge.svg)](https://github.com/nimble-dev/nimbleMacros/actions)
+[![CRAN](https://www.r-pkg.org/badges/version/nimbleMacros)](https://CRAN.R-project.org/package=nimbleMacros)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14975578.svg)](https://doi.org/10.5281/zenodo.14975578)
 
 `nimbleMacros` is an R package that extends [NIMBLE](https://r-nimble.org/), an R package for hierarchical statistical modeling.
 The package provides a set of model macros, which are special code chunks that NIMBLE automatically expands into larger blocks of valid NIMBLE model code.
@@ -31,4 +32,4 @@ Provided macros include:
 * `LINPRED_PRIORS`: : A macro to generate code for prior specifications using a formula-based syntax, including handling of continuous and categorical covariates and random effects.
 * `FORLOOP`: A macro generating a `for` loop or nested set of `for` loops based on a bracket and index based syntax.
 
-See the [package vignette](https://github.com/nimble-dev/nimbleMacros/blob/master/vignettes/nimbleMacros.Rmd) for more details.
+See the [package vignette](https://cran.r-project.org/web/packages/nimbleMacros/vignettes/nimbleMacros.html) for more details.
