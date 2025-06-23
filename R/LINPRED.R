@@ -370,6 +370,9 @@ createRandomComponents <- function(formula){
   rand <- reformulas::findbars(formula)
   if(length(rand) == 0) return(NULL)
   components <- lapply(rand, function(x){
+    if(grepl("(", safeDeparse(x), fixed=TRUE)){ # is this a function component?
+      stop("Formula functions not supported in random effects", call.=FALSE)
+    }
     out <- createBlankComponent("formulaComponentRandom")
     out$lang <- x
     out

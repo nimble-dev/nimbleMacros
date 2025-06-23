@@ -17,6 +17,8 @@ test_that("Error when function in formula is unsupported", {
   code <- quote(y[1:n] <- LINPRED(~x3 + test(x[1:10]), priors=NULL))
   expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "No formula handler")
 
+  code <- quote(y[1:n] <- LINPRED(~x3 + (0 + scale(x3) | x2), priors=NULL))
+  expect_error(LINPRED$process(code, modelInfo=modInfo, .env=environment()), "not supported in random effects")
 })
 
 test_that("offset formula handler works", {
