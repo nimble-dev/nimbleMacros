@@ -23,4 +23,4 @@ URL: https://r-nimble.org
 BugReports: https://github.com/nimble-dev/nimbleMacros/issues
 Encoding: UTF-8
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
