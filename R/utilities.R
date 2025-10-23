@@ -196,7 +196,7 @@ simplifyIndices <- function(code, new_indices){
     if(x[[1]] == "for"){    
       unique_idx <- unique(extractAllIndices(x))
       if(length(unique_idx) > length(new_indices)){
-        stop("Not enough new indices provided")
+        stop("Not enough new indices provided", call.=FALSE)
       }
       for (i in 1:length(unique_idx)){
         x <- replaceForLoopIndex(x, unique_idx[[i]], new_indices[[i]])
