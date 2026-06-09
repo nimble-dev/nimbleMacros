@@ -195,6 +195,8 @@ simplifyIndices <- function(code, new_indices){
     if(is.name(x) | is.symbol(x)) return(x)
     if(x[[1]] == "for"){    
       unique_idx <- unique(extractAllIndices(x))
+      # Ignore blank indices as in x[i,]
+      unique_idx <- unique_idx[sapply(unique_idx, function(x) x!="")]
       if(length(unique_idx) > length(new_indices)){
         stop("Not enough new indices provided", call.=FALSE)
       }

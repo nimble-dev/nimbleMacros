@@ -123,3 +123,32 @@ test_that("More complex case of an occupancy model", {
   expect_error(simplifyForLoops(mod$getCode(), new_indices=list(quote(i))),
                "Not enough new indices provided")
 })
+
+test_that("Blank index slot is ignored", {
+  # e.g. in x[1:n,] we should not add a new index letter for the ,]
+  # presumably this would occur when you are planning to add the dimensions
+  # to the dimensions argument manually
+
+  test <- nimbleCode({
+    for (i in 1:3){
+      x[i] <- y[i] + 1
+    }
+
+    for (j in 1:3){
+      z[j,] <- 0
+    }
+
+  })
+
+  out <- simplifyForLoops(test)
+
+  expect_equal(out,
+    quote({
+      for (i in 1:3){
+        x[i] <- y[i] + 1
+        z[i,] <- 0
+      }
+    })
+  )
+})
+
