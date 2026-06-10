@@ -323,7 +323,7 @@ test_that("FORLOOP", {
   nimbleOptions(enableMacroComments=comments_on)
 })
 
-test_that("ignore argument works", {
+test_that("ignoreIndexRanges argument works", {
   comments_on <- nimbleOptions()$enableMacroComments
   nimbleOptions(enableMacroComments=FALSE)
  
@@ -335,17 +335,17 @@ test_that("ignore argument works", {
                "Index ranges must match")
 
   # Check malformed ignore arguments
-  code <- quote(y[1:n] <- FORLOOP(sum(x[1:n, 1:3]), ignore=1:3))
+  code <- quote(y[1:n] <- FORLOOP(sum(x[1:n, 1:3]), ignoreIndexRanges=1:3))
   expect_error(FORLOOP$process(code, modelInfo=modInfo, .env=environment())$code,
-               "ignore argument must be a list")
+               "ignoreIndexRanges argument must be a list")
 
-  code <- quote(y[1:n] <- FORLOOP(sum(x[1:n, 1:3]), ignore=list(1:3, 2)))
+  code <- quote(y[1:n] <- FORLOOP(sum(x[1:n, 1:3]), ignoreIndexRanges=list(1:3, 2)))
   expect_error(FORLOOP$process(code, modelInfo=modInfo, .env=environment())$code,
-               "Some elements of ignore are not quoted code/calls")
+               "Some elements of ignoreIndexRanges are not quoted code/calls")
 
   # Simple loop with one ignored range
   code <- nimbleCode({
-    y[1:n] <- FORLOOP(sum(x[1:n, 1:3]), ignore = list(quote(1:3)))
+    y[1:n] <- FORLOOP(sum(x[1:n, 1:3]), ignoreIndexRanges = list(quote(1:3)))
   })
   mod <- nimbleModel(code, constants=const)
   expect_equal(
@@ -360,7 +360,7 @@ test_that("ignore argument works", {
   # Nested loops
   const <- list(y=matrix(rnorm(4), 2, 2), x=array(rnorm(12), c(2,2,3)), n=2)
   code <- nimbleCode({
-    y[1:n, 1:2] <- FORLOOP(sum(x[1:n, 1:2, 1:3]), ignore = list(quote(1:3)))
+    y[1:n, 1:2] <- FORLOOP(sum(x[1:n, 1:2, 1:3]), ignoreIndexRanges = list(quote(1:3)))
   })
   mod <- nimbleModel(code, constants=const)
   expect_equal(
@@ -377,7 +377,7 @@ test_that("ignore argument works", {
   # Multiple ignores
   const <- list(y=rnorm(2), x=array(rnorm(12), c(2,2,3)), n=2)
   code <- nimbleCode({
-    y[1:2] <- FORLOOP(sum(x[1:n, 1:2, 1:3]), ignore = list(quote(1:3), quote(1:n)))
+    y[1:2] <- FORLOOP(sum(x[1:n, 1:2, 1:3]), ignoreIndexRanges = list(quote(1:3), quote(1:n)))
   })
   mod <- nimbleModel(code, constants=const)
   expect_equal(
@@ -392,7 +392,7 @@ test_that("ignore argument works", {
   # Ignore on LHS
   const <- list(y=matrix(rnorm(4), 2, 2), x=matrix(rnorm(4), 2, 2), n=2)
   code <- nimbleCode({
-    y[1:n, 1:2] <- FORLOOP(x[1:n, 1:2], ignore = list(quote(1:n)))
+    y[1:n, 1:2] <- FORLOOP(x[1:n, 1:2], ignoreIndexRanges = list(quote(1:n)))
   })
   mod <- nimbleModel(code, constants=const)
   expect_equal(
