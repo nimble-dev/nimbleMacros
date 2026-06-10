@@ -11,6 +11,7 @@
 #'
 #' @param code The right-hand side of a parameter declaration
 #' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
+#' @param ignoreIndexRanges Index ranges to ignore when creating for loops; must be provided as a list of quoted code
 #' @param .env Used internally by nimbleMacros; the environment where the model was created
 #'
 #' @return NIMBLE code for a for loop or series of nested for loops.
@@ -27,7 +28,21 @@ NULL
 
 #' @export
 FORLOOP <- nimble::buildMacro(
-function(code, modelInfo, .env){
+function(code, modelInfo, ignoreIndexRanges = list(), .env){
+  # Super clunky way of extracting the ignore argument
+  # seems to be necessary to do it this way given buildMacro options
+  ignore <- eval(code[[length(code)]]$ignoreIndexRanges, envir = .env)
+  # necessary for when ignore is not explicitly included in arguments
+  if(is.null(ignore)) ignore <- list()
+  # get rid of any ignore stuff in code
+  code[[length(code)]]$ignoreIndexRanges <- NULL
+  # Check ignore structure
+  if(!is.list(ignore)) stop("ignoreIndexRanges argument must be a list", call.=FALSE)
+  if(length(ignore) > 0){
+    is_call <- sapply(ignore, is.call)
+    if(!all(is_call)) stop("Some elements of ignoreIndexRanges are not quoted code/calls", call.=FALSE)
+  }
+
   # Remove FORLOOP from the code line
   code <- removeMacroCall(code)
   LHS <- getLHS(code)
@@ -45,11 +60,13 @@ function(code, modelInfo, .env){
 
   # Subset only indexes with ranges
   idx_sub <- idx[has_range]
+  # Remove indices in ignore
+  idx_sub <- idx_sub[! idx_sub %in% ignore]
   # Create new index letters to represent those ranges in the for loops
   idx_letters <- lapply(1:length(idx_sub), function(i) modelInfo$indexCreator())
   idx_letters <- lapply(idx_letters, as.name)
   # Replace the ranges with the new corresponding letters
-  code <- replaceDeclarationIndexRanges(code, idx_letters)
+  code <- replaceDeclarationIndexRanges(code, idx_letters, ignore)
   # Then insert the ranges into the for loop structure
   idx_sub <- replaceRanges(idx_sub, idx_letters)
   # So e.g.
@@ -168,13 +185,16 @@ removeIndexAdjustments <- function(idx){
 
 # Check if index range on both sides of declaration are the same
 # Specifically, all indices on RHS have to be present in LHS
-hasMatchingIndexRanges <- function (LHS, RHS){
+# ignoreIndexRanges must be a list of quoted code e.g. list(quote(1:n))
+hasMatchingIndexRanges <- function (LHS, RHS, ignoreIndexRanges = list()){
     idx_LHS <- extractIndices(LHS)
     idx_LHS <- idx_LHS[isIndexRange(idx_LHS)]
     idx_LHS <- lapply(idx_LHS, removeIndexAdjustments)
     idx_RHS <- extractAllIndices(RHS)
     idx_RHS <- idx_RHS[isIndexRange(idx_RHS)]
     idx_RHS <- lapply(idx_RHS, removeIndexAdjustments)
+    idx_RHS <- idx_RHS[!idx_RHS %in% ignoreIndexRanges]
+    if(length(idx_RHS) == 0) return(TRUE)
     all(idx_RHS %in% idx_LHS)
 }
 
@@ -223,13 +243,16 @@ recursiveReplaceIndex <- function(code, old_idx, new_idx){
 }
 
 # Replace all indices on both sides LHS/RHS
-replaceDeclarationIndexRanges <- function(code, new_idx_list){
+# ignoreIndexRanges, if provided, must be a list of quoted code
+# e.g. list(quote(1:n), quote(1:3))
+replaceDeclarationIndexRanges <- function(code, new_idx_list, ignoreIndexRanges = list()){
   LHS <- getLHS(code)
   RHS <- getRHS(code)
   op <- code[[1]]
-  if(!hasMatchingIndexRanges(LHS, RHS)) stop("Index ranges must match")
+  if(!hasMatchingIndexRanges(LHS, RHS, ignoreIndexRanges)) stop("Index ranges must match")
   idx <- extractAllIndices(LHS)
   idx <- idx[isIndexRange(idx)]
+  idx <- idx[! idx %in% ignoreIndexRanges]
   if(length(idx) == 0) return(code)
   nidx <- length(idx)
   for (i in 1:nidx){

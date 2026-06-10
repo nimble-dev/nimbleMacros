@@ -152,3 +152,31 @@ test_that("Blank index slot is ignored", {
   )
 })
 
+test_that("Remaining index ranges are ignored", {
+  # Index ranges could remain in loop code based on use of ignore argument
+  # make sure simplifyForLoops doesn't replace these with a new index
+  test <- nimbleCode({
+    for (i_1 in 1:n){
+      for (i_2 in 1:2){
+        y[i_1,i_2] <- sum(x[i_1,i_2,1:m])
+      }
+    }
+
+    for(i_1 in 1:n){
+      z[i_1] <- sum(a[1:3])
+    }
+  })
+
+  out <- simplifyForLoops(test)
+
+  expect_equal(out,
+    quote({
+    for (i in 1:n) {
+        for (j in 1:2) {
+            y[i, j] <- sum(x[i, j, 1:m])
+        }
+        z[i] <- sum(a[1:3])
+    }
+    })
+  )
+})

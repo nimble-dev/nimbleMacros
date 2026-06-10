@@ -8,6 +8,8 @@
 
 \item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
 
+\item{ignoreIndexRanges}{Index ranges to ignore when creating for loops; must be provided as a list of quoted code}
+
 \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
 }
 \value{
