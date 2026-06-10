@@ -31,7 +31,7 @@ FORLOOP <- nimble::buildMacro(
 function(code, modelInfo, ignore = list(), .env){
   # Super clunky way of extracting the ignore argument
   # seems to be necessary to do it this way given buildMacro options
-  ignore <- eval(code[[length(code)]]$ignore)
+  ignore <- eval(code[[length(code)]]$ignore, envir = .env)
   # necessary for when ignore is not explicitly included in arguments
   if(is.null(ignore)) ignore <- list()
   # get rid of any ignore stuff in code
