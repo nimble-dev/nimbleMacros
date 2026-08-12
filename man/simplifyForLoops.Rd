@@ -14,6 +14,9 @@ indices. The new indices must be quoted values (i.e., "names"/symbols).
 If NULL, letters starting with 'i' will be used. If FALSE, no indices will
 be replaced.}
 }
+\value{
+Model code with collapsed/simplified for loops and indices.
+}
 \description{
 Takes the code for a NIMBLE model and attempts to combine for loops
 that share the same index range, in order to simplify the code

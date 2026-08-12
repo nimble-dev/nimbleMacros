@@ -244,6 +244,8 @@ replaceForLoopIndex <- function(code, idx, newidx){
 #'  If NULL, letters starting with 'i' will be used. If FALSE, no indices will
 #'  be replaced.
 #'
+#' @return Model code with collapsed/simplified for loops and indices.
+#'
 #' @export
 simplifyForLoops <- function(code, new_indices = NULL){
   out <- collapseLoops(code)
