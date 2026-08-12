@@ -1,6 +1,6 @@
 Package: nimbleMacros
-Version: 0.1.1.9006
-Date: 2026-08-11
+Version: 0.1.1.9007
+Date: 2026-08-12
 Title: Macros Generating 'nimble' Code
 Authors@R: c(person("Ken", "Kellner", email="contact@kenkellner.com", 
                     role=c("cre","aut")),
@@ -23,4 +23,4 @@ URL: https://r-nimble.org
 BugReports: https://github.com/nimble-dev/nimbleMacros/issues
 Encoding: UTF-8
 VignetteBuilder: knitr
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0

@@ -5,16 +5,23 @@
 #' right-hand sides of a declaration and constructs a corresponding
 #' for loop or series of nested for loops.
 #'
+#' @section Usage:
+#' \code{FORLOOP(code, ignoreIndexRanges = list(), modelInfo, .env)}
+#'
+#' @section Arguments:
+#' \describe{
+#'  \item{code}{The right-hand side of a parameter declaration}
+#'  \item{ignoreIndexRanges}{Index ranges to ignore when creating for loops; must be provided as a list of quoted code}
+#'  \item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
+#'  \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
+#' }
+#'
+#' @section Value: 
+#' NIMBLE code for a for loop or series of nested for loops.
+#' 
 #' @name FORLOOP
 #'
 #' @author Ken Kellner and Perry de Valpine
-#'
-#' @param code The right-hand side of a parameter declaration
-#' @param modelInfo Used internally by nimbleMacros; a list of model information such as constants and dimensions
-#' @param ignoreIndexRanges Index ranges to ignore when creating for loops; must be provided as a list of quoted code
-#' @param .env Used internally by nimbleMacros; the environment where the model was created
-#'
-#' @return NIMBLE code for a for loop or series of nested for loops.
 #'
 #' @examples
 #' code <- nimbleCode({
@@ -28,7 +35,7 @@ NULL
 
 #' @export
 FORLOOP <- nimble::buildMacro(
-function(code, modelInfo, ignoreIndexRanges = list(), .env){
+function(code, ignoreIndexRanges = list(), modelInfo, .env){
   # Super clunky way of extracting the ignore argument
   # seems to be necessary to do it this way given buildMacro options
   ignore <- eval(code[[length(code)]]$ignoreIndexRanges, envir = .env)

@@ -3,24 +3,32 @@
 \name{FORLOOP}
 \alias{FORLOOP}
 \title{Macro to build for loop(s) from code with index ranges in brackets}
-\arguments{
-\item{code}{The right-hand side of a parameter declaration}
-
-\item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
-
-\item{ignoreIndexRanges}{Index ranges to ignore when creating for loops; must be provided as a list of quoted code}
-
-\item{.env}{Used internally by nimbleMacros; the environment where the model was created}
-}
-\value{
-NIMBLE code for a for loop or series of nested for loops.
-}
 \description{
 This macro takes a line of NIMBLE model code with index ranges inside brackets
 on either the left-hand side of a declaration or both the left- and
 right-hand sides of a declaration and constructs a corresponding
 for loop or series of nested for loops.
 }
+\section{Usage}{
+
+\code{FORLOOP(code, ignoreIndexRanges = list(), modelInfo, .env)}
+}
+
+\section{Arguments}{
+
+\describe{
+ \item{code}{The right-hand side of a parameter declaration}
+ \item{ignoreIndexRanges}{Index ranges to ignore when creating for loops; must be provided as a list of quoted code}
+ \item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
+ \item{.env}{Used internally by nimbleMacros; the environment where the model was created}
+}
+}
+
+\section{Value}{
+ 
+NIMBLE code for a for loop or series of nested for loops.
+}
+
 \examples{
 code <- nimbleCode({
    y[1:n, 1:2, 1] ~ FORLOOP(dnorm(mu[1:n], sigma))

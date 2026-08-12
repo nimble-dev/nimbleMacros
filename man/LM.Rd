@@ -3,42 +3,46 @@
 \name{LM}
 \alias{LM}
 \title{Macro for fitting linear models, GLMs, and GLMMs}
-\arguments{
-\item{formula}{An R formula, possibly with the parameters followed by 
-brackets containing indices. If there are no indices, the macro attempts
-to guess the correct indices from the context. Formulas can include
-random effects via lme4-style notation (e.g., \code{~ x + (1|group)})}
-
-\item{family}{A description of the error distribution and link function to
-be used in the model. This can be a character string naming a family function, 
-a family function or the result of a call to a family function. See \code{?family}.
-Supported families are \code{gaussian} (default), \code{binomial}, and \code{poisson}.}
-
-\item{coefPrefix}{Character. All model coefficient names will begin with this prefix.
-default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)}
-
-\item{sdPrefix}{Character. All dispersion parameters will begin with this prefix.
-default is no prefix.}
-
-\item{priors}{List of prior specifications, generated using 
-\code{setPriors()}.}
-
-\item{modelMatrixNames}{Logical indicating if parameters be named so they match the
-names one would get from R's \code{model.matrix}.}
-
-\item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
-
-\item{.env}{Used internally by nimbleMacros; the environment where the model was created}
-}
-\value{
-NIMBLE code for the linear model, GLM, or GLMM specified by the formula, including priors.
-}
 \description{
 This macro generates code for LMs, GLMs, and GLMMs using formula notation 
 and arguments similar to R functions such as \code{lm()}, \code{glm()},
 and \code{lmer()}/\code{glmer()}. 
 Currently only normal, Poisson, and binomial models are supported.
 }
+\section{Usage}{
+
+\code{LM(formula, family = NULL, coefPrefix = quote(beta_), sdPrefix = NULL,
+         priors = setPriors(), modelMatrixNames = FALSE, modelInfo, .env)}
+}
+
+\section{Arguments}{
+
+\describe{
+\item{formula}{An R formula, possibly with the parameters followed by 
+ brackets containing indices. If there are no indices, the macro attempts
+ to guess the correct indices from the context. Formulas can include
+ random effects via lme4-style notation (e.g., \code{~ x + (1|group)})}
+\item{family}{A description of the error distribution and link function to
+ be used in the model. This can be a character string naming a family function, 
+ a family function or the result of a call to a family function. See \code{?family}.
+ Supported families are \code{gaussian} (default), \code{binomial}, and \code{poisson}.}
+\item{coefPrefix}{Character. All model coefficient names will begin with this prefix.
+ default is \code{"beta_"} (so 'x' becomes 'beta_x', etc.)}
+\item{sdPrefix}{Character. All dispersion parameters will begin with this prefix.
+ default is no prefix.}
+\item{priors}{List of prior specifications, generated using \code{setPriors()}.}
+\item{modelMatrixNames}{Logical indicating if parameters be named so they match the
+ names one would get from R's \code{model.matrix}.}
+\item{modelInfo}{Used internally by nimbleMacros; a list of model information such as constants and dimensions}
+\item{.env}{Used internally by nimbleMacros; the environment where the model was created}
+}
+}
+
+\section{Value}{
+
+NIMBLE code for the linear model, GLM, or GLMM specified by the formula, including priors.
+}
+
 \examples{
 constants <- list(y = rnorm(10),
                   x = rnorm(10), 
