@@ -1,5 +1,5 @@
 Package: nimbleMacros
-Version: 0.1.2
+Version: 0.1.3
 Date: 2026-08-19
 Title: Macros Generating 'nimble' Code
 Authors@R: c(person("Ken", "Kellner", email="contact@kenkellner.com", 

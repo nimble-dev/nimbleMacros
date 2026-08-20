@@ -1,4 +1,4 @@
-# nimbleMacros 0.1.2
+# nimbleMacros 0.1.3
 
 * Add ignoreIndexRanges argument to FORLOOPS macro
 * Add simplifyForLoops function
